@@ -1,0 +1,46 @@
+<!-- public/upload.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cloudinary Image Upload Test</title>
+</head>
+<body>
+  <h2>Upload an Image to Cloudinary</h2>
+  <form id="uploadForm" enctype="multipart/form-data">
+    <input type="file" name="image" required />
+    <button type="submit">Upload</button>
+  </form>
+
+  <div id="result"></div>
+
+  <script>
+    const form = document.getElementById("uploadForm");
+    const result = document.getElementById("result");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(form);
+
+      const res = await fetch("/upload", {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await res.json();
+
+      if (data.imageUrl) {
+        result.innerHTML = `
+          <p>✅ Upload Successful!</p>
+          <img src="${data.imageUrl}" width="300"/>
+          <p>URL: <a href="${data.imageUrl}" target="_blank">${data.imageUrl}</a></p>
+        `;
+      } else {
+        result.innerHTML = `<p>❌ Upload failed. ${data.error}</p>`;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,18 +1,21 @@
-import express from 'express'
-import cors from 'cors'
-import 'dotenv/config'
+import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
+import uploadRouter from "./routes/index.js"; // ✅ Import the route
 
-//App config
-const app = express()
-const port = process.env.PORT || 3000
 
-//middlewares
-app.use(express.json())
-app.use(cors())
 
-//appi endpoints
-app.get('/',(req,res)=>{
-    res.send("API Working")
-})
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-app.listen(port,()=> console.log("server on port : " +port))
+const app = express();
+
+// Serve static frontend (upload.html)
+app.use(express.static(path.join(__dirname, "public")));
+
+// Use your upload route
+app.use("/", uploadRouter); // or app.use("/api", uploadRouter)
+
+app.listen(3000, () => {
+  console.log("✅ Server running on http://localhost:3000");
+});

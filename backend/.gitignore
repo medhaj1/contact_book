@@ -1,0 +1,29 @@
+# Node.js dependencies
+node_modules/
+
+# Environment variables (NEVER commit secrets!)
+.env
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor folders
+.vscode/
+.idea/
+
+# Build and temp
+dist/
+build/
+tmp/
+.cache/
+
+# Uploads (if storing locally, e.g., multer disk)
+uploads/
