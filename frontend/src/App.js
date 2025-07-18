@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
-import AuthModal from './components/auth/AuthModal';
+import AuthForm from './components/auth/AuthForm';
 
 const App = () => {
   const [currentView, setCurrentView] = useState('landing');
@@ -33,6 +33,14 @@ const App = () => {
     fontFamily: 'system-ui, -apple-system, sans-serif',
     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
   };
+  
+  const authContainerStyle = {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '100vh',
+    padding: '1rem',
+  };
 
   return (
     <div style={containerStyle}>
@@ -41,20 +49,25 @@ const App = () => {
       )}
       
       {currentView === 'login' && (
-        <AuthModal 
-          isLogin={true} 
-          onClose={() => setCurrentView('landing')}
-          onLogin={handleLogin}
-          onSwitchToRegister={() => setCurrentView('register')}
-        />
+        <div style={authContainerStyle}>
+          <AuthForm 
+            isLogin={true} 
+            onBack={() => setCurrentView('landing')}
+            onLogin={handleLogin}
+            onSwitch={() => setCurrentView('register')}
+          />
+        </div>
       )}
       
       {currentView === 'register' && (
-        <AuthModal 
-          isLogin={false} 
-          onClose={() => setCurrentView('landing')}
-          onSwitchToLogin={() => setCurrentView('login')}
-        />
+        <div style={authContainerStyle}>
+          <AuthForm 
+            isLogin={false} 
+            onBack={() => setCurrentView('landing')}
+            onLogin={handleLogin}
+            onSwitch={() => setCurrentView('login')}
+          />
+        </div>
       )}
       
       {currentView === 'dashboard' && (

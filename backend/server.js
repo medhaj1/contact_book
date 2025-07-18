@@ -1,21 +1,13 @@
 import express from "express";
-import path from "path";
-import { fileURLToPath } from "url";
-import uploadRouter from "./routes/index.js"; // ✅ Import the route
-
-
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import bodyParser from "body-parser";
+import userRoutes from "./routes/userRoutes.js";
+import contactRoutes from "./routes/contactRoutes.js";
 
 const app = express();
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static("public"));
 
-// Serve static frontend (upload.html)
-app.use(express.static(path.join(__dirname, "public")));
+app.use("/users", userRoutes);
+app.use("/contacts", contactRoutes);
 
-// Use your upload route
-app.use("/", uploadRouter); // or app.use("/api", uploadRouter)
-
-app.listen(3000, () => {
-  console.log("✅ Server running on http://localhost:3000");
-});
+app.listen(3000, () => console.log("Server running on port 3000"));

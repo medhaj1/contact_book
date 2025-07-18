@@ -1,18 +1,34 @@
 import React, { useState } from 'react';
-import { User, Phone, Mail, Search, Plus, Edit2, Trash2, Users, BookOpen, Settings, LogOut } from 'lucide-react';
+import { User, Phone, Mail, Search, Plus, Edit2, Trash2, Users, BookOpen, Settings, LogOut, Camera, X } from 'lucide-react';
 
-// Mock ContactForm component
+// Mock ContactForm component with image support
 const ContactForm = ({ contact, categories, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     name: contact?.name || '',
     email: contact?.email || '',
     phone: contact?.phone || '',
-    category_id: contact?.category_id || categories[0]?.category_id || 1
+    category_id: contact?.category_id || categories[0]?.category_id || 1,
+    image: contact?.image || null
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
     onSave(formData);
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setFormData({...formData, image: event.target.result});
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setFormData({...formData, image: null});
   };
 
   return (
@@ -33,12 +49,92 @@ const ContactForm = ({ contact, categories, onSave, onCancel }) => {
         padding: '2rem',
         borderRadius: '12px',
         width: '400px',
+        maxHeight: '90vh',
+        overflowY: 'auto',
         boxShadow: '0 10px 40px rgba(0,0,0,0.1)'
       }}>
         <h3 style={{ marginBottom: '1.5rem', color: '#334155' }}>
           {contact ? 'Edit Contact' : 'Add New Contact'}
         </h3>
         <form onSubmit={handleSubmit}>
+          {/* Image Upload Section */}
+          <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
+            <div style={{
+              width: '100px',
+              height: '100px',
+              margin: '0 auto 1rem',
+              borderRadius: '50%',
+              backgroundColor: '#f1f5f9',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+              overflow: 'hidden',
+              border: '2px dashed #cbd5e1'
+            }}>
+              {formData.image ? (
+                <>
+                  <img 
+                    src={formData.image} 
+                    alt="Contact" 
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    style={{
+                      position: 'absolute',
+                      top: '5px',
+                      right: '5px',
+                      background: 'rgba(220, 38, 38, 0.8)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '24px',
+                      height: '24px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                  >
+                    <X size={12} />
+                  </button>
+                </>
+              ) : (
+                <Camera size={32} color="#94a3b8" />
+              )}
+            </div>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              style={{ display: 'none' }}
+              id="image-upload"
+            />
+            <label
+              htmlFor="image-upload"
+              style={{
+                display: 'inline-block',
+                padding: '0.5rem 1rem',
+                backgroundColor: '#f8fafc',
+                color: '#64748b',
+                border: '1px solid #e2e8f0',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: '500'
+              }}
+            >
+              {formData.image ? 'Change Photo' : 'Add Photo'}
+            </label>
+          </div>
+
           <div style={{ marginBottom: '1rem' }}>
             <input
               type="text"
@@ -251,7 +347,8 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
       email: 'alice@example.com',
       phone: '+1 (555) 123-4567',
       category_id: 1,
-      user_id: currentUser.user_id
+      user_id: currentUser.user_id,
+      image: null
     },
     {
       contact_id: 2,
@@ -259,7 +356,8 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
       email: 'bob@company.com',
       phone: '+1 (555) 234-5678',
       category_id: 3,
-      user_id: currentUser.user_id
+      user_id: currentUser.user_id,
+      image: null
     },
     {
       contact_id: 3,
@@ -267,7 +365,8 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
       email: 'carol@example.com',
       phone: '+1 (555) 345-6789',
       category_id: 2,
-      user_id: currentUser.user_id
+      user_id: currentUser.user_id,
+      image: null
     }
   ]);
 
@@ -435,6 +534,29 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
       justifyContent: 'space-between',
       alignItems: 'flex-start',
       marginBottom: '1rem',
+    },
+    contactAvatar: {
+      width: '48px',
+      height: '48px',
+      borderRadius: '50%',
+      backgroundColor: '#e0f2fe',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: '#0369a1',
+      fontWeight: '600',
+      fontSize: '1.125rem',
+      marginRight: '1rem',
+      flexShrink: 0,
+      overflow: 'hidden'
+    },
+    contactMainInfo: {
+      display: 'flex',
+      alignItems: 'center',
+      marginBottom: '1rem',
+    },
+    contactDetails: {
+      flex: 1,
     },
     contactName: {
       fontSize: '1.125rem',
@@ -679,8 +801,23 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
                       e.currentTarget.style.transform = 'translateY(0)';
                     }}
                   >
-                    <div style={styles.contactHeader}>
-                      <div>
+                    <div style={styles.contactMainInfo}>
+                      <div style={styles.contactAvatar}>
+                        {contact.image ? (
+                          <img 
+                            src={contact.image} 
+                            alt={contact.name}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover'
+                            }}
+                          />
+                        ) : (
+                          contact.name.charAt(0).toUpperCase()
+                        )}
+                      </div>
+                      <div style={styles.contactDetails}>
                         <h3 style={styles.contactName}>{contact.name}</h3>
                         <span style={styles.contactCategory}>
                           {getCategoryName(contact.category_id)}
