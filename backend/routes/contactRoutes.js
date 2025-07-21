@@ -10,13 +10,13 @@ const upload = multer({ storage: multer.memoryStorage() });
  */
 router.post("/", upload.single("photo"), async (req, res) => {
   try {
-    const { name, email, phone, userId } = req.body;
+    const { name, email, phone, user_id } = req.body;
     let photoUrl = null;
 
     if (req.file) {
       const ext = req.file.originalname.split(".").pop();
-      const fileName = `${Date.now()}.${ext}`;
-      const filePath = `users/${userId}/${fileName}`;
+      const fileName = `${name}.${ext}`;
+      const filePath = `users/${user_id}/${name}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("contact-images")
@@ -35,15 +35,17 @@ router.post("/", upload.single("photo"), async (req, res) => {
       photoUrl = publicData.publicUrl;
     }
 
-    const { error: insertError } = await supabase
-      .from("contacts")
-      .insert([{ name, email, phone, photo_url: photoUrl, user_id: userId }]);
+    const { data:insertData, error: insertError } = await supabase
+      .from("contact")
+      .insert([{ name, email, phone, photo_url: photoUrl, user_id: user_id }])
+      .select()
+      .single();
 
     if (insertError) {
       return res.status(500).json({ error: "Failed to add contact", details: insertError.message });
     }
 
-    res.status(201).json({ message: "Contact added successfully." });
+    res.status(201).json({ message: "Contact added successfully.",data:insertData });
   } catch (err) {
     console.error("Add Contact Error:", err.message);
     res.status(500).json({ error: "Server error" });
@@ -57,10 +59,10 @@ router.get("/:userId", async (req, res) => {
   const { userId } = req.params;
 
   const { data, error } = await supabase
-    .from("contacts")
+    .from("contact")
     .select("*")
     .eq("user_id", userId)
-    .order("id", { ascending: false });
+    .order("contact_id", { ascending: false });
 
   if (error) {
     return res.status(500).json({ error: "Failed to fetch contacts", details: error.message });
@@ -75,13 +77,50 @@ router.get("/:userId", async (req, res) => {
 router.put("/:id", upload.single("photo"), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, phone, userId } = req.body;
+    const { name, email, phone, user_id } = req.body;
     let photoUrl = null;
 
     if (req.file) {
+
+    const { data: oldContact, error: fetchError } = await supabase
+    .from("contact")
+    .select("photo_url")
+    .eq("contact_id", id)
+    .eq("user_id", user_id)
+    .single();
+
+    if (fetchError) {
+    return res.status(500).json({ error: "Failed to fetch old contact", details: fetchError.message });
+    }
+
+      // 👇 Delete old photo if exists
+    console.log(oldContact)
+    if (oldContact?.photo_url) {
+    const fullPath = new URL(oldContact.photo_url).pathname; // gives /storage/v1/object/public/contact-images/users/1/Virat%20Kohli/Virat%20Kohli.jpg
+    const pathToDelete = decodeURIComponent(
+       fullPath.replace("/storage/v1/object/public/contact-images/", "")
+      );
+    console.log("Old photo path to delete:", pathToDelete);
+
+
+    if (pathToDelete) {
+      const { error: deleteOldError } = await supabase.storage
+        .from("contact-images")
+        .remove([pathToDelete]);
+
+      if (deleteOldError) {
+        console.warn("Failed to delete old image:", deleteOldError.message);
+      }
+      else{
+        console.log("Old image deleted successfully")
+      }
+    }
+  }
+
+
       const ext = req.file.originalname.split(".").pop();
-      const fileName = `${Date.now()}.${ext}`;
-      const filePath = `users/${userId}/${fileName}`;
+      const fileName = `${name}-${Date.now()}.${ext}`;
+      const filePath = `users/${user_id}/${name}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("contact-images")
@@ -107,21 +146,30 @@ router.put("/:id", upload.single("photo"), async (req, res) => {
     };
     if (photoUrl) updateFields.photo_url = photoUrl;
 
-    const { error: updateError } = await supabase
-      .from("contacts")
+    const { data:updatedData,error: updateError } = await supabase
+      .from("contact")
       .update(updateFields)
-      .eq("id", id)
-      .eq("user_id", userId);
+      .eq("contact_id", id)
+      .eq("user_id", user_id)
+      .select()
+      .single();
 
     if (updateError) {
       return res.status(500).json({ error: "Update failed", details: updateError.message });
     }
 
-    res.status(200).json({ message: "Contact updated successfully." });
+    res.status(200).json({ message: "Contact updated successfully.",data:updatedData });
   } catch (err) {
     console.error("Update Error:", err.message);
     res.status(500).json({ error: "Server error" });
   }
+
+    const { data: remaining } = await supabase
+  .storage
+  .from("contact-images")
+  .list(`users/1/Virat Kohli/`);
+
+console.log("Remaining files:", remaining);
 });
 
 /**
@@ -130,16 +178,48 @@ router.put("/:id", upload.single("photo"), async (req, res) => {
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;
 
-  const { error } = await supabase
-    .from("contacts")
-    .delete()
-    .eq("id", id);
+  // Fetch contact to get photo URL
+  const { data: contactData, error: fetchError } = await supabase
+    .from("contact")
+    .select("photo_url")
+    .eq("contact_id", id)
+    .single();
 
-  if (error) {
-    return res.status(500).json({ error: "Delete failed", details: error.message });
+  if (fetchError) {
+    return res.status(500).json({ error: "Failed to fetch contact", details: fetchError.message });
   }
 
-  res.status(200).json({ message: "Contact deleted successfully." });
+  // If contact had a photo, delete it from Supabase storage
+  if (contactData?.photo_url) {
+        const fullPath = new URL(contactData.photo_url).pathname; // gives /storage/v1/object/public/contact-images/users/1/Virat%20Kohli/Virat%20Kohli.jpg
+        const pathToDelete = decodeURIComponent(
+        fullPath.replace("/storage/v1/object/public/contact-images/", "")
+      );
+    console.log("Old photo path to delete:", pathToDelete);
+
+    if (pathToDelete) {
+      const { error: deleteError } = await supabase.storage
+        .from("contact-images")
+        .remove([pathToDelete]);
+
+      if (deleteError) {
+        console.warn("Failed to delete image:", deleteError.message);
+      }
+    }
+  }
+
+  // Delete contact from DB
+  const { error: deleteDbError } = await supabase
+    .from("contact")
+    .delete()
+    .eq("contact_id", id);
+
+  if (deleteDbError) {
+    return res.status(500).json({ error: "Delete failed", details: deleteDbError.message });
+  }
+
+  res.status(200).json({ message: "Contact and image deleted successfully." });
 });
+
 
 export default router;

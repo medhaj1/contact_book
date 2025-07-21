@@ -193,7 +193,7 @@ export default function AuthForm({ isLogin: initialIsLogin = true, onLogin, onBa
 }
 
 const styles = {
-  page: {
+ page: {
     position: "fixed",       // Makes the container always fill the viewport
     top: 0,
     left: 0,
