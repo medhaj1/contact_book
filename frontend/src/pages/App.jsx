@@ -1,15 +1,23 @@
 import React, { useState } from 'react';
-import SignIn from './components/SignIn';
-import SignUp from './components/SignUp';
+import SignIn from '../components/signin/SignIn';
+import SignUp from '../components/signup/SignUp';
 
-function App() {
-  const [isSignUp, setIsSignUp] = useState(false);
+const App = () => {
+  const [showSignUp, setShowSignUp] = useState(false);
 
-  return isSignUp ? (
-    <SignUp onSwitch={() => setIsSignUp(false)} />
-  ) : (
-    <SignIn onSwitch={() => setIsSignUp(true)} />
+  const toggleForm = () => setShowSignUp(prev => !prev);
+
+  return (
+    <div>
+      {showSignUp ? (
+        <SignUp toggleForm={toggleForm} />
+      ) : (
+        <SignIn toggleForm={toggleForm} />
+      )}
+    </div>
   );
-}
+};
 
 export default App;
+
+
