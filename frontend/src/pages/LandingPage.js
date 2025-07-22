@@ -1,6 +1,9 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
-const LandingPage = ({ onGetStarted }) => {
+const LandingPage = () => {
+  const navigate = useNavigate();
+
   const styles = {
     landingPage: {
       display: 'flex',
@@ -8,7 +11,7 @@ const LandingPage = ({ onGetStarted }) => {
       justifyContent: 'center',
       minHeight: '100vh',
       padding: '2rem',
-      background: 'linear-gradient(to right, #e0f7fa, #ffffff)', // light blue to white
+      background: 'linear-gradient(to right, #e0f7fa, #ffffff)',
     },
     hero: {
       textAlign: 'center',
@@ -36,7 +39,6 @@ const LandingPage = ({ onGetStarted }) => {
       cursor: 'pointer',
       boxShadow: '0 6px 20px rgba(25, 118, 210, 0.3)',
       transition: 'all 0.3s ease',
-      transform: 'translateY(0)',
     },
     features: {
       display: 'grid',
@@ -69,6 +71,11 @@ const LandingPage = ({ onGetStarted }) => {
     },
   };
 
+  const handleGetStarted = () => {
+    console.log('➡️ Navigating to /signin');
+    navigate('/signin');
+  };
+
   return (
     <div style={styles.landingPage}>
       <div style={styles.hero}>
@@ -76,8 +83,10 @@ const LandingPage = ({ onGetStarted }) => {
         <p style={styles.heroSubtitle}>
           Organize your contacts beautifully. Connect with people that matter.
         </p>
-        <button 
+
+        <button
           style={styles.ctaButton}
+          onClick={handleGetStarted}
           onMouseEnter={(e) => {
             e.target.style.transform = 'translateY(-2px)';
             e.target.style.boxShadow = '0 12px 35px rgba(25,118,210,0.4)';
@@ -86,7 +95,6 @@ const LandingPage = ({ onGetStarted }) => {
             e.target.style.transform = 'translateY(0)';
             e.target.style.boxShadow = '0 6px 20px rgba(25,118,210,0.3)';
           }}
-          onClick={onGetStarted}
         >
           Get Started
         </button>
