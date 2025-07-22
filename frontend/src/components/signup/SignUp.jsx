@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
+import { supabase } from '../../supabaseClient';
+import { useNavigate, Link } from 'react-router-dom';
 
-const SignUp = ({ toggleForm, onBack }) => {
+const SignUp = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
     contact: '',
@@ -13,9 +16,34 @@ const SignUp = ({ toggleForm, onBack }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Sign up data:', formData);
+    const { name, contact, email, password, confirmPassword } = formData;
+
+    if (password !== confirmPassword) {
+      alert('Passwords do not match.');
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name, contact },
+        },
+      });
+
+      if (error) {
+        alert(error.message);
+      } else {
+        alert('Sign-up successful! Please check your email to confirm your account.');
+        navigate('/signin'); // redirect to signin
+      }
+    } catch (err) {
+      console.error('Signup error:', err);
+      alert('Something went wrong. Please try again.');
+    }
   };
 
   const styles = {
@@ -24,7 +52,7 @@ const SignUp = ({ toggleForm, onBack }) => {
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      background: 'linear-gradient(to right, #cffafe, #ffffff)', // light cyan to white
+      background: 'linear-gradient(to right, #cffafe, #ffffff)',
       padding: '20px',
     },
     form: {
@@ -69,10 +97,9 @@ const SignUp = ({ toggleForm, onBack }) => {
       textAlign: 'center',
       fontSize: '14px',
     },
-    switchLink: {
+    link: {
       color: '#6a0dad',
       fontWeight: 'bold',
-      cursor: 'pointer',
       textDecoration: 'underline',
     },
     backButton: {
@@ -91,11 +118,12 @@ const SignUp = ({ toggleForm, onBack }) => {
 
   return (
     <div style={styles.container}>
-      {onBack && (
-        <button style={styles.backButton} onClick={onBack}>
-          Back
-        </button>
-      )}
+      <button 
+        style={styles.backButton} 
+        onClick={() => navigate('/')}
+      >
+        Back
+      </button>
       <form style={styles.form} onSubmit={handleSubmit}>
         <div style={styles.title}>Create Account</div>
         <input
@@ -115,7 +143,7 @@ const SignUp = ({ toggleForm, onBack }) => {
           style={styles.input}
         />
         <input
-          type="text"
+          type="email"
           name="email"
           placeholder="Email Address"
           value={formData.email}
@@ -123,7 +151,7 @@ const SignUp = ({ toggleForm, onBack }) => {
           style={styles.input}
         />
         <input
-          type="text"
+          type="password"
           name="password"
           placeholder="Create Password"
           value={formData.password}
@@ -131,7 +159,7 @@ const SignUp = ({ toggleForm, onBack }) => {
           style={styles.input}
         />
         <input
-          type="text"
+          type="password"
           name="confirmPassword"
           placeholder="Confirm Password"
           value={formData.confirmPassword}
@@ -139,9 +167,10 @@ const SignUp = ({ toggleForm, onBack }) => {
           style={styles.input}
         />
         <button type="submit" style={styles.button}>Sign Up</button>
+
         <div style={styles.switchText}>
           Already have an account?{' '}
-          <span style={styles.switchLink} onClick={toggleForm}>Sign In</span>
+          <Link to="/signin" style={styles.link}>Sign In</Link>
         </div>
       </form>
     </div>

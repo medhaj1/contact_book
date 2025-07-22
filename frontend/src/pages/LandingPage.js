@@ -1,6 +1,13 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
-const LandingPage = ({ onGetStarted }) => {
+const LandingPage = () => {
+  const navigate = useNavigate();
+
+  const handleGetStarted = () => {
+    navigate('/signin');
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen px-8 bg-gradient-to-r from-cyan-100 to-white">
       <div className="text-center max-w-3xl text-gray-800">
@@ -9,7 +16,7 @@ const LandingPage = ({ onGetStarted }) => {
           Organize your contacts beautifully. Connect with people that matter.
         </p>
         <button
-          onClick={onGetStarted}
+          onClick={handleGetStarted}
           className="bg-gradient-to-r from-blue-700 to-blue-400 text-white border-none px-8 py-4 text-lg rounded-full cursor-pointer shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
         >
           Get Started
