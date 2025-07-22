@@ -10,15 +10,7 @@ const LandingPage = ({ onGetStarted }) => {
         </p>
         <button
           onClick={onGetStarted}
-          onMouseEnter={(e) => {
-            e.target.style.transform = 'translateY(-2px)';
-            e.target.style.boxShadow = '0 12px 35px rgba(25,118,210,0.4)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = '0 6px 20px rgba(25,118,210,0.3)';
-          }}
-          className="bg-gradient-to-r from-blue-700 to-blue-400 text-white border-none px-8 py-4 text-lg rounded-full cursor-pointer shadow-lg transition-all duration-300"
+          className="bg-gradient-to-r from-blue-700 to-blue-400 text-white border-none px-8 py-4 text-lg rounded-full cursor-pointer shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
         >
           Get Started
         </button>

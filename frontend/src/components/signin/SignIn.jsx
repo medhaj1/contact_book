@@ -1,6 +1,25 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-const SignIn = ({ toggleForm }) => {
+const SignIn = ({ toggleForm, onLogin, onBack }) => {
+  const [credentials, setCredentials] = useState({
+    email: '',
+    password: ''
+  });
+
+  const handleChange = (e) => {
+    setCredentials({
+      ...credentials,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (onLogin) {
+      onLogin(credentials.email, credentials.password);
+    }
+  };
+
   const styles = {
     container: {
       height: '100vh',
@@ -8,10 +27,11 @@ const SignIn = ({ toggleForm }) => {
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
+      position: 'relative',
     },
     formBox: {
       background: '#fff',
-      padding: '50px 40px', // increased padding for better spacing
+      padding: '50px 40px',
       borderRadius: '15px',
       boxShadow: '0 8px 30px rgba(0, 0, 0, 0.1)',
       width: '100%',
@@ -31,6 +51,7 @@ const SignIn = ({ toggleForm }) => {
       borderRadius: '8px',
       border: '1px solid #ccc',
       fontSize: '14px',
+      boxSizing: 'border-box',
     },
     button: {
       width: '100%',
@@ -54,17 +75,52 @@ const SignIn = ({ toggleForm }) => {
       marginLeft: '5px',
       cursor: 'pointer',
     },
+    backButton: {
+      position: 'absolute',
+      top: '20px',
+      left: '20px',
+      padding: '10px 15px',
+      background: '#f0f0f0',
+      borderRadius: '8px',
+      border: 'none',
+      cursor: 'pointer',
+      fontWeight: '500',
+      boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+    }
   };
 
   return (
     <div style={styles.container}>
+      {onBack && (
+        <button style={styles.backButton} onClick={onBack}>
+          Back
+        </button>
+      )}
       <div style={styles.formBox}>
         <h2 style={styles.heading}>Sign In</h2>
-        <input type="email" placeholder="Email" style={styles.input} />
-        <input type="password" placeholder="Password" style={styles.input} />
-        <button style={styles.button}>Sign In</button>
+        <form onSubmit={handleSubmit}>
+          <input 
+            type="email" 
+            name="email"
+            placeholder="Email" 
+            style={styles.input}
+            value={credentials.email}
+            onChange={handleChange} 
+            required
+          />
+          <input 
+            type="password"
+            name="password" 
+            placeholder="Password" 
+            style={styles.input}
+            value={credentials.password}
+            onChange={handleChange}
+            required
+          />
+          <button type="submit" style={styles.button}>Sign In</button>
+        </form>
         <p style={styles.switchText}>
-          Don’t have an account?
+          Don't have an account?
           <span style={styles.link} onClick={toggleForm}> Sign Up</span>
         </p>
       </div>
@@ -73,4 +129,3 @@ const SignIn = ({ toggleForm }) => {
 };
 
 export default SignIn;
-

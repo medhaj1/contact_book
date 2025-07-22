@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
-import AuthForm from './components/auth/AuthForm';
+import SignIn from './components/signin/SignIn';
+import SignUp from './components/signup/SignUp';
 import UserProfile from './pages/UserProfile';
 
 const App = () => {
@@ -36,25 +37,18 @@ const App = () => {
       )}
       
       {currentView === 'login' && (
-        <div className="flex justify-center items-center min-h-screen p-4">
-          <AuthForm 
-            isLogin={true} 
-            onBack={() => setCurrentView('landing')}
-            onLogin={handleLogin}
-            onSwitch={() => setCurrentView('register')}
-          />
-        </div>
+        <SignIn 
+          toggleForm={() => setCurrentView('register')}
+          onLogin={handleLogin}
+          onBack={() => setCurrentView('landing')}
+        />
       )}
       
       {currentView === 'register' && (
-        <div className="flex justify-center items-center min-h-screen p-4">
-          <AuthForm 
-            isLogin={false} 
-            onBack={() => setCurrentView('landing')}
-            onLogin={handleLogin}
-            onSwitch={() => setCurrentView('login')}
-          />
-        </div>
+        <SignUp 
+          toggleForm={() => setCurrentView('login')}
+          onBack={() => setCurrentView('landing')}
+        />
       )}
       
       {currentView === 'dashboard' && (

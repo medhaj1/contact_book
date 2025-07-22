@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const SignUp = ({ toggleForm }) => {
+const SignUp = ({ toggleForm, onBack }) => {
   const [formData, setFormData] = useState({
     name: '',
     contact: '',
@@ -75,10 +75,27 @@ const SignUp = ({ toggleForm }) => {
       cursor: 'pointer',
       textDecoration: 'underline',
     },
+    backButton: {
+      position: 'absolute',
+      top: '20px',
+      left: '20px',
+      padding: '10px 15px',
+      background: '#f0f0f0',
+      borderRadius: '8px',
+      border: 'none',
+      cursor: 'pointer',
+      fontWeight: '500',
+      boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+    }
   };
 
   return (
     <div style={styles.container}>
+      {onBack && (
+        <button style={styles.backButton} onClick={onBack}>
+          Back
+        </button>
+      )}
       <form style={styles.form} onSubmit={handleSubmit}>
         <div style={styles.title}>Create Account</div>
         <input
