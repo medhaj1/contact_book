@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
 import AuthForm from './components/auth/AuthForm';
+import UserProfile from './pages/UserProfile';
 
 const App = () => {
   const [currentView, setCurrentView] = useState('landing');
@@ -28,28 +29,14 @@ const App = () => {
     setCurrentView('landing');
   };
 
-  const containerStyle = {
-    minHeight: '100vh',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-  };
-  
-  const authContainerStyle = {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '100vh',
-    padding: '1rem',
-  };
-
   return (
-    <div style={containerStyle}>
+    <div className="min-h-screen font-sans bg-gradient-to-br from-indigo-400 to-purple-600">
       {currentView === 'landing' && (
         <LandingPage onGetStarted={() => setCurrentView('login')} />
       )}
       
       {currentView === 'login' && (
-        <div style={authContainerStyle}>
+        <div className="flex justify-center items-center min-h-screen p-4">
           <AuthForm 
             isLogin={true} 
             onBack={() => setCurrentView('landing')}
@@ -60,7 +47,7 @@ const App = () => {
       )}
       
       {currentView === 'register' && (
-        <div style={authContainerStyle}>
+        <div className="flex justify-center items-center min-h-screen p-4">
           <AuthForm 
             isLogin={false} 
             onBack={() => setCurrentView('landing')}
@@ -73,6 +60,15 @@ const App = () => {
       {currentView === 'dashboard' && (
         <Dashboard 
           currentUser={currentUser}
+          onLogout={handleLogout}
+          onProfileClick={() => setCurrentView('profile')}
+        />
+      )}
+      
+      {currentView === 'profile' && (
+        <UserProfile 
+          currentUser={currentUser}
+          onBack={() => setCurrentView('dashboard')}
           onLogout={handleLogout}
         />
       )}
