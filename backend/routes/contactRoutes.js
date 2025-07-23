@@ -116,8 +116,6 @@ router.put("/:id", upload.single("photo"), async (req, res) => {
       }
     }
   }
-
-
       const ext = req.file.originalname.split(".").pop();
       const fileName = `${name}-${Date.now()}.${ext}`;
       const filePath = `users/${user_id}/${name}/${fileName}`;
