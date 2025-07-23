@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { User, Phone, Mail, Search, Plus, Edit2, Trash2, Users, BookOpen, Settings, LogOut, Camera, X } from 'lucide-react';
 
 // Mock ContactForm component with image support
@@ -339,7 +340,8 @@ const CategoryForm = ({ onSave, onCancel }) => {
   );
 };
 
-const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@example.com' }, onLogout = () => {}, onProfileClick = () => {} }) => {
+const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@example.com' }, onLogout = () => {} }) => {
+  const navigate = useNavigate();
   const [contacts, setContacts] = useState([
     {
       contact_id: 1,
@@ -469,7 +471,7 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
     <div className="mt-auto border-t pt-4">
       <div
         className="flex items-center px-4 py-2 rounded-lg cursor-pointer text-slate-500 hover:bg-blue-50 hover:text-sky-700 text-sm font-medium"
-        onClick={onProfileClick}
+        onClick={() => navigate('/profile')}
       >
         <User size={18} className="mr-3" />
         Profile

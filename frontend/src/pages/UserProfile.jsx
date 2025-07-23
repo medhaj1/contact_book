@@ -1,17 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { FiEdit2, FiLogOut, FiKey, FiArrowLeft } from "react-icons/fi";
-import { MdEmail, MdLocationOn, MdPhone, MdPerson, MdLock } from "react-icons/md";
+import { MdEmail, MdPhone, MdPerson, MdLock } from "react-icons/md";
 import ProfileAvatar from "../components/profile/ProfileAvatar";
+import {supabase} from "../supabaseClient";
 
-const UserProfile = ({ currentUser, onBack, onLogout }) => {
+const UserProfile = ({ currentUser, onLogout }) => {
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [userData, setUserData] = useState({
-    name: currentUser?.name || "Veena Gauns",
-    email: currentUser?.email || "veena@gmail.com",
-    phone: "7350678596",
-    address: "Goa, India",
-    photo: null,
+    name: currentUser?.name,
+    email: currentUser?.email || "No email provided",
+    phone: currentUser?.user_metadata?.contact || currentUser?.phone || "Not provided",
+    photo: currentUser?.user_metadata?.avatar_url || null,
     password: "dummy123",
   });
 
@@ -21,12 +23,88 @@ const UserProfile = ({ currentUser, onBack, onLogout }) => {
     confirmNew: "",
   });
 
-  const handlePhotoChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setUserData({ ...userData, photo: URL.createObjectURL(file) });
+  // Update userData when currentUser changes
+  useEffect(() => {
+    if (currentUser) {
+      setUserData({
+        name: currentUser?.user_metadata?.name || currentUser?.email?.split('@')[0] || "User",
+        email: currentUser?.email || "No email provided",
+        phone: currentUser?.user_metadata?.contact || currentUser?.phone || "Not provided",
+        photo: currentUser?.user_metadata?.image || null,
+        password: "dummy123",
+      });
     }
-  };
+  }, [currentUser]);
+
+  const handlePhotoChange = async (e) => {
+  const file = e.target.files[0];
+  if (!file || !currentUser) return;
+
+  const userName = userData.name.replace(/\s+/g, "_") || "user";
+  const folderPath = `users/${userName}`;
+
+  const fileExt = file.name.split('.').pop();
+  const uniqueFileName = `${userName}-${Date.now()}.${fileExt}`;
+  const filePath = `${folderPath}/${uniqueFileName}`;
+
+  try {
+    // 1. Fetch old photo path from metadata (if exists)
+    const oldUrl = currentUser?.user_metadata?.image;
+    let oldPath = null;
+
+    if (oldUrl) {
+      const fullPath = new URL(oldUrl).pathname; // e.g. /storage/v1/object/public/user-images/users/Name/file.jpg
+      oldPath = decodeURIComponent(fullPath.replace("/storage/v1/object/public/user-images/", ""));
+    }
+
+    // 2. Upload new image to Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from("user-images")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: file.type,
+      });
+
+    if (uploadError) throw new Error("Upload failed: " + uploadError.message);
+
+    // 3. Get public URL of uploaded image
+    const { data: publicData } = supabase.storage
+      .from("user-images")
+      .getPublicUrl(filePath);
+
+    const newPhotoUrl = publicData.publicUrl;
+
+    // 4. Delete old image (if any)
+    if (oldPath) {
+      const { error: deleteError } = await supabase.storage
+        .from("user-images")
+        .remove([oldPath]);
+      
+      if (deleteError) {
+        console.warn("Failed to delete old image:", deleteError.message);
+      } else {
+        console.log("Old image deleted:", oldPath);
+      }
+    }
+
+    // 5. Update Supabase Auth user metadata
+    const { error: updateError } = await supabase.auth.updateUser({
+      data: {image: newPhotoUrl },
+    });
+
+    if (updateError) throw new Error("Failed to update metadata: " + updateError.message);
+
+    // 6. Update UI
+    setUserData((prev) => ({ ...prev, photo: newPhotoUrl }));
+    alert("Profile picture updated!");
+
+  } catch (error) {
+    console.error("Image upload error:", error.message);
+    alert("Error updating profile picture.");
+  }
+};
+
 
   const handleEditToggle = () => setIsEditing(!isEditing);
 
@@ -76,7 +154,7 @@ const UserProfile = ({ currentUser, onBack, onLogout }) => {
         {/* Header with back button */}
         <div className="flex items-center justify-between mb-8">
           <button
-            onClick={onBack}
+            onClick={() => navigate('/dashboard')}
             className="flex items-center gap-2 px-4 py-3 text-sky-600 hover:text-sky-800 bg-transparent border-none cursor-pointer rounded-lg text-sm font-medium transition-colors duration-200"
           >
             <FiArrowLeft />
@@ -111,7 +189,6 @@ const UserProfile = ({ currentUser, onBack, onLogout }) => {
               {userData.name}
             </h2>
             <p className="text-gray-600 text-base my-1">{userData.email}</p>
-            <p className="text-gray-500 text-sm my-1">{userData.address}</p>
           </div>
 
           <div className="flex flex-col gap-3 flex-1 min-w-96">
@@ -143,18 +220,6 @@ const UserProfile = ({ currentUser, onBack, onLogout }) => {
               <input
                 name="phone"
                 value={userData.phone}
-                onChange={handleChange}
-                className={`w-full border border-gray-300 p-2 rounded-md text-base outline-none ${
-                  isEditing ? 'bg-white' : 'bg-gray-50'
-                }`}
-                disabled={!isEditing}
-              />
-            </Detail>
-
-            <Detail label="Address" icon={<MdLocationOn />} isEditing={isEditing}>
-              <input
-                name="address"
-                value={userData.address}
                 onChange={handleChange}
                 className={`w-full border border-gray-300 p-2 rounded-md text-base outline-none ${
                   isEditing ? 'bg-white' : 'bg-gray-50'
@@ -235,6 +300,20 @@ const UserProfile = ({ currentUser, onBack, onLogout }) => {
               </button>
             </div>
           </div>
+
+          {/* Debug Section (Development Only) */}
+          {process.env.NODE_ENV === 'development' && currentUser && (
+            <div className="mt-8 p-4 bg-gray-100 rounded-lg">
+              <details className="cursor-pointer">
+                <summary className="text-sm font-medium text-gray-600 mb-2">
+                  Debug: Raw User Data (Development Only)
+                </summary>
+                <pre className="text-xs bg-white p-3 rounded border overflow-auto max-h-40">
+                  {JSON.stringify(currentUser, null, 2)}
+                </pre>
+              </details>
+            </div>
+          )}
         </div>
       </div>
     </div>

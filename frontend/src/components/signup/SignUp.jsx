@@ -26,24 +26,43 @@ const SignUp = () => {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { name, contact },
-        },
-      });
+  const {
+    data: { user },
+    error: signUpError,
+  } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { name, contact },
+    },
+  });
 
-      if (error) {
-        alert(error.message);
-      } else {
-        alert('Sign-up successful! Please check your email to confirm your account.');
-        navigate('/signin'); // redirect to signin
-      }
-    } catch (err) {
-      console.error('Signup error:', err);
-      alert('Something went wrong. Please try again.');
-    }
+  if (signUpError) {
+    alert(signUpError.message);
+    return;
+  }
+
+  // Insert into user_profile
+  const { error: profileError } = await supabase.from('user_profile').insert({
+    u_id: user.id,
+    name,
+    email,
+    phone: contact,
+    image: null, // Optional now, editable later
+  });
+
+  if (profileError) {
+    console.error('Profile creation failed:', profileError);
+    alert('Account created but failed to create profile. Please contact support.');
+  } else {
+    alert('Sign-up successful! Please check your email to confirm your account.');
+    navigate('/signin');
+  }
+} catch (err) {
+  console.error('Signup error:', err);
+  alert('Something went wrong. Please try again.');
+}
+
   };
 
   const styles = {
