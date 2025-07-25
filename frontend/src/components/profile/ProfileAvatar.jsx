@@ -39,7 +39,7 @@ const ProfileAvatar = ({ name, image, size = "128px", textSize = "3rem" }) => {
       className={`${sizeClass} rounded-full object-cover shadow-lg border-4 border-white`}
     />
   ) : (
-    <div className={`${sizeClass} rounded-full flex items-center justify-center bg-gradient-to-br from-blue-400 to-purple-500 text-white ${textSizeClass} font-bold shadow-lg border-4 border-white`}>
+    <div className={`${sizeClass} rounded-full flex items-center justify-center bg-sky-200 text-sky-600 ${textSizeClass} font-bold shadow-lg border-4 border-white`}>
       {initial}
     </div>
   );
