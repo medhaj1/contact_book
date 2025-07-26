@@ -17,7 +17,8 @@ const SignIn = ({ onLogin }) => {
     checkSession();
   }, [navigate]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault(); // Prevent page refresh
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -32,108 +33,54 @@ const SignIn = ({ onLogin }) => {
     }
   };
 
-  const styles = {
-    container: {
-      height: '100vh',
-      background: 'linear-gradient(to right, #cffafe, #ffffff)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      position: 'relative',
-    },
-    formBox: {
-      background: '#fff',
-      padding: '50px 40px',
-      borderRadius: '15px',
-      boxShadow: '0 8px 30px rgba(0, 0, 0, 0.1)',
-      width: '100%',
-      maxWidth: '400px',
-      textAlign: 'center',
-    },
-    heading: {
-      fontSize: '24px',
-      fontWeight: '700',
-      marginBottom: '30px',
-      color: '#660099',
-    },
-    input: {
-      width: '100%',
-      padding: '12px',
-      margin: '10px 0',
-      borderRadius: '8px',
-      border: '1px solid #ccc',
-      fontSize: '14px',
-      boxSizing: 'border-box',
-    },
-    button: {
-      width: '100%',
-      padding: '12px',
-      background: 'linear-gradient(to right, #a100f2, #ff4ecd)',
-      color: '#fff',
-      fontWeight: 'bold',
-      border: 'none',
-      borderRadius: '10px',
-      boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
-      cursor: 'pointer',
-      marginTop: '10px',
-    },
-    switchText: {
-      marginTop: '20px',
-      fontSize: '14px',
-    },
-    link: {
-      color: '#7b00ff',
-      fontWeight: 'bold',
-      marginLeft: '5px',
-      textDecoration: 'none',
-    },
-    backButton: {
-      position: 'absolute',
-      top: '20px',
-      left: '20px',
-      padding: '10px 15px',
-      background: '#f0f0f0',
-      borderRadius: '8px',
-      border: 'none',
-      cursor: 'pointer',
-      fontWeight: '500',
-      boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
-    }
-  };
-
   return (
-    <div style={styles.container}>
-      <button 
-        style={styles.backButton} 
+    <div className="min-h-screen bg-gradient-to-r from-cyan-100 to-white flex items-center justify-center relative">
+      {/* Back Button */}
+      <button
+        className="absolute top-6 left-6 bg-gray-100 px-4 py-2 rounded-md shadow hover:bg-gray-200 transition"
         onClick={() => navigate('/')}
       >
         Back
       </button>
-      <div style={styles.formBox}>
-        <h2 style={styles.heading}>Sign In</h2>
+
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center"
+      >
+        <h2 className="text-3xl font-bold mb-6 text-blue-900">Sign In</h2>
+
         <input
           type="email"
           placeholder="Email"
-          style={styles.input}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          className="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
         <input
           type="password"
           placeholder="Password"
-          style={styles.input}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          className="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
-        <button style={styles.button} onClick={handleSubmit}>Sign In</button>
 
-        <p style={styles.switchText}>
+        <button
+          type="submit"
+          className="w-full bg-gradient-to-r from-blue-700 to-blue-400 text-white py-3 rounded-lg shadow hover:shadow-lg transition-all duration-300"
+        >
+          Sign In
+        </button>
+
+        <p className="mt-4 text-sm">
           Don’t have an account?
-          <Link to="/signup" style={styles.link}>Sign Up</Link>
+          <Link to="/signup" className="text-blue-600 font-semibold ml-1 hover:underline">
+            Sign Up
+          </Link>
         </p>
-      </div>
+      </form>
     </div>
   );
 };
 
 export default SignIn;
+
