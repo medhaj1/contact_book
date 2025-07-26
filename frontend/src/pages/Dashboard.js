@@ -1,15 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Phone, Mail, Search, Plus, Edit2, Trash2, Users, BookOpen, Settings, LogOut, Camera, X } from 'lucide-react';
 
 // Mock ContactForm component with image support
-const ContactForm = ({ contact, categories, onSave, onCancel }) => {
+const ContactForm = ({ contact, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     name: contact?.name || '',
     email: contact?.email || '',
     phone: contact?.phone || '',
-    category_id: contact?.category_id || categories[0]?.category_id || 1,
-    image: contact?.image || null
+    image: contact?.photo_url || null
   });
 
   const handleSubmit = (e) => {
@@ -190,27 +189,6 @@ const ContactForm = ({ contact, categories, onSave, onCancel }) => {
               required
             />
           </div>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <select
-              value={formData.category_id}
-              onChange={(e) => setFormData({...formData, category_id: parseInt(e.target.value)})}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                border: '1px solid #e2e8f0',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                outline: 'none',
-                boxSizing: 'border-box'
-              }}
-            >
-              {categories.map(category => (
-                <option key={category.category_id} value={category.category_id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
           <div style={{ display: 'flex', gap: '1rem' }}>
             <button
               type="submit"
@@ -340,37 +318,16 @@ const CategoryForm = ({ onSave, onCancel }) => {
   );
 };
 
-const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@example.com' }, onLogout = () => {} }) => {
+const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const navigate = useNavigate();
-  const [contacts, setContacts] = useState([
-    {
-      contact_id: 1,
-      name: 'Alice Johnson',
-      email: 'alice@example.com',
-      phone: '+1 (555) 123-4567',
-      category_id: 1,
-      user_id: currentUser.user_id,
-      image: null
-    },
-    {
-      contact_id: 2,
-      name: 'Bob Smith',
-      email: 'bob@company.com',
-      phone: '+1 (555) 234-5678',
-      category_id: 3,
-      user_id: currentUser.user_id,
-      image: null
-    },
-    {
-      contact_id: 3,
-      name: 'Carol Wilson',
-      email: 'carol@example.com',
-      phone: '+1 (555) 345-6789',
-      category_id: 2,
-      user_id: currentUser.user_id,
-      image: null
-    }
-  ]);
+  
+  // Extract user info from Supabase user object
+  const userName = currentUser?.user_metadata?.name || currentUser?.email?.split('@')[0] || 'User';
+  const userEmail = currentUser?.email || 'No email';
+  const userId = currentUser?.id || 'unknown';
+  
+  const [contacts, setContacts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [categories, setCategories] = useState([
     { category_id: 1, name: 'Family' },
@@ -380,37 +337,134 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
   ]);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
   const [showAddContact, setShowAddContact] = useState(false);
   const [editingContact, setEditingContact] = useState(null);
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [activeTab, setActiveTab] = useState('contacts');
 
+  // API base URL
+  const API_BASE_URL = 'http://localhost:5000';
+
+  // Fetch contacts from backend
+  const fetchContacts = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/contacts/${userId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setContacts(data);
+      } else {
+        console.error('Failed to fetch contacts');
+      }
+    } catch (error) {
+      console.error('Error fetching contacts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load contacts when component mounts or userId changes
+  useEffect(() => {
+    if (userId && userId !== 'unknown') {
+      fetchContacts();
+    }
+  }, [userId]);
+
 
 
   // Contact Management Functions
-  const addContact = (contactData) => {
-    const newContact = {
-      contact_id: Date.now(),
-      ...contactData,
-      user_id: currentUser.user_id
-    };
-    setContacts([...contacts, newContact]);
-    setShowAddContact(false);
+  const addContact = async (contactData) => {
+    try {
+      const formData = new FormData();
+      formData.append('name', contactData.name);
+      formData.append('email', contactData.email);
+      formData.append('phone', contactData.phone);
+      formData.append('user_id', userId);
+      
+      // If there's an image, convert base64 to file and append
+      if (contactData.image) {
+        const response = await fetch(contactData.image);
+        const blob = await response.blob();
+        formData.append('photo', blob, `${contactData.name}.jpg`);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/contacts`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Contact added:', result);
+        await fetchContacts(); // Refresh the contacts list
+        setShowAddContact(false);
+      } else {
+        const error = await response.json();
+        console.error('Failed to add contact:', error);
+        alert('Failed to add contact: ' + (error.details || error.error));
+      }
+    } catch (error) {
+      console.error('Error adding contact:', error);
+      alert('Error adding contact: ' + error.message);
+    }
   };
 
-  const updateContact = (contactData) => {
-    setContacts(contacts.map(contact => 
-      contact.contact_id === editingContact.contact_id 
-        ? { ...contact, ...contactData }
-        : contact
-    ));
-    setEditingContact(null);
+  const updateContact = async (contactData) => {
+    try {
+      const formData = new FormData();
+      formData.append('name', contactData.name);
+      formData.append('email', contactData.email);
+      formData.append('phone', contactData.phone);
+      formData.append('user_id', userId);
+      
+      // If there's a new image, convert base64 to file and append
+      if (contactData.image && contactData.image.startsWith('data:')) {
+        const response = await fetch(contactData.image);
+        const blob = await response.blob();
+        formData.append('photo', blob, `${contactData.name}.jpg`);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/contacts/${editingContact.contact_id}`, {
+        method: 'PUT',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Contact updated:', result);
+        await fetchContacts(); // Refresh the contacts list
+        setEditingContact(null);
+      } else {
+        const error = await response.json();
+        console.error('Failed to update contact:', error);
+        alert('Failed to update contact: ' + (error.details || error.error));
+      }
+    } catch (error) {
+      console.error('Error updating contact:', error);
+      alert('Error updating contact: ' + error.message);
+    }
   };
 
-  const deleteContact = (contactId) => {
+  const deleteContact = async (contactId) => {
     if (window.confirm('Are you sure you want to delete this contact?')) {
-      setContacts(contacts.filter(contact => contact.contact_id !== contactId));
+      try {
+        const response = await fetch(`${API_BASE_URL}/contacts/${contactId}`, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Contact deleted:', result);
+          await fetchContacts(); // Refresh the contacts list
+        } else {
+          const error = await response.json();
+          console.error('Failed to delete contact:', error);
+          alert('Failed to delete contact: ' + (error.details || error.error));
+        }
+      } catch (error) {
+        console.error('Error deleting contact:', error);
+        alert('Error deleting contact: ' + error.message);
+      }
     }
   };
 
@@ -423,20 +477,15 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
     setShowAddCategory(false);
   };
 
-  // Filter contacts based on search and category
+  // Filter contacts based on search only (categories removed for now)
   const filteredContacts = contacts.filter(contact => {
     const matchesSearch = contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          contact.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          contact.phone.includes(searchTerm);
-    const matchesCategory = selectedCategory === '' || contact.category_id.toString() === selectedCategory;
-    return matchesSearch && matchesCategory;
+    return matchesSearch;
   });
 
   // Get category name by ID
-  const getCategoryName = (categoryId) => {
-    const category = categories.find(cat => cat.category_id === categoryId);
-    return category ? category.name : 'Unknown';
-  };
 
   const sidebarItems = [
     { id: 'contacts', label: 'Contacts', icon: Users },
@@ -493,9 +542,9 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
       <h1 className="text-2xl font-semibold text-slate-900 capitalize">{activeTab}</h1>
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 bg-sky-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-          {currentUser?.name?.charAt(0).toUpperCase()}
+          {userName?.charAt(0).toUpperCase()}
         </div>
-        <span className="text-sm text-slate-600 font-medium">{currentUser?.name}</span>
+        <span className="text-sm text-slate-600 font-medium">{userName}</span>
       </div>
     </div>
 
@@ -514,16 +563,6 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <select
-            className="px-4 py-2 rounded-md border border-slate-200 text-sm text-slate-500"
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-          >
-            <option value="">All Categories</option>
-            {categories.map(c => (
-              <option key={c.category_id} value={c.category_id}>{c.name}</option>
-            ))}
-          </select>
           <button
             onClick={() => setShowAddContact(true)}
             className="flex items-center gap-2 px-4 py-2 bg-sky-500 text-white rounded-md text-sm hover:bg-sky-600"
@@ -534,7 +573,11 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
         </div>
 
         {/* Contact Cards */}
-        {filteredContacts.length === 0 ? (
+        {loading ? (
+          <div className="text-center text-slate-400 py-12">
+            Loading contacts...
+          </div>
+        ) : filteredContacts.length === 0 ? (
           <div className="text-center text-slate-400 py-12">
             {contacts.length === 0 ? "No contacts yet. Add your first contact!" : "No contacts match your search criteria."}
           </div>
@@ -547,17 +590,14 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
               >
                 <div className="flex items-center mb-4">
                   <div className="w-12 h-12 rounded-full bg-sky-100 flex items-center justify-center text-sky-700 font-semibold text-lg overflow-hidden mr-4">
-                    {contact.image ? (
-                      <img src={contact.image} alt={contact.name} className="w-full h-full object-cover rounded-full" />
+                    {contact.photo_url ? (
+                      <img src={contact.photo_url} alt={contact.name} className="w-full h-full object-cover rounded-full" />
                     ) : (
                       contact.name.charAt(0).toUpperCase()
                     )}
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-slate-900">{contact.name}</h3>
-                    <span className="text-xs bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full font-medium">
-                      {getCategoryName(contact.category_id)}
-                    </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-slate-500 text-sm mb-1">
@@ -620,11 +660,11 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
         <h3 className="text-lg font-semibold text-slate-900 mb-4">Account Settings</h3>
         <div className="flex items-center gap-2 text-slate-500 text-sm mb-2">
           <User size={16} />
-          <span>{currentUser?.name}</span>
+          <span>{userName}</span>
         </div>
         <div className="flex items-center gap-2 text-slate-500 text-sm">
           <Mail size={16} />
-          <span>{currentUser?.email}</span>
+          <span>{userEmail}</span>
         </div>
       </div>
     )}
@@ -633,7 +673,6 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
   {/* Modals */}
   {showAddContact && (
     <ContactForm
-      categories={categories}
       onSave={addContact}
       onCancel={() => setShowAddContact(false)}
     />
@@ -641,7 +680,6 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
   {editingContact && (
     <ContactForm
       contact={editingContact}
-      categories={categories}
       onSave={updateContact}
       onCancel={() => setEditingContact(null)}
     />

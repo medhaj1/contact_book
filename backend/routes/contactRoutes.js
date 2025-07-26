@@ -14,9 +14,21 @@ router.post("/", upload.single("photo"), async (req, res) => {
     let photoUrl = null;
 
     if (req.file) {
+      // Get user's name from the users table
+      const { data: userData, error: userError } = await supabase
+        .from("user_profile")
+        .select("name")
+        .eq("u_id", user_id)
+        .single();
+
+      if (userError) {
+        return res.status(500).json({ error: "Failed to fetch user data", details: userError.message });
+      }
+
+      const userName = userData.name;
       const ext = req.file.originalname.split(".").pop();
       const fileName = `${name}.${ext}`;
-      const filePath = `users/${user_id}/${name}/${fileName}`;
+      const filePath = `users/${userName}/${name}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("contact-images")
@@ -93,6 +105,19 @@ router.put("/:id", upload.single("photo"), async (req, res) => {
     return res.status(500).json({ error: "Failed to fetch old contact", details: fetchError.message });
     }
 
+      // Get user's name from the user_profile table
+      const { data: userData, error: userError } = await supabase
+        .from("user_profile")
+        .select("name")
+        .eq("u_id", user_id)
+        .single();
+
+      if (userError) {
+        return res.status(500).json({ error: "Failed to fetch user data", details: userError.message });
+      }
+
+      const userName = userData.name;
+
       // 👇 Delete old photo if exists
     console.log(oldContact)
     if (oldContact?.photo_url) {
@@ -118,7 +143,7 @@ router.put("/:id", upload.single("photo"), async (req, res) => {
   }
       const ext = req.file.originalname.split(".").pop();
       const fileName = `${name}-${Date.now()}.${ext}`;
-      const filePath = `users/${user_id}/${name}/${fileName}`;
+      const filePath = `users/${userName}/${name}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("contact-images")
@@ -161,13 +186,6 @@ router.put("/:id", upload.single("photo"), async (req, res) => {
     console.error("Update Error:", err.message);
     res.status(500).json({ error: "Server error" });
   }
-
-    const { data: remaining } = await supabase
-  .storage
-  .from("contact-images")
-  .list(`users/1/Virat Kohli/`);
-
-console.log("Remaining files:", remaining);
 });
 
 /**
