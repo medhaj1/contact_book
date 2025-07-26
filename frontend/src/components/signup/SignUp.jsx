@@ -17,7 +17,7 @@ const SignUp = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Prevent page reload
     const { name, contact, email, password, confirmPassword } = formData;
 
     if (password !== confirmPassword) {
@@ -26,132 +26,69 @@ const SignUp = () => {
     }
 
     try {
-  const {
-    data: { user },
-    error: signUpError,
-  } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { name, contact },
-    },
-  });
+      const {
+        data: { user },
+        error: signUpError,
+      } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name, contact },
+        },
+      });
 
-  if (signUpError) {
-    alert(signUpError.message);
-    return;
-  }
+      if (signUpError) {
+        alert(signUpError.message);
+        return;
+      }
 
-  // Insert into user_profile
-  const { error: profileError } = await supabase.from('user_profile').insert({
-    u_id: user.id,
-    name,
-    email,
-    phone: contact,
-    image: null, // Optional now, editable later
-  });
+      // Insert into user_profile
+      const { error: profileError } = await supabase.from('user_profile').insert({
+        u_id: user.id,
+        name,
+        email,
+        phone: contact,
+        image: null,
+      });
 
-  if (profileError) {
-    console.error('Profile creation failed:', profileError);
-    alert('Account created but failed to create profile. Please contact support.');
-  } else {
-    alert('Sign-up successful! Please check your email to confirm your account.');
-    navigate('/signin');
-  }
-} catch (err) {
-  console.error('Signup error:', err);
-  alert('Something went wrong. Please try again.');
-}
-
-  };
-
-  const styles = {
-    container: {
-      minHeight: '100vh',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      background: 'linear-gradient(to right, #cffafe, #ffffff)',
-      padding: '20px',
-    },
-    form: {
-      backgroundColor: '#ffffff',
-      padding: '40px',
-      borderRadius: '20px',
-      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)',
-      width: '100%',
-      maxWidth: '460px',
-    },
-    title: {
-      fontSize: '28px',
-      fontWeight: '700',
-      textAlign: 'center',
-      marginBottom: '24px',
-      color: '#660099',
-    },
-    input: {
-      width: '100%',
-      padding: '14px 16px',
-      marginBottom: '14px',
-      borderRadius: '10px',
-      border: '1px solid #ccc',
-      fontSize: '14px',
-      outline: 'none',
-    },
-    button: {
-      width: '100%',
-      padding: '14px',
-      background: 'linear-gradient(to right, #a100f2, #ff4ecd)',
-      color: '#fff',
-      fontWeight: '600',
-      border: 'none',
-      borderRadius: '10px',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-      cursor: 'pointer',
-      fontSize: '16px',
-      marginTop: '10px',
-    },
-    switchText: {
-      marginTop: '18px',
-      textAlign: 'center',
-      fontSize: '14px',
-    },
-    link: {
-      color: '#6a0dad',
-      fontWeight: 'bold',
-      textDecoration: 'underline',
-    },
-    backButton: {
-      position: 'absolute',
-      top: '20px',
-      left: '20px',
-      padding: '10px 15px',
-      background: '#f0f0f0',
-      borderRadius: '8px',
-      border: 'none',
-      cursor: 'pointer',
-      fontWeight: '500',
-      boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+      if (profileError) {
+        console.error('Profile creation failed:', profileError);
+        alert('Account created but failed to create profile. Please contact support.');
+      } else {
+        alert('Sign-up successful! Please check your email to confirm your account.');
+        navigate('/signin');
+      }
+    } catch (err) {
+      console.error('Signup error:', err);
+      alert('Something went wrong. Please try again.');
     }
   };
 
   return (
-    <div style={styles.container}>
-      <button 
-        style={styles.backButton} 
+    <div className="min-h-screen bg-gradient-to-r from-cyan-100 to-white flex items-center justify-center relative">
+      {/* Back Button */}
+      <button
+        className="absolute top-6 left-6 bg-gray-100 px-4 py-2 rounded-md shadow hover:bg-gray-200 transition"
         onClick={() => navigate('/')}
       >
         Back
       </button>
-      <form style={styles.form} onSubmit={handleSubmit}>
-        <div style={styles.title}>Create Account</div>
+
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md"
+      >
+        <h2 className="text-3xl font-bold mb-6 text-center text-blue-900">
+          Create Account
+        </h2>
+
         <input
           type="text"
           name="name"
           placeholder="Full Name"
           value={formData.name}
           onChange={handleChange}
-          style={styles.input}
+          className="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
         <input
           type="text"
@@ -159,7 +96,7 @@ const SignUp = () => {
           placeholder="Contact Number"
           value={formData.contact}
           onChange={handleChange}
-          style={styles.input}
+          className="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
         <input
           type="email"
@@ -167,7 +104,7 @@ const SignUp = () => {
           placeholder="Email Address"
           value={formData.email}
           onChange={handleChange}
-          style={styles.input}
+          className="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
         <input
           type="password"
@@ -175,7 +112,7 @@ const SignUp = () => {
           placeholder="Create Password"
           value={formData.password}
           onChange={handleChange}
-          style={styles.input}
+          className="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
         <input
           type="password"
@@ -183,17 +120,26 @@ const SignUp = () => {
           placeholder="Confirm Password"
           value={formData.confirmPassword}
           onChange={handleChange}
-          style={styles.input}
+          className="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
-        <button type="submit" style={styles.button}>Sign Up</button>
 
-        <div style={styles.switchText}>
-          Already have an account?{' '}
-          <Link to="/signin" style={styles.link}>Sign In</Link>
-        </div>
+        <button
+          type="submit"
+          className="w-full bg-gradient-to-r from-blue-700 to-blue-400 text-white py-3 rounded-lg shadow hover:shadow-lg transition-all duration-300"
+        >
+          Sign Up
+        </button>
+
+        <p className="mt-4 text-sm text-center">
+          Already have an account?
+          <Link to="/signin" className="text-blue-600 font-semibold ml-1 hover:underline">
+            Sign In
+          </Link>
+        </p>
       </form>
     </div>
   );
 };
 
 export default SignUp;
+
