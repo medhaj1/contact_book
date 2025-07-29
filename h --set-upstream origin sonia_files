@@ -1,0 +1,44 @@
+[33m0e49448[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32msonia_files[m[33m)[m Added SignIn and SignUp pages with Tailwind and external CSS
+[33m4c8fecf[m[33m ([m[1;31morigin/sonia_files[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m Merge pull request #3 from medhaj1/veena_files
+[33m59f437e[m Updated UserProfile and ProfileAvatar
+[33maeffda3[m New branch from veena
+[33med7bf3f[m 24th July 3:50
+[33madc77fc[m[33m ([m[1;31morigin/vignesh_proj[m[33m)[m Merge branch 'vignesh_proj'
+[33m36018da[m Routes corrected,React Router nav used
+[33m99b1773[m Merge pull request #2 from medhaj1/vignesh_proj
+[33m984fff5[m Update README.md
+[33m3579d1a[m[33m ([m[1;31morigin/medhaj_files[m[33m)[m Integrated auth working
+[33m8eebfb1[m Cleaned up frontend and UI
+[33m75e786d[m Auth for Signin & Signup
+[33mc6ff1fa[m Auth for Signin & Signup
+[33m8450cfe[m Merge branch 'main' of https://github.com/medhaj1/contact_book
+[33m38b083f[m Integrated Userprofile and tailwind at some points in the project
+[33mbb912d4[m Delete index.html
+[33m46690c1[m Delete .gitignore
+[33mb90c2bb[m Delete package-lock.json
+[33m839049a[m Delete package.json
+[33m09db411[m Delete vite.config.js
+[33m591712f[m Delete eslint.config.js
+[33m9a82e00[m Delete src directory
+[33m7e3888c[m Delete public directory
+[33m417ef44[m Merge pull request #1 from medhaj1/veena-files
+[33m6502113[m Cleaned up old Tailwind setup and reinstalled via official method
+[33m3b7eed0[m Resolved README.md merge conflict by keeping internship project version
+[33m405f9c4[m Add Veena's local files to veena-files branch
+[33m2206465[m Added styled SignIn and SignUp components with inline CSS and toggle
+[33mc6ef2b0[m Added SignIn and SignUp components and integrated in App.jsx
+[33m20d6a38[m Merge branch 'main' of https://github.com/medhaj1/contact_book
+[33m02702a9[m Contact CRUD operations backend ready
+[33mf0fd3c9[m Veena Initial commit
+[33m69738e7[m Merge branch 'main' of https://github.com/medhaj1/contact_book
+[33md3d155b[m Made login and dashboard UI smooth
+[33m882e317[m Deleted frontend_contact directory
+[33m57f4820[m Organised frontend files
+[33mad9efff[m Integrated AuthForm login/register UI
+[33m17a227f[m frontend
+[33m14b5dfa[m Add frontend_contact folder
+[33mf48c492[m Merge branch 'main' of https://github.com/medhaj1/contact_book
+[33mbe86a5f[m Added basic image storage with Supabase
+[33mf31cc86[m Update README.md
+[33m30170f4[m Added Server Connection
+[33me2118da[m Initial commit

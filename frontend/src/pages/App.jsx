@@ -7,6 +7,8 @@ import SignIn from '../components/signin/SignIn';
 import Dashboard from './Dashboard';
 import LandingPage from './LandingPage';
 import UserProfile from './UserProfile';
+import BirthdayReminderPage from "./BirthdayReminderPage";
+
 
 import { supabase } from '../supabaseClient';
 
@@ -70,6 +72,11 @@ export default function App() {
         <Route
           path="/profile"
           element={isLoggedIn ? <UserProfile currentUser={currentUser} onLogout={handleLogout} /> : <Navigate to="/signin" />}
+        />
+        {/* NEW ROUTE FOR BIRTHDAY REMINDER */}
+        <Route
+          path="/birthdays"
+          element={isLoggedIn ? <BirthdayReminderPage /> : <Navigate to="/signin" />}
         />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
