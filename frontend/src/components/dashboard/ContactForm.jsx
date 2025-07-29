@@ -121,4 +121,4 @@ const ContactForm = ({ contact, categories, onSave, onCancel }) => {
     );
     
   };
-export default ContactForm;  
+export default ContactForm; 
