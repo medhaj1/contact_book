@@ -28,7 +28,7 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
     {
       contact_id: 3,
       name: 'Carol Wilson',
-      email: 'carol@example.com',
+      email: 'carol@example.com', 
       phone: '+1 (555) 345-6789',
       category_id: 2,
       user_id: currentUser.user_id,
@@ -156,7 +156,7 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
     <div className="flex justify-between items-center mb-8">
       <h1 className="text-2xl font-semibold text-slate-900 capitalize">{activeTab}</h1>
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 bg-gradient-to-r from-blue-600 to-blue-400 shadow-lg border-1 border-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm scale-100 hover:scale-105 hover:from-blue-700 hover:to-blue-500 transform transition-transform transition-colors duration-200">
+        <div className="w-9 h-9 bg-gradient-to-r from-blue-700 to-blue-400 shadow-lg border-1 border-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm scale-100 hover:scale-105 hover:from-blue-700 hover:to-blue-500 transform transition-transform transition-colors duration-200">
           {currentUser?.name?.charAt(0).toUpperCase()}
         </div>
         <span className="text-sm text-slate-600 font-medium">{currentUser?.name}</span>
@@ -188,7 +188,7 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
           </select>
           <button
             onClick={() => setShowAddContact(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-400 text-white rounded-xl text-md scale-100 hover:from-blue-700 hover:to-blue-500 hover:scale-105 transform transition-transform duration-200 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-700 to-blue-400 text-white rounded-xl text-md scale-100 hover:from-blue-800 hover:to-blue-500 hover:scale-105 transform transition-transform duration-200 transition-colors"
           >
             <Plus size={16} />
             Add Contact
