@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Phone, Mail, Search, Plus, Edit2, Trash2, Users, BookOpen, Settings, LogOut, Camera, X } from 'lucide-react';
+import { supabase } from '../supabaseClient';
 
 // Mock ContactForm component with image support
 const ContactForm = ({ contact, categories, onSave, onCancel }) => {
@@ -9,7 +10,7 @@ const ContactForm = ({ contact, categories, onSave, onCancel }) => {
     email: contact?.email || '',
     phone: contact?.phone || '',
     category_id: contact?.category_id || categories[0]?.category_id || 1,
-    image: contact?.image || null
+    image: contact?.photo_url || null // <-- use photo_url for editing
   });
 
   const handleSubmit = (e) => {
@@ -342,42 +343,39 @@ const CategoryForm = ({ onSave, onCancel }) => {
 
 const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@example.com' }, onLogout = () => {} }) => {
   const navigate = useNavigate();
-  const [contacts, setContacts] = useState([
-    {
-      contact_id: 1,
-      name: 'Alice Johnson',
-      email: 'alice@example.com',
-      phone: '+1 (555) 123-4567',
-      category_id: 1,
-      user_id: currentUser.user_id,
-      image: null
-    },
-    {
-      contact_id: 2,
-      name: 'Bob Smith',
-      email: 'bob@company.com',
-      phone: '+1 (555) 234-5678',
-      category_id: 3,
-      user_id: currentUser.user_id,
-      image: null
-    },
-    {
-      contact_id: 3,
-      name: 'Carol Wilson',
-      email: 'carol@example.com',
-      phone: '+1 (555) 345-6789',
-      category_id: 2,
-      user_id: currentUser.user_id,
-      image: null
-    }
-  ]);
+  const [contacts, setContacts] = useState([]);
 
-  const [categories, setCategories] = useState([
-    { category_id: 1, name: 'Family' },
-    { category_id: 2, name: 'Friends' },
-    { category_id: 3, name: 'Work' },
-    { category_id: 4, name: 'Business' }
-  ]);
+  useEffect(() => {
+    const fetchContacts = async () => {
+      const { data, error } = await supabase
+        .from('contact')
+        .select('*')
+        .order('contact_id', { ascending: true });
+      if (error) {
+        console.error('Error fetching contacts:', error.message);
+      } else {
+        setContacts(data);
+      }
+    };
+    fetchContacts();
+  }, []);
+
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const { data, error } = await supabase
+        .from('category')
+        .select('*')
+        .order('category_id', { ascending: true });
+      if (error) {
+        console.error('Error fetching categories:', error.message);
+      } else {
+        setCategories(data);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -389,38 +387,131 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
 
 
   // Contact Management Functions
-  const addContact = (contactData) => {
-    const newContact = {
-      contact_id: Date.now(),
-      ...contactData,
-      user_id: currentUser.user_id
-    };
-    setContacts([...contacts, newContact]);
-    setShowAddContact(false);
-  };
+  const addContact = async (contactData) => {
+  const { data, error } = await supabase
+    .from('contact')
+    .insert([{
+      name: contactData.name,
+      email: contactData.email,
+      phone: contactData.phone,
+      category_id: contactData.category_id,
+      user_id: currentUser.user_id,
+      photo_url: contactData.image // <-- use photo_url
+    }])
+    .select();
 
-  const updateContact = (contactData) => {
-    setContacts(contacts.map(contact => 
-      contact.contact_id === editingContact.contact_id 
-        ? { ...contact, ...contactData }
-        : contact
-    ));
+  if (error) {
+    alert('Error adding contact: ' + error.message);
+    return;
+  }
+
+  const { data: updatedContacts } = await supabase
+    .from('contact')
+    .select('*')
+    .order('contact_id', { ascending: true });
+
+  setContacts(updatedContacts);
+  setShowAddContact(false);
+};
+
+  const updateContact = async (contactData) => {
+    const { data, error } = await supabase
+      .from('contact')
+      .update({
+        name: contactData.name,
+        email: contactData.email,
+        phone: contactData.phone,
+        category_id: contactData.category_id,
+        photo_url: contactData.image // keep using photo_url
+      })
+      .eq('contact_id', editingContact.contact_id)
+      .select();
+
+    if (error) {
+      alert('Error updating contact: ' + error.message);
+      return;
+    }
+
+    // Refresh contacts from DB
+    const { data: updatedContacts } = await supabase
+      .from('contact')
+      .select('*')
+      .order('contact_id', { ascending: true });
+
+    setContacts(updatedContacts);
     setEditingContact(null);
   };
 
-  const deleteContact = (contactId) => {
+  const deleteContact = async (contactId) => {
     if (window.confirm('Are you sure you want to delete this contact?')) {
-      setContacts(contacts.filter(contact => contact.contact_id !== contactId));
+      const { error } = await supabase
+        .from('contact')
+        .delete()
+        .eq('contact_id', contactId);
+
+      if (error) {
+        alert('Error deleting contact: ' + error.message);
+        return;
+      }
+
+      // Refresh contacts from DB
+      const { data: updatedContacts } = await supabase
+        .from('contact')
+        .select('*')
+        .order('contact_id', { ascending: true });
+
+      setContacts(updatedContacts);
     }
   };
 
-  const addCategory = (categoryName) => {
-    const newCategory = {
-      category_id: Date.now(),
-      name: categoryName
-    };
-    setCategories([...categories, newCategory]);
+  const addCategory = async (categoryName) => {
+    const { data, error } = await supabase
+      .from('category')
+      .insert([{ name: categoryName }])
+      .select();
+
+    if (error) {
+      alert('Error adding category: ' + error.message);
+      return;
+    }
+
+    // Refresh categories from DB
+    const { data: updatedCategories } = await supabase
+      .from('category')
+      .select('*')
+      .order('category_id', { ascending: true });
+
+    setCategories(updatedCategories);
     setShowAddCategory(false);
+  };
+
+  const deleteCategory = async (categoryId) => {
+    if (window.confirm('Are you sure you want to delete this category?')) {
+      // Optional: Prevent deletion if any contact uses this category
+      const hasContacts = contacts.some(c => c.category_id === categoryId);
+      if (hasContacts) {
+        alert('Cannot delete category: There are contacts using this category.');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('category')
+        .delete()
+        .eq('category_id', categoryId);
+
+      if (error) {
+        alert('Error deleting category: ' + error.message);
+        return;
+      }
+
+      // Refresh categories from DB
+      const { data: updatedCategories } = await supabase
+        .from('category')
+        .select('*')
+        .order('category_id', { ascending: true });
+
+      setCategories(updatedCategories);
+    }
   };
 
   // Filter contacts based on search and category
@@ -547,8 +638,8 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
               >
                 <div className="flex items-center mb-4">
                   <div className="w-12 h-12 rounded-full bg-sky-100 flex items-center justify-center text-sky-700 font-semibold text-lg overflow-hidden mr-4">
-                    {contact.image ? (
-                      <img src={contact.image} alt={contact.name} className="w-full h-full object-cover rounded-full" />
+                    {contact.photo_url ? (
+                      <img src={contact.photo_url} alt={contact.name} className="w-full h-full object-cover rounded-full" />
                     ) : (
                       contact.name.charAt(0).toUpperCase()
                     )}
@@ -603,11 +694,20 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {categories.map(category => (
-            <div key={category.category_id} className="bg-white border border-slate-200 p-6 rounded-xl">
-              <h3 className="text-lg font-semibold text-slate-900">{category.name}</h3>
-              <p className="text-sm text-slate-500 mt-1">
-                {contacts.filter(c => c.category_id === category.category_id).length} contacts
-              </p>
+            <div key={category.category_id} className="bg-white border border-slate-200 p-6 rounded-xl flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">{category.name}</h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  {contacts.filter(c => c.category_id === category.category_id).length} contacts
+                </p>
+              </div>
+              <button
+                className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 ml-4"
+                onClick={() => deleteCategory(category.category_id)}
+                title="Delete Category"
+              >
+                <Trash2 size={16} />
+              </button>
             </div>
           ))}
         </div>
