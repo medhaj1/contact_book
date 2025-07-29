@@ -6,6 +6,7 @@ const ContactForm = ({ contact, categories, onSave, onCancel }) => {
       name: contact?.name || '',
       email: contact?.email || '',
       phone: contact?.phone || '',
+      birthday: contact?.birthday || '',
       category_id: contact?.category_id || categories[0]?.category_id || 1,
       image: contact?.image || null
     });
@@ -87,6 +88,15 @@ const ContactForm = ({ contact, categories, onSave, onCancel }) => {
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 className="w-full px-4 py-3 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 focus:scale-105 transform transition duration-200"
                 required
+              />
+            </div>
+            <div className="mb-4">
+              <input
+                type="date"
+                placeholder="Birthday"
+                value={formData.birthday}
+                onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
+                className="w-full px-4 py-3 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 focus:scale-105 transform transition duration-200"
               />
             </div>
             <div className="mb-6">

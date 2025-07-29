@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Phone, Mail, Search, Plus, Edit2, Trash2, Users, BookOpen, Settings, LogOut} from 'lucide-react';
+import { User, Phone, Mail, Search, Plus, Edit2, Trash2, Users, BookOpen, Settings, LogOut, MessageCircle} from 'lucide-react';
 import ContactForm from '../components/dashboard/ContactForm';
 import CategoryForm from '../components/dashboard/CategoryForm';
+import BirthdayReminder from './BirthdayReminder';
 
-const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@example.com' }, onLogout = () => {} }) => {
+const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@example.com', image: null }, onLogout = () => {} }) => {
   const navigate = useNavigate();
   const [contacts, setContacts] = useState([
     {
@@ -12,6 +13,7 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
       name: 'Alice Johnson',
       email: 'alice@example.com',
       phone: '+1 (555) 123-4567',
+      birthday: '2024-08-02',
       category_id: 1,
       user_id: currentUser.user_id,
       image: null
@@ -21,6 +23,7 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
       name: 'Bob Smith',
       email: 'bob@company.com',
       phone: '+1 (555) 234-5678',
+      birthday: '2024-08-05',
       category_id: 3,
       user_id: currentUser.user_id,
       image: null
@@ -30,6 +33,7 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
       name: 'Carol Wilson',
       email: 'carol@example.com', 
       phone: '+1 (555) 345-6789',
+      birthday: '2024-08-10',
       category_id: 2,
       user_id: currentUser.user_id,
       image: null
@@ -156,8 +160,12 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
     <div className="flex justify-between items-center mb-8">
       <h1 className="text-2xl font-semibold text-slate-900 capitalize">{activeTab}</h1>
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 bg-gradient-to-r from-blue-700 to-blue-400 shadow-lg border-1 border-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm scale-100 hover:scale-105 hover:from-blue-700 hover:to-blue-500 transform transition-transform transition-colors duration-200">
-          {currentUser?.name?.charAt(0).toUpperCase()}
+        <div className="w-9 h-9 bg-gradient-to-r from-blue-700 to-blue-400 shadow-lg border-1 border-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm scale-100 hover:scale-105 hover:from-blue-700 hover:to-blue-500 transform transition-transform transition-colors duration-200 overflow-hidden">
+          {currentUser?.image ? (
+            <img src={currentUser.image} alt={currentUser?.name} className="w-full h-full object-cover" />
+          ) : (
+            currentUser?.name?.charAt(0).toUpperCase()
+          )}
         </div>
         <span className="text-sm text-slate-600 font-medium">{currentUser?.name}</span>
       </div>
@@ -194,6 +202,9 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
             Add Contact
           </button>
         </div>
+
+        {/* Birthday Reminders */}
+        <BirthdayReminder contacts={contacts} />
 
         {/* Contact Cards */}
         {filteredContacts.length === 0 ? (
@@ -232,14 +243,23 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
                 </div>
                 <div className="flex gap-2 mt-4">
                   <button
+                    className="p-2 bg-green-50 text-green-600 rounded-md hover:bg-green-100"
+                    onClick={() => console.log('Chat with', contact.name)}
+                    title="Chat"
+                  >
+                    <MessageCircle size={16} />
+                  </button>
+                  <button
                     className="p-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100"
                     onClick={() => setEditingContact(contact)}
+                    title="Edit"
                   >
                     <Edit2 size={16} />
                   </button>
                   <button
                     className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100"
                     onClick={() => deleteContact(contact.contact_id)}
+                    title="Delete"
                   >
                     <Trash2 size={16} />
                   </button>
