@@ -237,7 +237,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-sky-50 to-white flex items-center justify-center font-inter p-4">
+    <div className="min-h-screen bg-gradient-to-r from-blue-100 to-white flex items-center justify-center font-inter p-4">
       <div className="w-full max-w-5xl bg-white rounded-xl shadow-xl p-10 relative">
         {/* Back button */}
         <button
@@ -249,7 +249,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
         </button>
 
         {/* Title */}
-        <h1 className="text-center text-3xl font-bold text-sky-600 mb-10">
+        <h1 className="text-center text-3xl font-bold text-blue-800 mb-10">
           User Profile
         </h1>
 
@@ -273,7 +273,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
                 />
               )}
             </label>
-            <h2 className="text-2xl font-family font-bold mt-4 text-sky-600 text-center">
+            <h2 className="text-2xl font-family font-bold mt-4 text-blue-800 text-center">
               {userData.name}
             </h2>
             <p className="text-gray-600">{userData.email}</p>
@@ -320,7 +320,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
 
             {/* Password Reset Fields */}
             {isResettingPassword && (
-              <div className="p-4 bg-sky-50 rounded-md shadow-inner">
+              <div className="p-4 bg-blue-50 rounded-md shadow-inner">
                 <Detail label="Current Password" icon={<FiKey />} isEditing={true}>
                   <input
                     type="password"
@@ -357,7 +357,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
                   </button>
                   <button
                     onClick={handleSaveNewPassword}
-                    className="px-4 py-2 bg-gradient-to-r from-sky-400 to-blue-600 text-white rounded-lg shadow-md hover:scale-105 hover:from-sky-500 hover:to-blue-700 transition-transform"
+                    className="px-4 py-2 bg-gradient-to-r from-blue-700 to-blue-400 text-white rounded-lg shadow-md hover:scale-105 hover:from-blue-800 hover:to-blue-500 transition-transform"
                   >
                     Save Password
                   </button>
@@ -369,7 +369,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
             <div className="flex justify-end gap-4 mt-6 flex-wrap">
               <button
                 onClick={handleEditToggle}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r  from-sky-400 to-blue-600 text-white rounded-lg shadow-md transform transition-transform duration-200 hover:scale-105 hover:from-sky-500 hover:to-blue-700"
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r  from-blue-700 to-blue-400 text-white rounded-lg shadow-md transform transition-transform duration-200 hover:scale-105 hover:from-blue-800 hover:to-blue-500"
               >
                 <FiEdit2 />
                 {isEditing ? "Save Profile" : "Edit Profile"}
@@ -377,7 +377,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
 
               <button
                 onClick={handleResetPasswordClick}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-sky-400 to-blue-600 text-white rounded-lg shadow-md transform transition-transform duration-200 hover:scale-105 hover:from-sky-500 hover:to-blue-700"
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-700 to-blue-400 text-white rounded-lg shadow-md transform transition-transform duration-200 hover:scale-105 hover:from-blue-800 hover:to-blue-500"
               >
                 <MdLock />
                 Reset Password
@@ -413,7 +413,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
 
 const Detail = ({ label, icon, children, }) => (
   <div>
-    <label className="text-sm font-medium text-sky-600 flex items-center gap-2 mb-1">
+    <label className="text-sm font-medium text-blue-800 flex items-center gap-2 mb-1">
       {icon} {label}
     </label>
     {children}

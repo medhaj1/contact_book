@@ -65,10 +65,10 @@ const SignUp = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-cyan-100 to-white flex items-center justify-center relative">
+    <div className="min-h-screen bg-gradient-to-r from-blue-100 to-white flex items-center justify-center relative">
       {/* Back Button */}
       <button
-        className="absolute top-6 left-6 bg-gray-100 px-4 py-2 rounded-md shadow hover:bg-gray-200 transition"
+        className="absolute top-6 left-6 bg-gray-100 px-4 py-2 rounded-lg shadow scale-100 hover:scale-105 hover:shadow-md transition"
         onClick={() => navigate('/')}
       >
         Back
@@ -76,7 +76,7 @@ const SignUp = () => {
 
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md"
+        className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md"
       >
         <h2 className="text-3xl font-bold mb-6 text-center text-blue-900">
           Create Account
@@ -88,7 +88,7 @@ const SignUp = () => {
           placeholder="Full Name"
           value={formData.name}
           onChange={handleChange}
-          className="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-full p-3 mb-4 border rounded-xl shadow focus:shadow-md hover:shadow-md scale-100 focus:scale-105 transition-all duration-200"
         />
         <input
           type="text"
@@ -96,7 +96,7 @@ const SignUp = () => {
           placeholder="Contact Number"
           value={formData.contact}
           onChange={handleChange}
-          className="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-full p-3 mb-4 border rounded-xl shadow focus:shadow-md hover:shadow-md scale-100 focus:scale-105 transition-all duration-200"
         />
         <input
           type="email"
@@ -104,7 +104,7 @@ const SignUp = () => {
           placeholder="Email Address"
           value={formData.email}
           onChange={handleChange}
-          className="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-full p-3 mb-4 border rounded-xl shadow focus:shadow-md hover:shadow-md scale-100 focus:scale-105 transition-all duration-200"
         />
         <input
           type="password"
@@ -112,7 +112,7 @@ const SignUp = () => {
           placeholder="Create Password"
           value={formData.password}
           onChange={handleChange}
-          className="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-full p-3 mb-4 border rounded-xl shadow focus:shadow-md hover:shadow-md scale-100 focus:scale-105 transition-all duration-200"
         />
         <input
           type="password"
@@ -120,19 +120,19 @@ const SignUp = () => {
           placeholder="Confirm Password"
           value={formData.confirmPassword}
           onChange={handleChange}
-          className="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+          className="w-full p-3 mb-4 border rounded-xl shadow focus:shadow-md hover:shadow-md scale-100 focus:scale-105 transition-all duration-200"
         />
 
         <button
           type="submit"
-          className="w-full bg-gradient-to-r from-blue-700 to-blue-400 text-white py-3 rounded-lg shadow hover:shadow-lg transition-all duration-300"
+          className="w-full text-lg font-bold bg-gradient-to-r from-blue-700 to-blue-400 text-white py-3 rounded-xl shadow scale-100 hover:scale-105 hover:shadow-lg hover:from-blue-800 hover:to-blue-500 transition-all duration-200"
         >
           Sign Up
         </button>
 
         <p className="mt-4 text-sm text-center">
           Already have an account?
-          <Link to="/signin" className="text-blue-600 font-semibold ml-1 hover:underline">
+          <Link to="/signin" className="text-blue-600 font-semibold ml-1 hover:underline hover:text-blue-800">
             Sign In
           </Link>
         </p>
