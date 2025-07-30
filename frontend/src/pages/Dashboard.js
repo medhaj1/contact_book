@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { User, Phone, Mail, Search, Plus, Edit2, Trash2, Users, BookOpen, Settings, LogOut} from 'lucide-react';
 import ContactForm from '../components/dashboard/ContactForm';
 import CategoryForm from '../components/dashboard/CategoryForm';
+import SettingsTab from '../components/dashboard/SettingsTab';
 
-const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@example.com' }, onLogout = () => {} }) => {
+const Dashboard = ({ currentUser = { user_id: 1, name: '', email: '' }, onLogout = () => {} }) => {
   const navigate = useNavigate();
   const [contacts, setContacts] = useState([
     {
@@ -278,17 +279,7 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
 
     {/* Settings Tab */}
     {activeTab === 'settings' && (
-      <div className="bg-white p-6 rounded-xl border border-slate-200 max-w-md">
-        <h3 className="text-lg font-semibold text-slate-900 mb-4">Account Settings</h3>
-        <div className="flex items-center gap-2 text-slate-500 text-sm mb-2">
-          <User size={16} />
-          <span>{currentUser?.name}</span>
-        </div>
-        <div className="flex items-center gap-2 text-slate-500 text-sm">
-          <Mail size={16} />
-          <span>{currentUser?.email}</span>
-        </div>
-      </div>
+      <SettingsTab currentUser={currentUser}/>
     )}
   </div>
 

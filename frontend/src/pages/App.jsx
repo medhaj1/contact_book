@@ -10,7 +10,7 @@ import UserProfile from './UserProfile';
 
 import { supabase } from '../supabaseClient';
 
-export default function App() {
+function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
@@ -76,3 +76,4 @@ export default function App() {
     </Router>
   );
 }
+export default App;
