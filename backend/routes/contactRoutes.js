@@ -10,7 +10,25 @@ const upload = multer({ storage: multer.memoryStorage() });
  */
 router.post("/", upload.single("photo"), async (req, res) => {
   try {
-    const { name, email, phone, user_id } = req.body;
+    const { name, email, phone, user_id, birthday, category_id } = req.body;
+    
+    // Validate and format birthday
+    let formattedBirthday = null;
+    if (birthday && birthday.trim()) {
+      // Ensure the birthday is in YYYY-MM-DD format for the database
+      const birthdayRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (birthdayRegex.test(birthday.trim())) {
+        const date = new Date(birthday.trim());
+        if (!isNaN(date.getTime())) {
+          formattedBirthday = birthday.trim();
+        } else {
+          return res.status(400).json({ error: "Invalid birthday date format" });
+        }
+      } else {
+        return res.status(400).json({ error: "Birthday must be in YYYY-MM-DD format" });
+      }
+    }
+    
     let photoUrl = null;
 
     if (req.file) {
@@ -49,7 +67,15 @@ router.post("/", upload.single("photo"), async (req, res) => {
 
     const { data:insertData, error: insertError } = await supabase
       .from("contact")
-      .insert([{ name, email, phone, photo_url: photoUrl, user_id: user_id }])
+      .insert([{ 
+        name, 
+        email, 
+        phone, 
+        photo_url: photoUrl, 
+        user_id: user_id,
+        birthday: formattedBirthday,
+        category_id: category_id ? String(category_id) : null
+      }])
       .select()
       .single();
 
@@ -89,7 +115,32 @@ router.get("/:userId", async (req, res) => {
 router.put("/:id", upload.single("photo"), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, phone, user_id } = req.body;
+    const { name, email, phone, user_id, birthday, category_id } = req.body;
+    
+    // Debug incoming data
+    console.log("Incoming request body:", req.body);
+    console.log("Birthday value:", birthday, "Type:", typeof birthday);
+    
+    // Validate and format birthday
+    let formattedBirthday = null;
+    if (birthday && birthday.trim()) {
+      // Ensure the birthday is in YYYY-MM-DD format for the database
+      const birthdayRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (birthdayRegex.test(birthday.trim())) {
+        const date = new Date(birthday.trim());
+        if (!isNaN(date.getTime())) {
+          formattedBirthday = birthday.trim();
+        } else {
+          return res.status(400).json({ error: "Invalid birthday date format" });
+        }
+      } else {
+        return res.status(400).json({ error: "Birthday must be in YYYY-MM-DD format" });
+      }
+    } else if (birthday === '') {
+      // Handle empty string as null
+      formattedBirthday = null;
+    }
+    
     let photoUrl = null;
 
     if (req.file) {
@@ -162,14 +213,29 @@ router.put("/:id", upload.single("photo"), async (req, res) => {
       photoUrl = publicData.publicUrl;
     }
 
+    // Build update object with proper type handling
     const updateFields = {
       name,
       email,
       phone,
+      category_id: category_id ? String(category_id) : null
     };
+    
+    // Handle birthday separately to ensure proper date type
+    if (formattedBirthday !== null) {
+      updateFields.birthday = formattedBirthday;
+    } else {
+      updateFields.birthday = null;
+    }
+    
     if (photoUrl) updateFields.photo_url = photoUrl;
 
-    const { data:updatedData,error: updateError } = await supabase
+    // Debug logging
+    console.log("Update fields:", updateFields);
+    console.log("Birthday type:", typeof formattedBirthday, "Value:", formattedBirthday);
+
+    // Try to update with explicit date casting if birthday is present
+    let query = supabase
       .from("contact")
       .update(updateFields)
       .eq("contact_id", id)
@@ -177,7 +243,13 @@ router.put("/:id", upload.single("photo"), async (req, res) => {
       .select()
       .single();
 
+    const { data:updatedData, error: updateError } = await query;
+
     if (updateError) {
+      console.error("Supabase update error:", updateError);
+      console.error("Update error code:", updateError.code);
+      console.error("Update error message:", updateError.message);
+      console.error("Update error details:", updateError.details);
       return res.status(500).json({ error: "Update failed", details: updateError.message });
     }
 

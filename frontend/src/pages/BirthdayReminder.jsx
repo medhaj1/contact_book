@@ -3,14 +3,29 @@ import React from "react";
 const BirthdayReminder = ({ contacts }) => {
   function isBirthdayInNext7Days(birthday) {
     if (!birthday) return false;
-    const today = new Date();
-    const nextWeek = new Date(today);
-    nextWeek.setDate(today.getDate() + 7);
+    
+    try {
+      const today = new Date();
+      const nextWeek = new Date(today);
+      nextWeek.setDate(today.getDate() + 7);
 
-    const bday = new Date(birthday);
-    bday.setFullYear(today.getFullYear());
+      // Parse the birthday date (database stores as YYYY-MM-DD)
+      const bday = new Date(birthday);
+      
+      // Check if the date is valid
+      if (isNaN(bday.getTime())) {
+        console.warn("Invalid birthday date:", birthday);
+        return false;
+      }
+      
+      // Set the year to current year for comparison
+      bday.setFullYear(today.getFullYear());
 
-    return bday >= today && bday <= nextWeek;
+      return bday >= today && bday <= nextWeek;
+    } catch (error) {
+      console.error("Error parsing birthday:", birthday, error);
+      return false;
+    }
   }
 
   const upcomingBirthdays = contacts.filter((contact) =>
@@ -31,7 +46,21 @@ const BirthdayReminder = ({ contacts }) => {
             >
               <span className="font-medium">{c.name}</span>
               <span className="text-sm">
-                {new Date(c.birthday).toLocaleDateString()}
+                {(() => {
+                  try {
+                    const date = new Date(c.birthday);
+                    if (isNaN(date.getTime())) {
+                      return c.birthday; // Return raw value if parsing fails
+                    }
+                    return date.toLocaleDateString(undefined, {
+                      day: "numeric",
+                      month: "short"
+                    });
+                  } catch (error) {
+                    console.error("Error formatting birthday:", c.birthday, error);
+                    return c.birthday;
+                  }
+                })()}
               </span>
             </li>
           ))}

@@ -1,19 +1,70 @@
 import React, { useState } from 'react';
 import {Camera, X } from 'lucide-react';
 
-const ContactForm = ({ contact, categories, onSave, onCancel }) => {
+const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => {
     const [formData, setFormData] = useState({
       name: contact?.name || '',
       email: contact?.email || '',
       phone: contact?.phone || '',
       birthday: contact?.birthday || '',
-      category_id: contact?.category_id || categories[0]?.category_id || 1,
-      image: contact?.image || null
+      category_id: contact?.category_id || (categories.length > 0 ? String(categories[0]?.category_id) : null),
+      image: contact?.photo_url || contact?.image || null
     });
+    
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const API_BASE_URL = 'http://localhost:5000';
   
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
       e.preventDefault();
-      onSave(formData);
+      
+      // Validate required fields
+      if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim()) {
+        alert("Name, email, and phone are required");
+        return;
+      }
+      
+      setIsSubmitting(true);
+      
+      try {
+        // Create FormData for API call
+        const apiFormData = new FormData();
+        apiFormData.append('name', formData.name);
+        apiFormData.append('email', formData.email);
+        apiFormData.append('phone', formData.phone);
+        apiFormData.append('user_id', userId);
+        if (formData.category_id) apiFormData.append('category_id', String(formData.category_id));
+        if (formData.birthday) apiFormData.append('birthday', formData.birthday);
+        
+        // Handle image upload
+        if (formData.image && formData.image.startsWith('data:')) {
+          const response = await fetch(formData.image);
+          const blob = await response.blob();
+          apiFormData.append('photo', blob, `${formData.name}.jpg`);
+        }
+
+        // Make API call
+        const url = contact 
+          ? `${API_BASE_URL}/contacts/${contact.contact_id}`
+          : `${API_BASE_URL}/contacts`;
+        const method = contact ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+          method: method,
+          body: apiFormData,
+        });
+
+        if (response.ok) {
+          // Success - notify parent component
+          onSave();
+        } else {
+          const error = await response.json();
+          alert(`Failed to ${contact ? 'update' : 'add'} contact: ` + (error.details || error.error));
+        }
+      } catch (error) {
+        alert(`Error ${contact ? 'updating' : 'adding'} contact: ` + error.message);
+      } finally {
+        setIsSubmitting(false);
+      }
     };
   
     const handleImageUpload = (e) => {
@@ -101,10 +152,11 @@ const ContactForm = ({ contact, categories, onSave, onCancel }) => {
             </div>
             <div className="mb-6">
               <select
-                value={formData.category_id}
-                onChange={(e) => setFormData({ ...formData, category_id: parseInt(e.target.value) })}
+                value={formData.category_id || ""}
+                onChange={(e) => setFormData({ ...formData, category_id: e.target.value || null })}
                 className="w-full px-4 py-3 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 focus:scale-105 bg-white text-slate-600 transform transition duration-200"
               >
+                <option value="">Select Category</option>
                 {categories.map((category) => (
                   <option key={category.category_id} value={category.category_id}>
                     {category.name}
@@ -115,13 +167,20 @@ const ContactForm = ({ contact, categories, onSave, onCancel }) => {
             <div className="flex gap-4">
               <button
                 type="submit"
-                className="flex-1 py-3 rounded-xl text-white text-base font-medium bg-gradient-to-r from-blue-700 to-blue-400 scale-100 hover:scale-105 hover:from-blue-800 hover:to-blue-500 transition-all duration-200">
-                Save
+                disabled={isSubmitting}
+                className={`flex-1 py-3 rounded-xl text-white text-base font-medium transition-all duration-200 ${
+                  isSubmitting 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-gradient-to-r from-blue-700 to-blue-400 scale-100 hover:scale-105 hover:from-blue-800 hover:to-blue-500'
+                }`}
+              >
+                {isSubmitting ? 'Saving...' : 'Save'}
               </button>
               <button
                 type="button"
                 onClick={onCancel}
-                className="flex-1 py-3 rounded-xl text-slate-500 bg-slate-100 text-base font-medium scale-100 hover:scale-105 hover:bg-slate-200 transition">
+                disabled={isSubmitting}
+                className="flex-1 py-3 rounded-xl text-slate-500 bg-slate-100 text-base font-medium scale-100 hover:scale-105 hover:bg-slate-200 transition disabled:opacity-50 disabled:cursor-not-allowed">
                 Cancel
               </button>
             </div>
