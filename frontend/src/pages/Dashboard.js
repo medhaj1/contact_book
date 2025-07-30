@@ -180,46 +180,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
             );
           })}
         </nav>
-        {/* Profile and Logout Dropdown as per first code */}
-        <div className="relative mt-auto border-t pt-4">
-          <div
-            className="flex items-center px-4 py-2 rounded-lg cursor-pointer text-slate-500 hover:bg-slate-100 text-sm font-medium"
-            onClick={() => setShowUserDropdown(!showUserDropdown)}
-          >
-            <div className="w-9 h-9 bg-sky-500 rounded-full flex items-center justify-center text-white font-semibold text-sm mr-2 overflow-hidden">
-              {userName?.charAt(0).toUpperCase()}
-            </div>
-            <span>{userName}</span>
-            <svg className={`w-4 h-4 ml-auto text-slate-400 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`}
-              fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
-          {showUserDropdown && (
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
-              <div
-                className="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 cursor-pointer"
-                onClick={() => {
-                  navigate('/profile');
-                  setShowUserDropdown(false);
-                }}
-              >
-                <User size={16} className="mr-3" />
-                Profile
-              </div>
-              <div
-                className="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 cursor-pointer"
-                onClick={() => {
-                  onLogout();
-                  setShowUserDropdown(false);
-                }}
-              >
-                <LogOut size={16} className="mr-3" />
-                Logout
-              </div>
-            </div>
-          )}
-        </div>
+
       </div>
 
       {/* Main Content */}
@@ -227,11 +188,60 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-semibold text-slate-900 capitalize">{activeTab}</h1>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gradient-to-r from-blue-700 to-blue-400 shadow-lg border-1 border-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm overflow-hidden">
-              {userName?.charAt(0).toUpperCase()}
+          <div className="relative flex items-center gap-3">
+            <div
+              className="flex items-center gap-3 px-4 py-2 rounded-lg cursor-pointer hover:bg-white hover:shadow-sm transition-all duration-200"
+              onClick={() => setShowUserDropdown(!showUserDropdown)}
+            >
+              <div className="w-9 h-9 bg-gradient-to-r from-blue-700 to-blue-400 shadow-lg border-2 border-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm overflow-hidden">
+                {currentUser?.user_metadata?.image || currentUser?.user_metadata?.picture || currentUser?.user_metadata?.image ? (
+                  <img 
+                    src={currentUser.user_metadata.image || currentUser.user_metadata.picture || currentUser.user_metadata.image} 
+                    alt={userName}
+                    className="w-full h-full object-cover rounded-full"
+                    onError={(e) => {
+                      // Hide the image and show initials fallback
+                      e.target.style.display = 'none';
+                      const parent = e.target.parentElement;
+                      parent.innerHTML = `<span class="w-full h-full flex items-center justify-center">${userName?.charAt(0).toUpperCase()}</span>`;
+                    }}
+                  />
+                ) : (
+                  <span className="w-full h-full flex items-center justify-center">
+                    {userName?.charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <span className="text-sm text-slate-600 font-medium">{userName}</span>
+              <svg className={`w-4 h-4 text-slate-400 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`}
+                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
             </div>
-            <span className="text-sm text-slate-600 font-medium">{userName}</span>
+            {showUserDropdown && (
+              <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50">
+                <div
+                  className="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 cursor-pointer"
+                  onClick={() => {
+                    navigate('/profile');
+                    setShowUserDropdown(false);
+                  }}
+                >
+                  <User size={16} className="mr-3" />
+                  Profile
+                </div>
+                <div
+                  className="flex items-center px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 cursor-pointer"
+                  onClick={() => {
+                    onLogout();
+                    setShowUserDropdown(false);
+                  }}
+                >
+                  <LogOut size={16} className="mr-3" />
+                  Logout
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
