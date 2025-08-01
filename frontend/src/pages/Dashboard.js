@@ -274,13 +274,51 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                   </option>
                 ))}
               </select>
-              <button
-                onClick={() => setShowAddContact(true)}
-                className="btn"
-              >
-                <Plus size={16} />
-                Add Contact
-              </button>
+              <div className="relative">
+  <button
+    onClick={() => setShowUserDropdown(prev => !prev)}
+    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-700 to-blue-400 text-white rounded-xl text-md scale-100 hover:from-blue-800 hover:to-blue-500 hover:scale-105 transform transition-transform duration-200 transition-colors"
+  >
+    <Plus size={16} />
+    Add Contact
+    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+    </svg>
+  </button>
+
+  {showUserDropdown && (
+    <div className="absolute mt-2 w-44 right-0 bg-white border border-slate-200 shadow-lg rounded-lg z-10">
+      <div
+        className="px-4 py-2 hover:bg-slate-100 cursor-pointer text-sm text-slate-700"
+        onClick={() => {
+          setShowAddContact(true);
+          setShowUserDropdown(false);
+        }}
+      >
+        Add via Form
+      </div>
+      <div
+        className="px-4 py-2 hover:bg-slate-100 cursor-pointer text-sm text-slate-700"
+        onClick={() => {
+          document.getElementById('csvFileInput').click();
+          setShowUserDropdown(false);
+        }}
+      >
+        Import via CSV
+      </div>
+    </div>
+  )}
+
+  {/* Hidden CSV Input */}
+  <input
+    type="file"
+    id="csvFileInput"
+    accept=".csv"
+    className="hidden"
+    /*remember to add a onChange={}*/
+  />
+</div>
+
             </div>
 
             {/* Today's Birthday Reminders */}
