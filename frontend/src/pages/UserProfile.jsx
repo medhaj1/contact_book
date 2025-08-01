@@ -206,6 +206,19 @@ const UserProfile = ({ currentUser, onLogout }) => {
     setPasswords({ ...passwords, [e.target.name]: e.target.value });
   };
 
+  // Add form submission handlers for Enter key support
+  const handleProfileFormSubmit = (e) => {
+    e.preventDefault();
+    if (isEditing) {
+      handleEditToggle(); // This will save the profile
+    }
+  };
+
+  const handlePasswordFormSubmit = (e) => {
+    e.preventDefault();
+    handleSaveNewPassword();
+  };
+
   const handleResetPasswordClick = () => setIsResettingPassword(true);
 
   const handleCancelResetPassword = () => {
@@ -237,19 +250,19 @@ const UserProfile = ({ currentUser, onLogout }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-blue-100 to-white flex items-center justify-center font-inter p-4">
-      <div className="w-full max-w-5xl bg-white rounded-xl shadow-xl p-10 relative">
+    <div className="min-h-screen bg-gradient-to-r from-blue-200 to-white dark:bg-gradient-to-r dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950 flex items-center justify-center font-inter p-4">
+      <div className="w-full max-w-5xl bg-white dark:bg-slate-800 rounded-xl shadow-2xl p-10 relative">
         {/* Back button */}
         <button
           onClick={() => navigate('/dashboard')}
-          className="absolute top-4 left-4 text-sm flex items-center text-sky-600 hover:scale-105 text-sky-800"
+          className="absolute top-4 left-4 text-sm flex items-center text-sky-600 dark:text-slate-500 hover:scale-105 hover:text-sky-800 dark:hover:text-slate-400 transition-transform transform"
         >
           <FiArrowLeft className="mr-1" />
           Back
         </button>
 
         {/* Title */}
-        <h1 className="text-center text-3xl font-bold text-blue-800 mb-10">
+        <h1 className="text-center text-3xl font-bold text-blue-800 dark:text-blue-300 mb-10">
           User Profile
         </h1>
 
@@ -273,11 +286,10 @@ const UserProfile = ({ currentUser, onLogout }) => {
                 />
               )}
             </label>
-            <h2 className="text-2xl font-family font-bold mt-4 text-blue-800 text-center">
+            <h2 className="text-2xl font-family font-bold mt-4 text-blue-800 dark:text-blue-300 text-center">
               {userData.name}
             </h2>
-            <p className="text-gray-600">{userData.email}</p>
-            <p className="text-gray-500 text-sm">{userData.address}</p>
+            <p className="text-slate-600 dark:text-slate-400">{userData.email}</p>
           </div>
 
           {/* Right: Fields */}
@@ -287,7 +299,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
                 name="name"
                 value={userData.name}
                 onChange={handleChange}
-                className={`w-full border p-2 rounded-md ${
+                className={`w-full border p-2 rounded-md dark:bg-slate-600 dark:text-white dark:border-slate-500 ${
                   isEditing ? "bg-white" : "bg-gray-100"
                 }`}
                 disabled={!isEditing}
@@ -299,7 +311,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
                 name="email"
                 value={userData.email}
                 onChange={handleChange}
-                className={`w-full border p-2 rounded-md ${
+                className={`w-full border p-2 rounded-md dark:bg-slate-600 dark:text-white dark:border-slate-500 ${
                   isEditing ? "bg-white" : "bg-gray-100"
                 }`}
                 disabled={!isEditing}
@@ -311,7 +323,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
                 name="phone"
                 value={userData.phone}
                 onChange={handleChange}
-                className={`w-full border p-2 rounded-md ${
+                className={`w-full border p-2 rounded-md dark:bg-slate-600 dark:text-white dark:border-slate-500 ${
                   isEditing ? "bg-white" : "bg-gray-100"
                 }`}
                 disabled={!isEditing}
@@ -320,14 +332,15 @@ const UserProfile = ({ currentUser, onLogout }) => {
 
             {/* Password Reset Fields */}
             {isResettingPassword && (
-              <div className="p-4 bg-blue-50 rounded-md shadow-inner">
+              <form>
+              <div className="p-4 bg-blue-50 dark:bg-slate-700 rounded-md shadow-inner">
                 <Detail label="Current Password" icon={<FiKey />} isEditing={true}>
                   <input
                     type="password"
                     name="current"
                     value={passwords.current}
                     onChange={handlePasswordInputChange}
-                    className="w-full border p-2 rounded-md"
+                    className="w-full border p-2 mb-1 rounded-md dark:bg-slate-600 dark:text-white dark:border-slate-500"
                   />
                 </Detail>
                 <Detail label="New Password" icon={<FiKey />} isEditing={true}>
@@ -336,7 +349,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
                     name="new"
                     value={passwords.new}
                     onChange={handlePasswordInputChange}
-                    className="w-full border p-2 rounded-md"
+                    className="w-full border p-2 mb-1 rounded-md dark:bg-slate-600 dark:text-white dark:border-slate-500"
                   />
                 </Detail>
                 <Detail label="Confirm New Password" icon={<FiKey />} isEditing={true}>
@@ -345,31 +358,34 @@ const UserProfile = ({ currentUser, onLogout }) => {
                     name="confirmNew"
                     value={passwords.confirmNew}
                     onChange={handlePasswordInputChange}
-                    className="w-full border p-2 rounded-md"
+                    className="w-full border p-2 rounded-md dark:bg-slate-600 dark:text-white dark:border-slate-500"
                   />
                 </Detail>
                 <div className="flex justify-end gap-2 mt-3">
                   <button
+                    type="button"
                     onClick={handleCancelResetPassword}
-                    className="px-4 py-2 border border-red-400 text-red-600 rounded-lg hover:bg-red-100 transition-transform transform hover:scale-105"
+                    className="flex items-center gap-2 px-4 py-2 border border-red-400 text-red-600 dark:hover:text-red-300 rounded-lg hover:bg-red-100 dark:hover:bg-red-800 transition-transform transform hover:scale-105"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSaveNewPassword}
-                    className="px-4 py-2 bg-gradient-to-r from-blue-700 to-blue-400 text-white rounded-lg shadow-md hover:scale-105 hover:from-blue-800 hover:to-blue-500 transition-transform"
+                    className="btn"
                   >
                     Save Password
                   </button>
                 </div>
-              </div>
+                </div>
+              </form>
+              
             )}
 
             {/* Buttons */}
             <div className="flex justify-end gap-4 mt-6 flex-wrap">
               <button
                 onClick={handleEditToggle}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r  from-blue-700 to-blue-400 text-white rounded-lg shadow-md transform transition-transform duration-200 hover:scale-105 hover:from-blue-800 hover:to-blue-500"
+                className="btn"
               >
                 <FiEdit2 />
                 {isEditing ? "Save Profile" : "Edit Profile"}
@@ -377,15 +393,14 @@ const UserProfile = ({ currentUser, onLogout }) => {
 
               <button
                 onClick={handleResetPasswordClick}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-700 to-blue-400 text-white rounded-lg shadow-md transform transition-transform duration-200 hover:scale-105 hover:from-blue-800 hover:to-blue-500"
-              >
+                className="btn">
                 <MdLock />
                 Reset Password
               </button>
 
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 px-4 py-2 border border-red-400 text-red-600 rounded-lg hover:bg-red-100 transition-transform transform hover:scale-105"
+                className="flex items-center gap-2 px-4 py-2 border border-red-400 text-red-600 dark:hover:text-red-300 rounded-lg hover:bg-red-100 dark:hover:bg-red-800 transition-transform transform hover:scale-105"
               >
                 <FiLogOut />
                 Log Out
@@ -394,9 +409,9 @@ const UserProfile = ({ currentUser, onLogout }) => {
           </div>
           {/* Debug Section (Development Only) */}
           {process.env.NODE_ENV === 'development' && currentUser && (
-            <div className="mt-8 p-4 bg-gray-100 rounded-lg">
+            <div className="mt-8 p-4 bg-gray-100 dark:bg-slate-600 rounded-lg">
               <details className="cursor-pointer">
-                <summary className="text-sm font-medium text-gray-600 mb-2">
+                <summary className="text-sm font-medium text-gray-600 dark:text-slate-300 mb-2">
                   Debug: Raw User Data (Development Only)
                 </summary>
                 <pre className="text-xs bg-white p-3 rounded border overflow-auto max-h-40">
@@ -413,7 +428,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
 
 const Detail = ({ label, icon, children, }) => (
   <div>
-    <label className="text-sm font-medium text-blue-800 flex items-center gap-2 mb-1">
+    <label className="text-sm font-medium text-blue-800 dark:text-blue-300 flex items-center gap-2 mb-1">
       {icon} {label}
     </label>
     {children}
