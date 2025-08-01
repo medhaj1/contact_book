@@ -2,12 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   User, Phone, Mail, Search, Plus, Edit2, Trash2,
-  Users, BookOpen, Settings, LogOut
+  Users, BookOpen, Settings, LogOut, CheckSquare
 } from 'lucide-react';
 
 import ContactForm from '../components/dashboard/ContactForm';
 import CategoryForm from '../components/dashboard/CategoryForm';
 import BirthdayReminder from './BirthdayReminder'; // Only UI, uses contacts with .birthday supported
+import TaskPanel from '../components/dashboard/TaskPanel';
 
 // Utility function to check if birthday is today
 function isBirthdayToday(birthday) {
@@ -146,6 +147,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     { id: 'contacts', label: 'Contacts', icon: Users },
     { id: 'categories', label: 'Categories', icon: BookOpen },
     { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'task', label: 'Task', icon: CheckSquare }, // Add Task section
   ];
 
   // Classnames for prettier transitions/buttons - reference 22: use 2nd code style
@@ -461,6 +463,13 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
               <Mail size={16} />
               <span>{userEmail}</span>
             </div>
+          </div>
+        )}
+
+        {/* Task Tab */}
+        {activeTab === 'task' && (
+          <div className="flex flex-col items-center w-full">
+            <TaskPanel />
           </div>
         )}
 
