@@ -35,7 +35,7 @@ const SignIn = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-blue-100 to-white flex items-center justify-center relative">
+    <div className="min-h-screen bg-gradient-to-r from-blue-200 to-white flex items-center justify-center relative">
       
 
       <form
