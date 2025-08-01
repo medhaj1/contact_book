@@ -7,15 +7,16 @@ import SignIn from '../components/signin/SignIn';
 import Dashboard from './Dashboard';
 import LandingPage from './LandingPage';
 import UserProfile from './UserProfile';
-import BirthdayReminderPage from "./BirthdayReminderPage";
-
 
 import { supabase } from '../supabaseClient';
 
-export default function App() {
+function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
+  const[isDark, setIsDark] = useState(()=>{
+    return localStorage.getItem('theme') === 'dark';
+  });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -35,6 +36,17 @@ export default function App() {
       authListener.subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    }
+    else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDark]);
 
   const handleLogout = async () => {
     try {
@@ -73,13 +85,9 @@ export default function App() {
           path="/profile"
           element={isLoggedIn ? <UserProfile currentUser={currentUser} onLogout={handleLogout} /> : <Navigate to="/signin" />}
         />
-        {/* NEW ROUTE FOR BIRTHDAY REMINDER */}
-        <Route
-          path="/birthdays"
-          element={isLoggedIn ? <BirthdayReminderPage /> : <Navigate to="/signin" />}
-        />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
   );
 }
+export default App;

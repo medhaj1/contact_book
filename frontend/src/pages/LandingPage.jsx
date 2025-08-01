@@ -9,7 +9,7 @@ const LandingPage = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen px-8 bg-gradient-to-r from-blue-100 to-white">
+    <div className="flex items-center justify-center min-h-screen px-8 bg-gradient-to-r from-blue-200 to-white">
       <div className="text-center max-w-3xl text-gray-800">
         <h1 className="text-5xl font-extrabold mb-6 text-blue-900">Contact Book</h1>
         <p className="text-lg mb-8 text-gray-700">
@@ -17,7 +17,7 @@ const LandingPage = () => {
         </p>
         <button
           onClick={handleGetStarted}
-          className="bg-gradient-to-r from-blue-700 to-blue-400 text-white border-none px-8 py-4 text-lg rounded-full cursor-pointer shadow-lg scale-100 hover:scale-105 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
+          className="bg-gradient-to-r from-blue-700 to-blue-400 font-semibold text-white border-none px-8 py-4 text-lg rounded-full cursor-pointer shadow-lg scale-100 hover:scale-105 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
         >
           Get Started
         </button>

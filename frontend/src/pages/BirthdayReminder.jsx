@@ -33,7 +33,7 @@ const BirthdayReminder = ({ contacts }) => {
   );
 
   return (
-    <div className="bg-gradient-to-r from-blue-100 via-blue-200 to-blue-300 p-5 rounded-2xl shadow-md mb-6">
+    <div className="bg-gradient-to-r from-blue-100 to-blue-200 p-5 rounded-2xl shadow-md mb-6 hover:shadow-lg transition-shadow duration-200">
       <h3 className="text-xl font-bold mb-3 text-blue-900 flex items-center gap-2">
         🎂 Upcoming Birthdays
       </h3>
