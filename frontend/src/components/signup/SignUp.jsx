@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -66,18 +67,18 @@ const SignUp = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-blue-100 to-white flex items-center justify-center relative">
-      {/* Back Button */}
-      <button
-        className="absolute top-6 left-6 bg-gray-100 px-4 py-2 rounded-lg shadow scale-100 hover:scale-105 hover:shadow-md transition"
-        onClick={() => navigate('/')}
-      >
-        Back
-      </button>
 
       <form
         onSubmit={handleSubmit}
         className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md"
       >
+        <button
+          className="top-4 left-4 flex scale-100 hover:scale-110 transition transition-transform items-center"
+            onClick={() => navigate('/')}
+          >
+            <ArrowLeftIcon className="w-5 h-5 text-slate-400 hover:text-slate-600" />
+                
+        </button>
         <h2 className="text-3xl font-bold mb-6 text-center text-blue-900">
           Create Account
         </h2>
