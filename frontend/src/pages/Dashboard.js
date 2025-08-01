@@ -341,7 +341,7 @@ const CategoryForm = ({ onSave, onCancel }) => {
   );
 };
 
-const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@example.com' }, onLogout = () => {} }) => {
+const Dashboard = ({ onLogout = () => {} }) => {
   const navigate = useNavigate();
   const [contacts, setContacts] = useState([]);
 
@@ -383,7 +383,15 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
   const [editingContact, setEditingContact] = useState(null);
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [activeTab, setActiveTab] = useState('contacts');
+  const [currentUser, setCurrentUser] = useState(null);
 
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
+    };
+    getUser();
+  }, []);
 
 
   // Contact Management Functions
@@ -395,8 +403,8 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
       email: contactData.email,
       phone: contactData.phone,
       category_id: contactData.category_id,
-      user_id: currentUser.user_id,
-      photo_url: contactData.image // <-- use photo_url
+      user_id: currentUser?.id, // <-- use .id, not .user_id
+      photo_url: contactData.image
     }])
     .select();
 
@@ -532,6 +540,7 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
   const sidebarItems = [
     { id: 'contacts', label: 'Contacts', icon: Users },
     { id: 'categories', label: 'Categories', icon: BookOpen },
+    { id: 'documents', label: 'Documents', icon: /* choose an icon, e.g. */ BookOpen },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
@@ -712,6 +721,30 @@ const Dashboard = ({ currentUser = { user_id: 1, name: 'John Doe', email: 'john@
           ))}
         </div>
       </>
+    )}
+
+    {/* Documents Tab */}
+    {activeTab === 'documents' && (
+      <div>
+        <h2 className="text-xl font-semibold mb-4">Upload Document</h2>
+        <input
+          type="file"
+          accept=".pdf,.doc,.docx,.txt"
+          onChange={async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            // Upload to Supabase Storage
+            const { data, error } = await supabase.storage
+              .from('documents')
+              .upload(`public/${file.name}`, file, { upsert: true });
+            if (error) {
+              alert('Upload failed: ' + error.message);
+            } else {
+              alert('File uploaded!');
+            }
+          }}
+        />
+      </div>
     )}
 
     {/* Settings Tab */}
