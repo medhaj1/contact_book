@@ -51,6 +51,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [activeTab, setActiveTab] = useState('contacts');
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [showAddContactDropdown, setShowAddContactDropdown] = useState(false);
 
   const API_BASE_URL = 'http://localhost:5000';
 
@@ -86,12 +87,15 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
       if (showUserDropdown && !event.target.closest('.relative')) {
         setShowUserDropdown(false);
       }
+      if (showAddContactDropdown && !event.target.closest('.relative')) {
+        setShowAddContactDropdown(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showUserDropdown]);
+  }, [showUserDropdown, showAddContactDropdown]);
 
   // --- Contact CRUD (Simplified - API calls moved to ContactForm) ---
   const handleContactSave = async () => {
@@ -158,6 +162,34 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   
   // Card border color from 2nd code
   const cardBorderClass = "bg-white border border-blue-100 p-6 rounded-2xl transition hover:shadow-md hover:-translate-y-1";
+
+  const handleImportCSV = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('user_id', userId);   // Attach the logged-in user's id
+
+  try {
+    const resp = await fetch(`${API_BASE_URL}/contacts/import`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (resp.ok) {
+      alert('Contacts imported successfully!');
+      await fetchContacts(); // Refresh UI
+    } else {
+      const error = await resp.json();
+      alert('Import failed: ' + (error.details || error.error));
+    }
+  } catch (error) {
+    alert('Error importing contacts: ' + error.message);
+  } finally {
+    // Reset the file input so user can re-import if desired
+    e.target.value = '';
+  }
+};
 
   return (
     <div className="flex min-h-screen bg-blue-50 font-sans">
@@ -274,7 +306,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
               </select>
               <div className="relative">
   <button
-    onClick={() => setShowUserDropdown(prev => !prev)}
+    onClick={() => setShowAddContactDropdown(prev => !prev)}
     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-700 to-blue-400 text-white rounded-xl text-md scale-100 hover:from-blue-800 hover:to-blue-500 hover:scale-105 transform transition-transform duration-200 transition-colors"
   >
     <Plus size={16} />
@@ -284,13 +316,13 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     </svg>
   </button>
 
-  {showUserDropdown && (
+  {showAddContactDropdown && (
     <div className="absolute mt-2 w-44 right-0 bg-white border border-slate-200 shadow-lg rounded-lg z-10">
       <div
         className="px-4 py-2 hover:bg-slate-100 cursor-pointer text-sm text-slate-700"
         onClick={() => {
           setShowAddContact(true);
-          setShowUserDropdown(false);
+          setShowAddContactDropdown(false);
         }}
       >
         Add via Form
@@ -299,7 +331,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
         className="px-4 py-2 hover:bg-slate-100 cursor-pointer text-sm text-slate-700"
         onClick={() => {
           document.getElementById('csvFileInput').click();
-          setShowUserDropdown(false);
+          setShowAddContactDropdown(false);
         }}
       >
         Import via CSV
@@ -311,9 +343,9 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   <input
     type="file"
     id="csvFileInput"
-    accept=".csv"
+    accept=".csv,.vcf"
     className="hidden"
-    /*remember to add a onChange={}*/
+    onChange={handleImportCSV}/*remember to add a onChange={}*/
   />
 </div>
 
@@ -493,5 +525,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     </div>
   );
 };
+
+
 
 export default Dashboard;

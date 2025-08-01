@@ -439,6 +439,19 @@ router.post("/import", upload.single("file"), async (req, res) => {
         return res.status(400).json({ error: "user_id is required in form-data" });
       }
 
+      // Fetch user's name from the user_profile table for CSV imports too
+      const { data: userData, error: userError } = await supabase
+        .from("user_profile")
+        .select("name")
+        .eq("u_id", postedUserId)
+        .single();
+
+      if (userError) {
+        return res.status(500).json({ error: "Failed to fetch user data", details: userError.message });
+      }
+
+      const userName = userData.name;
+
       for (let i = 1; i < lines.length; i++) {
         const values = lines[i].split(",").map(v => v.trim());
         if (values.length !== headers.length) continue;
@@ -452,6 +465,10 @@ router.post("/import", upload.single("file"), async (req, res) => {
         if (!contact.user_id) {
           contact.user_id = postedUserId;
         }
+
+        // Add userName for potential future photo handling
+        contact.userName = userName;
+        
         contacts.push(contact);
       }
     } else if (ext === ".vcf") {
@@ -462,15 +479,25 @@ router.post("/import", upload.single("file"), async (req, res) => {
         return res.status(400).json({ error: "user_id is required" });
       }
 
+      // Fetch user's name from the user_profile table
+      const { data: userData, error: userError } = await supabase
+        .from("user_profile")
+        .select("name")
+        .eq("u_id", user_id)
+        .single();
+
+      if (userError) {
+        return res.status(500).json({ error: "Failed to fetch user data", details: userError.message });
+      }
+
+      const userName = userData.name;
+
       contacts = contacts.map(c => ({ ...c, user_id }));
       for (const contact of contacts) {
         if (contact.photoBase64) {
           let base64String = contact.photoBase64.replace(/^data:image\/\w+;base64,/, "");
-          const imgBuffer =await enhanceContactImage(base64String);
+          const imgBuffer = await enhanceContactImage(base64String);
           const fileName = `${contact.name.replace(/\s+/g, '_')}-${Date.now()}.jpg`;
-          // Use user_id or req.body userName if you fetch it, e.g.:
-          // const userName = ... get from user_profile using user_id before this loop
-          const userName = "some_user_name"; // <-- You need to fetch or define this!
 
           const filePath = `users/${userName}/${contact.name}/${fileName}`;
 
@@ -507,7 +534,7 @@ router.post("/import", upload.single("file"), async (req, res) => {
       birthday: c.birthday && /^\d{4}-\d{2}-\d{2}$/.test(c.birthday) ? c.birthday : null,
       category_id: c.category_id ? String(sanitizeString(c.category_id)) : null,
       user_id: c.user_id,
-      photo_url:c.photo_url||null
+      photo_url: c.photo_url || null
     }));
 
     const { data: insertedData, error: insertError } = await supabase

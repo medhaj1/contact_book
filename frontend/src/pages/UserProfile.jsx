@@ -206,6 +206,19 @@ const UserProfile = ({ currentUser, onLogout }) => {
     setPasswords({ ...passwords, [e.target.name]: e.target.value });
   };
 
+  // Add form submission handlers for Enter key support
+  const handleProfileFormSubmit = (e) => {
+    e.preventDefault();
+    if (isEditing) {
+      handleEditToggle(); // This will save the profile
+    }
+  };
+
+  const handlePasswordFormSubmit = (e) => {
+    e.preventDefault();
+    handleSaveNewPassword();
+  };
+
   const handleResetPasswordClick = () => setIsResettingPassword(true);
 
   const handleCancelResetPassword = () => {
@@ -282,45 +295,52 @@ const UserProfile = ({ currentUser, onLogout }) => {
 
           {/* Right: Fields */}
           <div className="w-full md:w-2/3 space-y-4">
-            <Detail label="Name" icon={<MdPerson />} isEditing={isEditing}>
-              <input
-                name="name"
-                value={userData.name}
-                onChange={handleChange}
-                className={`w-full border p-2 rounded-md ${
-                  isEditing ? "bg-white" : "bg-gray-100"
-                }`}
-                disabled={!isEditing}
-              />
-            </Detail>
+            <form onSubmit={handleProfileFormSubmit}>
+              <Detail label="Name" icon={<MdPerson />} isEditing={isEditing}>
+                <input
+                  name="name"
+                  value={userData.name}
+                  onChange={handleChange}
+                  className={`w-full border p-2 rounded-md ${
+                    isEditing ? "bg-white" : "bg-gray-100"
+                  }`}
+                  disabled={!isEditing}
+                />
+              </Detail>
 
-            <Detail label="Email" icon={<MdEmail />} isEditing={isEditing}>
-              <input
-                name="email"
-                value={userData.email}
-                onChange={handleChange}
-                className={`w-full border p-2 rounded-md ${
-                  isEditing ? "bg-white" : "bg-gray-100"
-                }`}
-                disabled={!isEditing}
-              />
-            </Detail>
+              <Detail label="Email" icon={<MdEmail />} isEditing={isEditing}>
+                <input
+                  name="email"
+                  value={userData.email}
+                  onChange={handleChange}
+                  className={`w-full border p-2 rounded-md ${
+                    isEditing ? "bg-white" : "bg-gray-100"
+                  }`}
+                  disabled={!isEditing}
+                />
+              </Detail>
 
-            <Detail label="Contact No" icon={<MdPhone />} isEditing={isEditing}>
-              <input
-                name="phone"
-                value={userData.phone}
-                onChange={handleChange}
-                className={`w-full border p-2 rounded-md ${
-                  isEditing ? "bg-white" : "bg-gray-100"
-                }`}
-                disabled={!isEditing}
-              />
-            </Detail>
+              <Detail label="Contact No" icon={<MdPhone />} isEditing={isEditing}>
+                <input
+                  name="phone"
+                  value={userData.phone}
+                  onChange={handleChange}
+                  className={`w-full border p-2 rounded-md ${
+                    isEditing ? "bg-white" : "bg-gray-100"
+                  }`}
+                  disabled={!isEditing}
+                />
+              </Detail>
+
+              {/* Hidden submit button for Enter key */}
+              {isEditing && (
+                <button type="submit" style={{ display: 'none' }}>Submit</button>
+              )}
+            </form>
 
             {/* Password Reset Fields */}
             {isResettingPassword && (
-              <div className="p-4 bg-blue-50 rounded-md shadow-inner">
+              <form onSubmit={handlePasswordFormSubmit} className="p-4 bg-blue-50 rounded-md shadow-inner">
                 <Detail label="Current Password" icon={<FiKey />} isEditing={true}>
                   <input
                     type="password"
@@ -328,6 +348,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
                     value={passwords.current}
                     onChange={handlePasswordInputChange}
                     className="w-full border p-2 rounded-md"
+                    required
                   />
                 </Detail>
                 <Detail label="New Password" icon={<FiKey />} isEditing={true}>
@@ -337,6 +358,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
                     value={passwords.new}
                     onChange={handlePasswordInputChange}
                     className="w-full border p-2 rounded-md"
+                    required
                   />
                 </Detail>
                 <Detail label="Confirm New Password" icon={<FiKey />} isEditing={true}>
@@ -346,23 +368,25 @@ const UserProfile = ({ currentUser, onLogout }) => {
                     value={passwords.confirmNew}
                     onChange={handlePasswordInputChange}
                     className="w-full border p-2 rounded-md"
+                    required
                   />
                 </Detail>
                 <div className="flex justify-end gap-2 mt-3">
                   <button
+                    type="button"
                     onClick={handleCancelResetPassword}
                     className="px-4 py-2 border border-red-400 text-red-600 rounded-lg hover:bg-red-100 transition-transform transform hover:scale-105"
                   >
                     Cancel
                   </button>
                   <button
-                    onClick={handleSaveNewPassword}
+                    type="submit"
                     className="px-4 py-2 bg-gradient-to-r from-blue-700 to-blue-400 text-white rounded-lg shadow-md hover:scale-105 hover:from-blue-800 hover:to-blue-500 transition-transform"
                   >
                     Save Password
                   </button>
                 </div>
-              </div>
+              </form>
             )}
 
             {/* Buttons */}
