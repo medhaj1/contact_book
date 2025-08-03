@@ -2,12 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   User, Phone, Mail, Search, Plus, Edit2, Trash2,
-  Users, BookOpen, Settings, LogOut
+  Users, BookOpen, Settings, LogOut, CheckSquare
 } from 'lucide-react';
 
 import ContactForm from '../components/dashboard/ContactForm';
 import CategoryForm from '../components/dashboard/CategoryForm';
 import BirthdayReminder from './BirthdayReminder'; // Only UI, uses contacts with .birthday supported
+import TaskPanel from '../components/dashboard/TaskPanel';
 import SettingsTab from './SettingsTab';
 
 // Utility function to check if birthday is today
@@ -152,6 +153,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     { id: 'contacts', label: 'Contacts', icon: Users },
     { id: 'categories', label: 'Categories', icon: BookOpen },
     { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'task', label: 'Task', icon: CheckSquare }, // Add Task section
   ];
 
   // Classnames for prettier transitions/buttons - reference 22: use 2nd code style
@@ -484,6 +486,26 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
         )}
 
         {/* Settings Tab */}
+        {activeTab === 'settings' && (
+          <div className="bg-white p-6 rounded-xl border border-slate-200 max-w-md">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Account Settings</h3>
+            <div className="flex items-center gap-2 text-slate-500 text-sm mb-2">
+              <User size={16} />
+              <span>{userName}</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-500 text-sm">
+              <Mail size={16} />
+              <span>{userEmail}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Task Tab */}
+        {activeTab === 'task' && (
+          <div className="flex flex-col items-center w-full">
+            <TaskPanel />
+          </div>
+        )}
     {activeTab === 'settings' && (
       <SettingsTab currentUser={currentUser}/>
     )}
