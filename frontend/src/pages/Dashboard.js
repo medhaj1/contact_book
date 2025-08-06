@@ -56,7 +56,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showAddContactDropdown, setShowAddContactDropdown] = useState(false);
 
-  const API_BASE_URL = 'http://localhost:5000';
+  const API_BASE_URL = 'http://localhost:5050';
 
   // Fetch contacts from backend (including .birthday, as per 16)
   const fetchContacts = useCallback(async () => {
@@ -311,7 +311,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
               <div className="relative">
   <button
     onClick={() => setShowAddContactDropdown(prev => !prev)}
-    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-700 to-blue-400 text-white rounded-xl text-md scale-100 hover:from-blue-800 hover:to-blue-500 hover:scale-105 transform transition-transform duration-200 transition-colors"
+    className="btn"
   >
     <Plus size={16} />
     Add Contact
@@ -357,15 +357,14 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
 
             {/* Today's Birthday Reminders */}
             {todaysBirthdays.length > 0 && (
-              <div className="mb-6 p-4 bg-amber-50 rounded-xl border border-amber-200 flex flex-col gap-2">
-                <div className="font-semibold text-amber-700 flex items-center gap-1">
+              <div className="mb-6 p-4 bg-sky-200 bg-opacity-60 dark:bg-blue-900 dark:bg-opacity-50 rounded-xl shadow-md hover:shadow-lg border border-sky-200 dark:border-none flex flex-col gap-2">
+                <div className="font-bold text-lg text-sky-700 dark:text-blue-300 flex items-center gap-1">
                   🎂 Birthday{todaysBirthdays.length > 1 ? "s" : ""} Today!
                 </div>
                 {todaysBirthdays.map((contact) => (
-                  <div key={contact.contact_id} className="flex items-center gap-3 text-amber-700">
+                  <div key={contact.contact_id} className="flex items-center gap-3 text-sky-700 dark:text-blue-400">
                     <span className="font-bold">{contact.name}</span>
-                    <span className="text-xs">(Today)</span>
-                    <span className="text-slate-500 text-sm">{contact.email}</span>
+                    <span className="text-slate-500 dark:text-slate-500 text-base">{contact.email}</span>
                   </div>
                 ))}
               </div>
@@ -376,7 +375,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
 
             {/* Contact Cards */}
             {loading ? (
-              <div className="text-center text-slate-400 py-12">
+              <div className="text-center text-slate-400 dark:text-slate-300 py-12">
                 Loading contacts...
               </div>
             ) : filteredContacts.length === 0 ? (
@@ -390,23 +389,23 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                 {filteredContacts.map(contact => (
                   <div
                     key={contact.contact_id}
-                    className={cardBorderClass}
+                    className="bg-white dark:bg-slate-700 dark:bg-opacity-50 border border-blue-100 dark:border-slate-600 dark:border-opacity-60 dark:hover:shadow-slate-700 p-6 rounded-2xl transition hover:shadow-md hover:-translate-y-1"
                   >
                     <div className="flex items-center mb-4">
-                      <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-lg overflow-hidden mr-4">
+                      <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-indigo-300 flex items-center justify-center text-blue-700 dark:text-indigo-700 font-semibold text-lg overflow-hidden mr-4">
                         {contact.photo_url
                           ? <img src={contact.photo_url} alt={contact.name} className="w-full h-full object-cover rounded-full" />
                           : contact.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-slate-900">{contact.name}</h3>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-200">{contact.name}</h3>
                         {contact.category_id && (
-                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-medium">
+                          <span className="text-xs bg-blue-100 dark:bg-slate-600 text-blue-800 dark:text-slate-300 px-2 py-0.5 rounded-full font-medium">
                             {categories.find(cat => String(cat.category_id) === String(contact.category_id))?.name || "Unknown"}
                           </span>
                         )}
                         {contact.birthday && (
-                          <div className="text-xs text-sky-500 mt-1">
+                          <div className="text-xs text-blue-600 dark:text-indigo-300 mt-1">
                             🎂 {(() => {
                               try {
                                 // Parse the date from the database (YYYY-MM-DD format)
@@ -429,24 +428,24 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-slate-500 text-sm mb-1">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-300 text-sm mb-1">
                       <Mail size={16} />
                       <span>{contact.email}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-slate-500 text-sm mb-1">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-300 text-sm mb-1">
                       <Phone size={16} />
                       <span>{contact.phone}</span>
                     </div>
                     <div className="flex gap-2 mt-4">
                       <button
-                        className="p-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100"
+                        className="p-2 bg-blue-50 dark:bg-indigo-300 text-blue-600 rounded-md hover:bg-blue-100"
                         onClick={() => setEditingContact(contact)}
                         title="Edit"
                       >
                         <Edit2 size={16} />
                       </button>
                       <button
-                        className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100"
+                        className="p-2 bg-red-50 dark:bg-red-300 text-red-600 dark:text-red-800 rounded-md hover:bg-red-100"
                         onClick={() => deleteContact(contact.contact_id)}
                         title="Delete"
                       >
@@ -474,30 +473,15 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {categories.map(category => (
-                <div key={category.category_id} className="bg-white dark:bg-slate-600 border border-blue-100 dark:border-slate-500 p-6 rounded-2xl">
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-300">{category.name}</h3>
-                  <p className="text-sm text-slate-500 mt-1">
+                <div key={category.category_id} className="bg-white dark:bg-slate-700 dark:bg-opacity-60 border border-blue-100 dark:border-slate-600 p-6 rounded-2xl">
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-200">{category.name}</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-300 mt-1">
                     {contacts.filter(c => String(c.category_id) === String(category.category_id)).length} contacts
                   </p>
                 </div>
               ))}
             </div>
           </>
-        )}
-
-        {/* Settings Tab */}
-        {activeTab === 'settings' && (
-          <div className="bg-white p-6 rounded-xl border border-slate-200 max-w-md">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">Account Settings</h3>
-            <div className="flex items-center gap-2 text-slate-500 text-sm mb-2">
-              <User size={16} />
-              <span>{userName}</span>
-            </div>
-            <div className="flex items-center gap-2 text-slate-500 text-sm">
-              <Mail size={16} />
-              <span>{userEmail}</span>
-            </div>
-          </div>
         )}
 
         {/* Task Tab */}

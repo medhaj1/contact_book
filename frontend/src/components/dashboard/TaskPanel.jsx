@@ -77,23 +77,23 @@ const TaskPanel = () => {
   };
 
   return (
-    <div className="p-6 bg-white rounded shadow w-full max-w-md mx-auto">
-      <h2 className="text-xl font-bold mb-4">Tasks</h2>
+    <div className="p-6 bg-white rounded-2xl shadow w-[800px] mx-auto shadow-lg dark:bg-slate-700 dark:text-slate-300">
+      <h2 className="text-lg font-bold mb-4">Tasks</h2>
 
       {!user ? (
-        <p className="text-gray-500">Loading user...</p>
+        <p className="text-gray-500 dark:text-slate-300">Loading...</p>
       ) : (
         <>
           <div className="mb-4 flex">
             <input
               type="text"
-              className="border p-2 flex-1 rounded-l"
+              className="w-full pl-10 pr-4 py-2 rounded-l-lg dark:text-white border border-slate-100 dark:bg-slate-600 dark:border-slate-500 text-sm focus:outline-none hover:border-blue-100 dark:hover:border-slate-400 shadow hover:shadow-md focus:ring-1 focus:ring-blue-200 dark:focus:ring-indigo-500 transition-colors"
               placeholder="Add a new task..."
               value={newTask}
               onChange={e => setNewTask(e.target.value)}
             />
             <button
-              className="bg-blue-600 text-white px-4 rounded-r"
+              className=" px-4 py-2 w-[100px] shadow-md hover:shadow-lg bg-gradient-to-r from-blue-700 to-blue-400 dark:bg-gradient-to-r dark:from-indigo-900 dark:to-indigo-700 text-white dark:text-slate-100 text-base hover:from-blue-800 hover:to-blue-500 dark:hover:from-indigo-950 dark:hover:to-indigo-800 transform transition-transform duration-200 rounded-r-lg"
               onClick={addTask}
               disabled={loading}
             >
@@ -102,7 +102,7 @@ const TaskPanel = () => {
           </div>
           <ul>
             {tasks.length === 0 ? (
-              <li className="text-gray-500">No tasks available.</li>
+              <li className="text-gray-500 dark:text-slate-400">No tasks available.</li>
             ) : (
               tasks.map(task => (
                 <li
@@ -111,7 +111,7 @@ const TaskPanel = () => {
                 >
                   <span>{task.text}</span>
                   <button
-                    className="text-red-500 hover:text-red-700 px-2"
+                    className="text-red-500 dark:text-red-600 dark:hover:text-red-400 hover:text-red-700 px-2"
                     onClick={() => dismissTask(task.id)}
                   >
                     Dismiss

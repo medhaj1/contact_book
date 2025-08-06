@@ -33,17 +33,17 @@ function SettingsTab() {
 
 
   return (
-    <div className="bg-white dark:bg-slate-700 rounded-xl shadow-md overflow-hidden">
+    <div className="bg-white dark:bg-slate-700 dark:bg-opacity-50 rounded-xl shadow-md overflow-hidden">
       {/* Section 1: Account */}
-      <div className="px-6 py-4 border-b border-slate-200">
+      <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-500">
         <h2 className="text-slate-500 dark:text-gray-400 text-md font-semibold uppercase mb-2">Account</h2>
 
-        <div className="divide-y divide-slate-200">
-          <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-600"
+        <div className="divide-y divide-slate-200 dark:divide-slate-500">
+          <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700"
             onClick={handleAccountSettings}>
             Account Settings
           </button>
-          <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-600"
+          <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700"
             onClick={handleBlockedContacts}>
             Blocked Contacts
           </button>
@@ -54,12 +54,12 @@ function SettingsTab() {
       <div className="px-6 py-4">
         <h2 className="text-gray-500 dark:text-gray-400 text-md font-semibold uppercase mb-2">Preferences</h2>
 
-        <div className="divide-y divide-slate-200">
-          <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-600"
+        <div className="divide-y divide-slate-200 dark:divide-slate-500">
+          <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700"
             onClick={handlethemeToggle}>
             Theme
           </button>
-          <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-600"
+          <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700"
           onClick={handleNameformat} >
             Name Format
           </button>
@@ -68,14 +68,14 @@ function SettingsTab() {
       {/* Theme Panel */}
       {showThemePanel && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000]">
-          <div className="relative bg-white border-[10px] border-slate-200 rounded-3xl w-[500px] h-[400px] shadow-xl p-6 flex flex-col items-center dark:bg-slate-700 dark:border-slate-800">
+          <div className="relative bg-slate-100 border-2 border-slate-300 rounded-3xl w-[500px] h-[400px] shadow-xl p-6 flex flex-col items-center dark:bg-slate-800 dark:border-slate-700">
 
             {/* Back Arrow - absolute top-left inside the panel */}
             <button
               className="absolute top-4 left-4 scale-100 hover:scale-110 transition-transform"
               onClick={closeThemePanel}
             >
-              <ArrowLeftIcon className="w-5 h-5 text-slate-400 hover:text-slate-600" />
+              <ArrowLeftIcon className="w-5 h-5 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400" />
             </button>
 
             {/* Centered Heading */}

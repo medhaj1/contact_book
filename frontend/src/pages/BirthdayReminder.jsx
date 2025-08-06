@@ -33,8 +33,8 @@ const BirthdayReminder = ({ contacts }) => {
   );
 
   return (
-    <div className="bg-gradient-to-r from-blue-100 to-blue-200 p-5 rounded-2xl shadow-md mb-6 hover:shadow-lg transition-shadow duration-200">
-      <h3 className="text-xl font-bold mb-3 text-blue-900 flex items-center gap-2">
+    <div className="bg-blue-100 dark:bg-indigo-950 p-5 rounded-2xl shadow-md mb-6 hover:shadow-lg transition-shadow duration-200">
+      <h3 className="text-xl font-bold mb-3 text-blue-800 dark:text-indigo-300 flex items-center gap-2">
         🎂 Upcoming Birthdays
       </h3>
       {upcomingBirthdays.length > 0 ? (
@@ -42,7 +42,7 @@ const BirthdayReminder = ({ contacts }) => {
           {upcomingBirthdays.map((c) => (
             <li
               key={c.contact_id}
-              className="bg-white p-3 rounded-lg shadow-sm border border-blue-200 text-blue-800 flex justify-between"
+              className="bg-white dark:bg-indigo-800 p-3 font-semibold rounded-lg shadow-sm dark:shadow-indigo-500 border border-blue-200 dark:border-indigo-600 text-blue-800 dark:text-indigo-100 flex justify-between"
             >
               <span className="font-medium">{c.name}</span>
               <span className="text-sm">
@@ -66,7 +66,7 @@ const BirthdayReminder = ({ contacts }) => {
           ))}
         </ul>
       ) : (
-        <p className="text-blue-700">No birthdays in the next 7 days</p>
+        <p className="text-blue-700 dark:text-indigo-400">No birthdays in the next 7 days</p>
       )}
     </div>
   );

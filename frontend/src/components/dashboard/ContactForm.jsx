@@ -12,7 +12,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
     });
     
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const API_BASE_URL = 'http://localhost:5000';
+    const API_BASE_URL = 'http://localhost:5050';
   
     const handleSubmit = async (e) => {
       e.preventDefault();
@@ -54,11 +54,17 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
         });
 
         if (response.ok) {
-          // Success - notify parent component
           onSave();
         } else {
-          const error = await response.json();
-          alert(`Failed to ${contact ? 'update' : 'add'} contact: ` + (error.details || error.error));
+          const text = await response.text();
+          let errorMessage = 'Failed to add contact';
+          try {
+            const errorJson = text ? JSON.parse(text) : {};
+            errorMessage += ': ' + (errorJson.details || errorJson.error || text);
+          } catch {
+            errorMessage += ': ' + text;
+          }
+          alert(errorMessage);
         }
       } catch (error) {
         alert(`Error ${contact ? 'updating' : 'adding'} contact: ` + error.message);
@@ -83,16 +89,16 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
     };
   
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000]">
-        <div className="bg-white p-8 rounded-[16px] w-[400px] max-h-[90vh] overflow-y-auto shadow-[0_10px_40px_rgba(0,0,0,0.15)]">
-          <h3 className="text-[1.4rem] font-semibold text-[#334155] mb-6 text-center">
+      <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-60 flex items-center justify-center z-[1000]">
+        <div className="bg-white dark:bg-slate-800 p-8 rounded-[16px] border dark:border-slate-600 w-[400px] max-h-[90vh] overflow-y-auto shadow-[0_10px_40px_rgba(0,0,0,0.15)]">
+          <h3 className="text-[1.4rem] font-semibold text-[#334155] dark:text-slate-300 mb-6 text-center">
             {contact ? 'Edit Contact' : 'Add New Contact'}
           </h3>
           <form onSubmit={handleSubmit}>
             {/* Image Upload Section */}
             <div className="mb-4 text-center">
               <label htmlFor="image-upload">
-                  <div className="w-[100px] h-[100px] mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center relative overflow-hidden border-2 border-dashed border-slate-300 cursor-pointer hover:scale-105 transform transition duration-200">
+                  <div className="w-[100px] h-[100px] mx-auto mb-4 rounded-full bg-slate-100 dark:bg-slate-600 flex items-center justify-center relative overflow-hidden border-2 border-dashed border-slate-300 dark:border-slate-500 cursor-pointer hover:scale-105 transform transition duration-200">
                     {formData.image ? (
                       <>
                         <img src={formData.image} alt="Contact" className="w-full h-full object-cover" />
@@ -117,7 +123,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
                 placeholder="Name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-3 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 focus:scale-105 transform transition duration-200"
+                className="w-full px-4 py-3 dark:bg-slate-600 dark:border-slate-500 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 focus:scale-105 transform transition duration-200"
                 required
               />
             </div>
@@ -127,7 +133,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
                 placeholder="Email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-3 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 focus:scale-105 transform transition duration-200"
+                className="w-full px-4 py-3 dark:bg-slate-600 dark:border-slate-500 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 focus:scale-105 transform transition duration-200"
                 required
               />
             </div>
@@ -137,7 +143,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
                 placeholder="Phone"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-4 py-3 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 focus:scale-105 transform transition duration-200"
+                className="w-full px-4 py-3 dark:bg-slate-600 dark:border-slate-500 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 focus:scale-105 transform transition duration-200"
                 required
               />
             </div>
@@ -147,14 +153,14 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
                 placeholder="Birthday"
                 value={formData.birthday}
                 onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
-                className="w-full px-4 py-3 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 focus:scale-105 transform transition duration-200"
+                className="w-full px-4 py-3 dark:bg-slate-600 dark:border-slate-500 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 focus:scale-105 transform transition duration-200"
               />
             </div>
             <div className="mb-6">
               <select
                 value={formData.category_id || ""}
                 onChange={(e) => setFormData({ ...formData, category_id: e.target.value || null })}
-                className="w-full px-4 py-3 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 focus:scale-105 bg-white text-slate-600 transform transition duration-200"
+                className="w-full px-4 py-3 dark:bg-slate-600 dark:border-slate-500 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 focus:scale-105 bg-white text-slate-600 transform transition duration-200"
               >
                 <option value="">Select Category</option>
                 {categories.map((category) => (
@@ -170,8 +176,8 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
                 disabled={isSubmitting}
                 className={`flex-1 py-3 rounded-xl text-white text-base font-medium transition-all duration-200 ${
                   isSubmitting 
-                    ? 'bg-gray-400 cursor-not-allowed' 
-                    : 'bg-gradient-to-r from-blue-700 to-blue-400 scale-100 hover:scale-105 hover:from-blue-800 hover:to-blue-500'
+                    ? 'bg-gray-400 dark:bg-slate-600 cursor-not-allowed' 
+                    : 'bg-gradient-to-r from-blue-700 to-blue-400 dark:bg-gradient-to-r dark:from-indigo-800 dark:to-indigo-500 dark:text-slate-100 border dark:border-slate-800 dark:hover:from-indigo-900 dark:hover:to-indigo-600 scale-100 hover:scale-105 hover:from-blue-800 hover:to-blue-500'
                 }`}
               >
                 {isSubmitting ? 'Saving...' : 'Save'}
@@ -180,7 +186,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
                 type="button"
                 onClick={onCancel}
                 disabled={isSubmitting}
-                className="flex-1 py-3 rounded-xl text-slate-500 bg-slate-100 text-base font-medium scale-100 hover:scale-105 hover:bg-slate-200 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                className="flex-1 py-3 rounded-xl text-slate-500 dark:text-slate-300 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-700 text-base font-medium scale-100 hover:scale-105 hover:bg-slate-200 dark:hover:bg-slate-600 transition disabled:opacity-50 disabled:cursor-not-allowed">
                 Cancel
               </button>
             </div>

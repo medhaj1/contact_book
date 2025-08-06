@@ -107,6 +107,12 @@ function parseVcf(vcfString) {
  */
 router.post("/", upload.single("photo"), async (req, res) => {
   try {
+    console.log("➡️ POST /contacts called");
+    console.log("Request Body:", req.body);
+    console.log("User ID received:", req.body.user_id);
+    console.log("➡️ POST /contacts called");
+    console.log("Request Body:", req.body);
+    console.log("User ID received:", req.body.user_id);
     const { name, email, phone, user_id, birthday, category_id } = req.body;
 
     // Sanitize inputs
@@ -142,9 +148,11 @@ router.post("/", upload.single("photo"), async (req, res) => {
         .single();
 
       if (userError) {
+        console.log("User Fetch Error:", userError);
         return res.status(500).json({ error: "Failed to fetch user data", details: userError.message });
       }
 
+      console.log("✅ Found user:", userData);
       const userName = userData.name;
       const ext = req.file.originalname.split(".").pop();
       const fileName = `${cleanName}.${ext}`;
@@ -182,6 +190,7 @@ router.post("/", upload.single("photo"), async (req, res) => {
       .single();
 
     if (insertError) {
+      console.error("Insert Error:", insertError); // ✅ Log the full error
       return res.status(500).json({ error: "Failed to add contact", details: insertError.message });
     }
 

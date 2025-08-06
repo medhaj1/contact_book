@@ -262,7 +262,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
         </button>
 
         {/* Title */}
-        <h1 className="text-center text-3xl font-bold text-blue-800 dark:text-blue-300 mb-10">
+        <h1 className="text-center text-3xl font-bold text-blue-800 dark:text-indigo-300 mb-10">
           User Profile
         </h1>
 
@@ -286,7 +286,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
                 />
               )}
             </label>
-            <h2 className="text-2xl font-family font-bold mt-4 text-blue-800 dark:text-blue-300 text-center">
+            <h2 className="text-2xl font-family font-bold mt-4 text-blue-800 dark:text-indigo-300 text-center">
               {userData.name}
             </h2>
             <p className="text-slate-600 dark:text-slate-400">{userData.email}</p>
@@ -428,7 +428,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
 
 const Detail = ({ label, icon, children, }) => (
   <div>
-    <label className="text-sm font-medium text-blue-800 dark:text-blue-300 flex items-center gap-2 mb-1">
+    <label className="text-sm font-medium text-blue-800 dark:text-indigo-300 flex items-center gap-2 mb-1">
       {icon} {label}
     </label>
     {children}
