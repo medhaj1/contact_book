@@ -634,7 +634,7 @@ router.get("/export/vcf/:userId", async (req, res) => {
     vCard.firstName = c.name || '';
     if (c.email) vCard.email = c.email;
     if (c.phone) vCard.cellPhone = c.phone;
-    if (c.birthday) vCard.birthday = c.birthday;
+    if (c.birthday) vCard.birthday = new Date(c.birthday);
 
     // Embed photo if available
     if (c.photo_url) {
