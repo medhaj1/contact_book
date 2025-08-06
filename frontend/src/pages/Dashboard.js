@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   User, Phone, Mail, Search, Plus, Edit2, Trash2,
-  Users, BookOpen, Settings, LogOut, CheckSquare
+  Users, BookOpen, Settings, LogOut, CheckSquare,MessageSquare
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
+import ChatPanel from '../components/chat/ChatPanel';
 
 import ContactForm from '../components/dashboard/ContactForm';
 import CategoryForm from '../components/dashboard/CategoryForm';
@@ -41,22 +42,21 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
 
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [categories, setCategories] = useState([
-    { category_id: 1, name: 'Family' },
-    { category_id: 2, name: 'Friends' },
-    { category_id: 3, name: 'Work' },
-    { category_id: 4, name: 'Business' }
-  ]);
+  const [categories, setCategories] = useState([]);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [showAddContact, setShowAddContact] = useState(false);
   const [editingContact, setEditingContact] = useState(null);
   const [showAddCategory, setShowAddCategory] = useState(false);
-  const [activeTab, setActiveTab] = useState('contacts');
+  const [activeTab, setActiveTab] = useState(() => {
+    // Restore active tab from localStorage, default to 'contacts'
+    return localStorage.getItem('dashboardActiveTab') || 'contacts';
+  });
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showAddContactDropdown, setShowAddContactDropdown] = useState(false);
   const [documents, setDocuments] = useState([]);
+  const [profileImageError, setProfileImageError] = useState(false);
 
   const API_BASE_URL = 'http://localhost:5000';
 
@@ -85,6 +85,46 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
       fetchContacts();
     }
   }, [userId, fetchContacts]);
+
+  // Fetch categories from Supabase
+  const fetchCategories = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('category')
+        .select('*')
+        .order('category_id', { ascending: true });
+      if (error) {
+        console.error('Error fetching categories:', error.message);
+        // Set default categories if fetch fails
+        setCategories([
+          { category_id: 1, name: 'Family' },
+          { category_id: 2, name: 'Friends' },
+          { category_id: 3, name: 'Work' },
+          { category_id: 4, name: 'Business' }
+        ]);
+      } else {
+        setCategories(data);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      // Set default categories if fetch fails
+      setCategories([
+        { category_id: 1, name: 'Family' },
+        { category_id: 2, name: 'Friends' },
+        { category_id: 3, name: 'Work' },
+        { category_id: 4, name: 'Business' }
+      ]);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  // Save active tab to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('dashboardActiveTab', activeTab);
+  }, [activeTab]);
 
   // Fetch documents from Supabase
   const fetchDocuments = async () => {
@@ -150,9 +190,10 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   };
 
   // --- Category Management (Simplified - validation moved to CategoryForm) ---
-  const handleCategorySave = (newCategory) => {
-    setCategories([...categories, newCategory]);
-    setShowAddCategory(false);
+  const handleCategorySave = async (categoryData) => {
+    // Handle both category name string and category object
+    const categoryName = typeof categoryData === 'string' ? categoryData : categoryData.name;
+    await addCategory(categoryName);
   };
 
   const addCategory = async (categoryName) => {
@@ -222,9 +263,10 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const sidebarItems = [
     { id: 'contacts', label: 'Contacts', icon: Users },
     { id: 'categories', label: 'Categories', icon: BookOpen },
-    { id: 'documents', label: 'Documents', icon: /* choose an icon, e.g. */ BookOpen },
+    { id: 'documents', label: 'Documents', icon: BookOpen },
     { id: 'settings', label: 'Settings', icon: Settings },
-    { id: 'task', label: 'Task', icon: CheckSquare }, // Add Task section
+    { id: 'task', label: 'Task', icon: CheckSquare },
+    { id: 'chat', label: 'Chat', icon: MessageSquare }, // Add Task section
   ];
 
   // Classnames for prettier transitions/buttons - reference 22: use 2nd code style
@@ -361,17 +403,12 @@ const handleDeleteDocument = async (doc) => {
               onClick={() => setShowUserDropdown(!showUserDropdown)}
             >
               <div className="w-9 h-9 bg-gradient-to-r from-blue-700 to-blue-400 shadow-lg border-2 border-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm overflow-hidden">
-                {currentUser?.user_metadata?.image || currentUser?.user_metadata?.picture || currentUser?.user_metadata?.image ? (
+                {(currentUser?.user_metadata?.image || currentUser?.user_metadata?.picture) && !profileImageError ? (
                   <img 
-                    src={currentUser.user_metadata.image || currentUser.user_metadata.picture || currentUser.user_metadata.image} 
+                    src={currentUser.user_metadata.image || currentUser.user_metadata.picture} 
                     alt={userName}
                     className="w-full h-full object-cover rounded-full"
-                    onError={(e) => {
-                      // Hide the image and show initials fallback
-                      e.target.style.display = 'none';
-                      const parent = e.target.parentElement;
-                      parent.innerHTML = `<span class="w-full h-full flex items-center justify-center">${userName?.charAt(0).toUpperCase()}</span>`;
-                    }}
+                    onError={() => setProfileImageError(true)}
                   />
                 ) : (
                   <span className="w-full h-full flex items-center justify-center">
@@ -480,7 +517,7 @@ const handleDeleteDocument = async (doc) => {
     id="csvFileInput"
     accept=".csv,.vcf"
     className="hidden"
-    onChange={handleImportCSV}/*remember to add a onChange={}*/
+    onChange={handleImportCSV}
   />
 </div>
 
@@ -538,24 +575,11 @@ const handleDeleteDocument = async (doc) => {
                         )}
                         {contact.birthday && (
                           <div className="text-xs text-sky-500 mt-1">
-                            🎂 {(() => {
-                              try {
-                                // Parse the date from the database (YYYY-MM-DD format)
-                                const date = new Date(contact.birthday);
-                                // Check if the date is valid
-                                if (isNaN(date.getTime())) {
-                                  return contact.birthday; // Return raw value if parsing fails
-                                }
-                                return date.toLocaleDateString(undefined, {
-                                  day: "numeric",
-                                  month: "long",
-                                  year: "numeric",
-                                });
-                              } catch (error) {
-                                console.error("Error parsing birthday:", contact.birthday, error);
-                                return contact.birthday; // Fallback to raw value
-                              }
-                            })()}
+                            🎂 {new Date(contact.birthday).toLocaleDateString(undefined, {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                            })}
                           </div>
                         )}
                       </div>
@@ -597,7 +621,7 @@ const handleDeleteDocument = async (doc) => {
             <div className="flex mb-8">
               <button
                 onClick={() => setShowAddCategory(true)}
-                className="btn"
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-700 to-blue-400 text-white rounded-xl text-md scale-100 hover:from-blue-800 hover:to-blue-500 hover:scale-105 transform transition-transform duration-200 transition-colors"
               >
                 <Plus size={16} />
                 Add Category
@@ -605,11 +629,20 @@ const handleDeleteDocument = async (doc) => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {categories.map(category => (
-                <div key={category.category_id} className="bg-white dark:bg-slate-600 border border-blue-100 dark:border-slate-500 p-6 rounded-2xl">
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-300">{category.name}</h3>
-                  <p className="text-sm text-slate-500 mt-1">
-                    {contacts.filter(c => String(c.category_id) === String(category.category_id)).length} contacts
-                  </p>
+                <div key={category.category_id} className="bg-white dark:bg-slate-600 border border-blue-100 dark:border-slate-500 p-6 rounded-2xl flex justify-between items-center">
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-300">{category.name}</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                      {contacts.filter(c => String(c.category_id) === String(category.category_id)).length} contacts
+                    </p>
+                  </div>
+                  <button
+                    className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 ml-4"
+                    onClick={() => deleteCategory(category.category_id)}
+                    title="Delete Category"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               ))}
             </div>
@@ -618,17 +651,7 @@ const handleDeleteDocument = async (doc) => {
 
         {/* Settings Tab */}
         {activeTab === 'settings' && (
-          <div className="bg-white p-6 rounded-xl border border-slate-200 max-w-md">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">Account Settings</h3>
-            <div className="flex items-center gap-2 text-slate-500 text-sm mb-2">
-              <User size={16} />
-              <span>{userName}</span>
-            </div>
-            <div className="flex items-center gap-2 text-slate-500 text-sm">
-              <Mail size={16} />
-              <span>{userEmail}</span>
-            </div>
-          </div>
+          <SettingsTab currentUser={currentUser}/>
         )}
 
         {/* Task Tab */}
@@ -637,9 +660,11 @@ const handleDeleteDocument = async (doc) => {
             <TaskPanel />
           </div>
         )}
-    {activeTab === 'settings' && (
-      <SettingsTab currentUser={currentUser}/>
-    )}
+
+        {activeTab === 'chat' && (
+  <ChatPanel currentUser={currentUser} />
+)}
+
   </div>
 
         {/* Modals with categories passed to ContactForm */}
@@ -668,43 +693,115 @@ const handleDeleteDocument = async (doc) => {
           />
         )}
 
-        {/* Documents Tab - New UI */}
+        {/* Documents Tab - Enhanced UI */}
         {activeTab === 'documents' && (
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Documents</h2>
-            <input
-              type="file"
-              multiple
-              accept=".pdf,.doc,.docx,.txt"
-              onChange={handleUploadDocuments}
-            />
-            <div className="mt-4">
+          <>
+            {/* Upload Section */}
+            <div className="mb-8">
+              <div className="bg-white dark:bg-slate-600 border border-blue-100 dark:border-slate-500 p-6 rounded-2xl">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-300 mb-4">Upload Documents</h3>
+                <div className="relative border-2 border-dashed border-blue-200 dark:border-slate-400 rounded-xl p-8 text-center hover:border-blue-300 dark:hover:border-slate-300 transition-colors">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-16 h-16 bg-blue-100 dark:bg-slate-700 rounded-full flex items-center justify-center">
+                      <svg className="w-8 h-8 text-blue-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-slate-600 dark:text-slate-300 mb-2">
+                        <span className="font-medium">Click to upload</span> or drag and drop
+                      </p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        PDF, DOC, DOCX, TXT files up to 10MB
+                      </p>
+                    </div>
+                  </div>
+                  <input
+                    type="file"
+                    multiple
+                    accept=".pdf,.doc,.docx,.txt"
+                    onChange={handleUploadDocuments}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Documents List */}
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-300 mb-4">
+                Uploaded Documents ({documents.length})
+              </h3>
               {documents.length === 0 ? (
-                <div className="text-slate-400">No documents uploaded.</div>
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <BookOpen size={32} className="text-slate-400 dark:text-slate-500" />
+                  </div>
+                  <p className="text-slate-400 dark:text-slate-500 text-lg mb-2">No documents uploaded yet</p>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm">Upload your first document to get started</p>
+                </div>
               ) : (
-                <ul>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {documents.map(doc => (
-                    <li key={doc.id} className="flex items-center justify-between py-2 border-b">
-                      <a
-                        href={doc.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-700 underline"
-                      >
-                        {doc.name}
-                      </a>
-                      <button
-                        className="ml-4 text-red-600 hover:underline"
-                        onClick={() => handleDeleteDocument(doc)}
-                      >
-                        Delete
-                      </button>
-                    </li>
+                    <div key={doc.id} className={cardBorderClass}>
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-10 h-10 bg-blue-100 dark:bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0">
+                            {doc.name.toLowerCase().includes('.pdf') ? (
+                              <svg className="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                              </svg>
+                            ) : doc.name.toLowerCase().includes('.doc') ? (
+                              <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                              </svg>
+                            ) : (
+                              <svg className="w-6 h-6 text-slate-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate" title={doc.name}>
+                              {doc.name}
+                            </h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                              {new Date(doc.uploaded_at).toLocaleDateString(undefined, {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric'
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <a
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 dark:bg-slate-700 text-blue-600 dark:text-blue-400 rounded-lg text-sm hover:bg-blue-100 dark:hover:bg-slate-600 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          View
+                        </a>
+                        <button
+                          className="flex items-center justify-center p-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                          onClick={() => handleDeleteDocument(doc)}
+                          title="Delete Document"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
                   ))}
-                </ul>
+                </div>
               )}
             </div>
-          </div>
+          </>
         )}
       </div>
   );

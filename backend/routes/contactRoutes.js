@@ -229,10 +229,6 @@ router.put("/:id", upload.single("photo"), async (req, res) => {
     const cleanPhone = cleanPhoneNumber(phone);
     const cleanCategoryId = category_id ? sanitizeString(category_id) : null;
 
-    // Debug incoming data
-    console.log("Incoming request body:", req.body);
-    console.log("Birthday value:", birthday, "Type:", typeof birthday);
-
     // Validate and format birthday
     let formattedBirthday = null;
     if (birthday && birthday.trim()) {
@@ -280,13 +276,11 @@ router.put("/:id", upload.single("photo"), async (req, res) => {
       const userName = userData.name;
 
       // Delete old photo if exists
-      console.log(oldContact);
       if (oldContact?.photo_url) {
         const fullPath = new URL(oldContact.photo_url).pathname;
         const pathToDelete = decodeURIComponent(
           fullPath.replace("/storage/v1/object/public/contact-images/", "")
         );
-        console.log("Old photo path to delete:", pathToDelete);
 
         if (pathToDelete) {
           const { error: deleteOldError } = await supabase.storage
@@ -295,8 +289,6 @@ router.put("/:id", upload.single("photo"), async (req, res) => {
 
           if (deleteOldError) {
             console.warn("Failed to delete old image:", deleteOldError.message);
-          } else {
-            console.log("Old image deleted successfully");
           }
         }
       }
@@ -340,9 +332,6 @@ router.put("/:id", upload.single("photo"), async (req, res) => {
     if (photoUrl) updateFields.photo_url = photoUrl;
 
     // Debug logging
-    console.log("Update fields:", updateFields);
-    console.log("Birthday type:", typeof formattedBirthday, "Value:", formattedBirthday);
-
     // Try to update with explicit date casting if birthday is present
     const { data: updatedData, error: updateError } = await supabase
       .from("contact")
@@ -391,7 +380,6 @@ router.delete("/:id", async (req, res) => {
     const pathToDelete = decodeURIComponent(
       fullPath.replace("/storage/v1/object/public/contact-images/", "")
     );
-    console.log("Old photo path to delete:", pathToDelete);
 
     if (pathToDelete) {
       const { error: deleteError } = await supabase.storage

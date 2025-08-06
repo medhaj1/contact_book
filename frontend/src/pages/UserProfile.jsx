@@ -121,8 +121,6 @@ const UserProfile = ({ currentUser, onLogout }) => {
       
       if (deleteError) {
         console.warn("Failed to delete old image:", deleteError.message);
-      } else {
-        console.log("Old image deleted:", oldPath);
       }
     }
 

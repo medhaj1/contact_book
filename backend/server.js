@@ -1,12 +1,16 @@
 import express from "express";
-import bodyParser from "body-parser";
-
+import cors from "cors";
 import contactRoutes from "./routes/contactRoutes.js";
 
 const app = express();
-app.use(bodyParser.urlencoded({ extended: true }));
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
+// Routes
 app.use("/contacts", contactRoutes);
 
 app.listen(5000, () => console.log("Server running on port 5000"));
