@@ -370,8 +370,8 @@ const handleDeleteDocument = async (doc) => {
 
   return (
     <div className="flex min-h-screen font-sans">
-      {/* Sidebar */}
-      <div className="w-60 bg-white dark:bg-slate-900 p-6 border-r border-slate-200 dark:border-slate-600 flex flex-col">
+      {/* Fixed Sidebar */}
+      <div className="fixed left-0 top-0 w-60 h-screen bg-white dark:bg-slate-900 p-6 border-r border-slate-200 dark:border-slate-600 flex flex-col overflow-y-auto z-10 fixed-sidebar">
         <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-300 mb-8">Contact Book</h2>
         <nav className="flex-1 space-y-2">
           {sidebarItems.map(item => {
@@ -392,8 +392,8 @@ const handleDeleteDocument = async (doc) => {
 
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 p-8 bg-blue-50 dark:bg-slate-800 transition-all duration-200">
+      {/* Main Content - with left margin to account for fixed sidebar */}
+      <div className="flex-1 ml-60 p-8 bg-blue-50 dark:bg-slate-800 transition-all duration-200 min-h-screen">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-300 capitalize">{activeTab}</h1>
