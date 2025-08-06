@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeftIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, DocumentArrowDownIcon, UserCircleIcon, NoSymbolIcon, MoonIcon, SunIcon, IdentificationIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../supabaseClient';
 
 function SettingsTab({ currentUser }) {
@@ -205,28 +205,32 @@ function SettingsTab({ currentUser }) {
         <h2 className="text-slate-500 dark:text-gray-400 text-md font-semibold uppercase mb-2">Account</h2>
 
         <div className="divide-y divide-slate-200 dark:divide-slate-500">
-          <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700"
+          <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700 flex items-center"
             onClick={handleAccountSettings}>
+            <UserCircleIcon className="w-5 h-5 mr-3 inline" />
             Account Settings
           </button>
-          <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700"
+          <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700 flex items-center"
             onClick={handleBlockedContacts}>
+            <NoSymbolIcon className="w-5 h-5 mr-3 inline" />
             Blocked Contacts
           </button>
         </div>
       </div>
 
       {/* Section 2: Preferences */}
-      <div className="px-6 py-4 border-b border-slate-200">
+      <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-500">
         <h2 className="text-gray-500 dark:text-gray-400 text-md font-semibold uppercase mb-2">Preferences</h2>
 
         <div className="divide-y divide-slate-200 dark:divide-slate-500">
-          <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700"
+          <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700 flex items-center"
             onClick={handlethemeToggle}>
+            {isDark ? <MoonIcon className="w-5 h-5 mr-3 inline" /> : <SunIcon className="w-5 h-5 mr-3 inline" />}
             Theme
           </button>
-          <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700"
+          <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700 flex items-center"
           onClick={handleNameformat} >
+            <IdentificationIcon className="w-5 h-5 mr-3 inline" />
             Name Format
           </button>
         </div>
@@ -236,16 +240,16 @@ function SettingsTab({ currentUser }) {
       <div className="px-6 py-4">
         <h2 className="text-gray-500 dark:text-gray-400 text-md font-semibold uppercase mb-2">Export</h2>
 
-        <div className="divide-y divide-slate-200">
+        <div className="divide-y divide-slate-200 dark:divide-slate-500">
           <button 
-            className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-600 flex items-center"
+            className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700 flex items-center"
             onClick={() => openExportPanel('csv')}
           >
             <DocumentArrowDownIcon className="w-5 h-5 mr-3" />
             Export as CSV
           </button>
           <button 
-            className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-600 flex items-center"
+            className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700 flex items-center"
             onClick={() => openExportPanel('vcf')}
           >
             <DocumentArrowDownIcon className="w-5 h-5 mr-3" />
@@ -292,7 +296,7 @@ function SettingsTab({ currentUser }) {
       {/* Export Panel */}
       {showExportPanel && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000]">
-          <div className="relative bg-white border-[10px] border-slate-200 rounded-3xl w-[600px] h-[500px] shadow-xl p-6 flex flex-col dark:bg-slate-700 dark:border-slate-800">
+          <div className="relative bg-white border border-slate-200 rounded-3xl w-[600px] h-[500px] shadow-xl p-6 flex flex-col dark:bg-slate-800 dark:border-slate-600">
 
             {/* Back Arrow - absolute top-left inside the panel */}
             <button
@@ -381,7 +385,7 @@ function SettingsTab({ currentUser }) {
               </button>
               <button
                 onClick={handleExport}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                className="btn"
               >
                 <DocumentArrowDownIcon className="w-4 h-4 mr-2" />
                 Export {exportFormat.toUpperCase()}
