@@ -4,6 +4,8 @@ import supabase from "../config/supabase.js";
 import path from "path";
 import { Buffer } from 'buffer'
 import sharp from "sharp";
+import vCardsJS from 'vcards-js';
+import fetch from 'node-fetch';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -236,10 +238,6 @@ router.put("/:id", upload.single("photo"), async (req, res) => {
     const cleanPhone = cleanPhoneNumber(phone);
     const cleanCategoryId = category_id ? sanitizeString(category_id) : null;
 
-    // Debug incoming data
-    console.log("Incoming request body:", req.body);
-    console.log("Birthday value:", birthday, "Type:", typeof birthday);
-
     // Validate and format birthday
     let formattedBirthday = null;
     if (birthday && birthday.trim()) {
@@ -287,13 +285,11 @@ router.put("/:id", upload.single("photo"), async (req, res) => {
       const userName = userData.name;
 
       // Delete old photo if exists
-      console.log(oldContact);
       if (oldContact?.photo_url) {
         const fullPath = new URL(oldContact.photo_url).pathname;
         const pathToDelete = decodeURIComponent(
           fullPath.replace("/storage/v1/object/public/contact-images/", "")
         );
-        console.log("Old photo path to delete:", pathToDelete);
 
         if (pathToDelete) {
           const { error: deleteOldError } = await supabase.storage
@@ -302,8 +298,6 @@ router.put("/:id", upload.single("photo"), async (req, res) => {
 
           if (deleteOldError) {
             console.warn("Failed to delete old image:", deleteOldError.message);
-          } else {
-            console.log("Old image deleted successfully");
           }
         }
       }
@@ -347,9 +341,6 @@ router.put("/:id", upload.single("photo"), async (req, res) => {
     if (photoUrl) updateFields.photo_url = photoUrl;
 
     // Debug logging
-    console.log("Update fields:", updateFields);
-    console.log("Birthday type:", typeof formattedBirthday, "Value:", formattedBirthday);
-
     // Try to update with explicit date casting if birthday is present
     const { data: updatedData, error: updateError } = await supabase
       .from("contact")
@@ -398,7 +389,6 @@ router.delete("/:id", async (req, res) => {
     const pathToDelete = decodeURIComponent(
       fullPath.replace("/storage/v1/object/public/contact-images/", "")
     );
-    console.log("Old photo path to delete:", pathToDelete);
 
     if (pathToDelete) {
       const { error: deleteError } = await supabase.storage
@@ -561,6 +551,127 @@ router.post("/import", upload.single("file"), async (req, res) => {
     res.status(500).json({ error: "Failed to import contacts" });
   }
 });
+
+// CSV Export Route
+router.get("/export/csv/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const { search = '', category, hasBirthday, filename } = req.query;
+
+  // Base query: user’s contacts
+  let query = supabase
+    .from("contact")
+    .select("*")
+    .eq("user_id", userId);
+
+  if (category) {
+    query = query.eq("category_id", category);
+  }
+
+  const { data: contacts, error } = await query;
+  if (error) return res.status(500).json({ error: error.message });
+  if (!contacts.length) return res.status(404).json({ error: "No contacts found" });
+
+  // In-memory filters
+  let filtered = contacts;
+  if (search) {
+    const s = search.toLowerCase();
+    filtered = filtered.filter(c =>
+      (c.name?.toLowerCase().includes(s)) ||
+      (c.email?.toLowerCase().includes(s)) ||
+      (c.phone?.includes(s))
+    );
+  }
+  if (hasBirthday === '1') {
+    filtered = filtered.filter(c => !!c.birthday);
+  }
+
+  // Define CSV fields
+  const fields = ["name","phone","email","birthday","category_id","photo_url"];
+  const lines = [fields.join(',')];
+  filtered.forEach(c => {
+    lines.push(
+      fields.map(f => `"${(c[f] ?? '').toString().replace(/"/g,'""')}"`).join(',')
+    );
+  });
+  const csv = lines.join('\n');
+
+  // Sanitize or default filename
+  const safeName = filename?.trim()
+    ? filename.trim().replace(/[^a-z0-9_\-\.]/gi,'_')
+    : `contacts_${userId}_${new Date().toISOString().slice(0,10)}.csv`;
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
+  res.send(csv);
+});
+
+
+// VCF Export Route with Photo Embedding
+router.get("/export/vcf/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const { search = '', category, hasBirthday, filename } = req.query;
+
+  // Base query
+  let query = supabase
+    .from("contact")
+    .select("*")
+    .eq("user_id", userId);
+  if (category) query = query.eq("category_id", category);
+
+  const { data: contacts, error } = await query;
+  if (error) return res.status(500).json({ error: error.message });
+  if (!contacts.length) return res.status(404).json({ error: "No contacts found" });
+
+  // In-memory filters
+  let filtered = contacts;
+  if (search) {
+    const s = search.toLowerCase();
+    filtered = filtered.filter(c =>
+      (c.name?.toLowerCase().includes(s)) ||
+      (c.email?.toLowerCase().includes(s)) ||
+      (c.phone?.includes(s))
+    );
+  }
+  if (hasBirthday === '1') {
+    filtered = filtered.filter(c => !!c.birthday);
+  }
+
+  // Generate VCF content
+  let vcfContent = '';
+  for (const c of filtered) {
+    const vCard = vCardsJS();
+    vCard.firstName = c.name || '';
+    if (c.email) vCard.email = c.email;
+    if (c.phone) vCard.cellPhone = c.phone;
+    if (c.birthday) vCard.birthday = new Date(c.birthday);
+
+    // Embed photo if available
+    if (c.photo_url) {
+      try {
+        const resp = await fetch(c.photo_url);
+        if (resp.ok) {
+          const buf = Buffer.from(await resp.arrayBuffer());
+          const type = /\.png$/i.test(c.photo_url) ? 'PNG' : 'JPEG';
+          vCard.photo.embedFromBuffer(buf, type);
+        }
+      } catch {
+        // skip on error
+      }
+    }
+
+    vcfContent += vCard.getFormattedString() + "\n";
+  }
+
+  // Sanitize or default filename
+  const safeName = filename?.trim()
+    ? filename.trim().replace(/[^a-z0-9_\-\.]/gi,'_')
+    : `contacts_${userId}_${new Date().toISOString().slice(0,10)}.vcf`;
+
+  res.setHeader('Content-Type', 'text/vcard');
+  res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
+  res.send(vcfContent);
+});
+
 
 
 export default router;

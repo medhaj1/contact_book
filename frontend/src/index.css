@@ -8,6 +8,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: linear-gradient(to right, #e0f7fa, #ffffff);
+  overflow-x: hidden; /* Prevent horizontal scroll */
 }
 
 code {
@@ -19,5 +20,99 @@ code {
   .btn {
     @apply flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-700 to-blue-400 dark:bg-gradient-to-r dark:from-indigo-800 dark:to-indigo-500 text-white dark:text-slate-100 border dark:border-indigo-700 rounded-xl text-base font-semibold scale-100 hover:from-blue-800 hover:to-blue-500 dark:hover:from-indigo-900 dark:hover:to-indigo-600 hover:scale-105 transform transition-transform duration-200;
   }
+}
+
+/* Fixed Sidebar Enhancements */
+.fixed-sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.fixed-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.fixed-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.fixed-sidebar::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5);
+  border-radius: 3px;
+}
+
+.fixed-sidebar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.8);
+}
+
+/* Enhanced Task Reminder Toast Styles */
+.overdue-toast {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%) !important;
+  border-left: 4px solid #dc2626 !important;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2) !important;
+}
+
+.due-today-toast {
+  background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%) !important;
+  border-left: 4px solid #ea580c !important;
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.2) !important;
+}
+
+.due-tomorrow-toast {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+  border-left: 4px solid #d97706 !important;
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2) !important;
+}
+
+.due-soon-toast {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
+  border-left: 4px solid #2563eb !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2) !important;
+}
+
+.due-week-toast {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%) !important;
+  border-left: 4px solid #16a34a !important;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.2) !important;
+}
+
+/* Toast animation enhancement */
+.Toastify__toast {
+  border-radius: 12px !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  animation: slideInRight 0.3s ease-out !important;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Progress bar colors for different toast types */
+.overdue-toast .Toastify__progress-bar {
+  background: #dc2626 !important;
+}
+
+.due-today-toast .Toastify__progress-bar {
+  background: #ea580c !important;
+}
+
+.due-tomorrow-toast .Toastify__progress-bar {
+  background: #d97706 !important;
+}
+
+.due-soon-toast .Toastify__progress-bar {
+  background: #2563eb !important;
+}
+
+.due-week-toast .Toastify__progress-bar {
+  background: #16a34a !important;
 }
 
