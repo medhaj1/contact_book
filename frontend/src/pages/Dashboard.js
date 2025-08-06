@@ -4,6 +4,7 @@ import {
   User, Phone, Mail, Search, Plus, Edit2, Trash2,
   Users, BookOpen, Settings, LogOut, CheckSquare
 } from 'lucide-react';
+import { supabase } from '../supabaseClient';
 
 import ContactForm from '../components/dashboard/ContactForm';
 import CategoryForm from '../components/dashboard/CategoryForm';
@@ -55,6 +56,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const [activeTab, setActiveTab] = useState('contacts');
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showAddContactDropdown, setShowAddContactDropdown] = useState(false);
+  const [documents, setDocuments] = useState([]);
 
   const API_BASE_URL = 'http://localhost:5000';
 
@@ -83,6 +85,26 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
       fetchContacts();
     }
   }, [userId, fetchContacts]);
+
+  // Fetch documents from Supabase
+  const fetchDocuments = async () => {
+    const { data, error } = await supabase
+      .from('documents')
+      .select('*')
+      .order('uploaded_at', { ascending: false });
+    if (error) {
+      alert('Error fetching documents: ' + error.message);
+      setDocuments([]);
+    } else {
+      setDocuments(data);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'documents') {
+      fetchDocuments();
+    }
+  }, [activeTab]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -129,10 +151,58 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
 
   // --- Category Management (Simplified - validation moved to CategoryForm) ---
   const handleCategorySave = (newCategory) => {
-    // Add the new category to state
     setCategories([...categories, newCategory]);
-    // Close modal
     setShowAddCategory(false);
+  };
+
+  const addCategory = async (categoryName) => {
+    const { data, error } = await supabase
+      .from('category')
+      .insert([{ name: categoryName }])
+      .select();
+
+    if (error) {
+      alert('Error adding category: ' + error.message);
+      return;
+    }
+
+    // Refresh categories from DB
+    const { data: updatedCategories } = await supabase
+      .from('category')
+      .select('*')
+      .order('category_id', { ascending: true });
+
+    setCategories(updatedCategories);
+    setShowAddCategory(false);
+  };
+
+  const deleteCategory = async (categoryId) => {
+    if (window.confirm('Are you sure you want to delete this category?')) {
+      // Optional: Prevent deletion if any contact uses this category
+      const hasContacts = contacts.some(c => c.category_id === categoryId);
+      if (hasContacts) {
+        alert('Cannot delete category: There are contacts using this category.');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('category')
+        .delete()
+        .eq('category_id', categoryId);
+
+      if (error) {
+        alert('Error deleting category: ' + error.message);
+        return;
+      }
+
+      // Refresh categories from DB
+      const { data: updatedCategories } = await supabase
+        .from('category')
+        .select('*')
+        .order('category_id', { ascending: true });
+
+      setCategories(updatedCategories);
+    }
   };
 
   // Filtering (search + category)
@@ -152,6 +222,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const sidebarItems = [
     { id: 'contacts', label: 'Contacts', icon: Users },
     { id: 'categories', label: 'Categories', icon: BookOpen },
+    { id: 'documents', label: 'Documents', icon: /* choose an icon, e.g. */ BookOpen },
     { id: 'settings', label: 'Settings', icon: Settings },
     { id: 'task', label: 'Task', icon: CheckSquare }, // Add Task section
   ];
@@ -193,6 +264,66 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     // Reset the file input so user can re-import if desired
     e.target.value = '';
   }
+};
+
+const handleUploadDocuments = async (e) => {
+  const files = Array.from(e.target.files);
+  let uploadedCount = 0;
+  for (const file of files) {
+    // 1. Upload to Supabase Storage
+    const { data: storageData, error: storageError } = await supabase.storage
+      .from('documents')
+      .upload(`public/${file.name}`, file, { upsert: true });
+    if (storageError) {
+      alert(`Failed to upload ${file.name}: ${storageError.message}`);
+      continue;
+    }
+    // 2. Get public URL
+    const { data: urlData } = supabase.storage
+      .from('documents')
+      .getPublicUrl(`public/${file.name}`);
+    // 3. Insert metadata into documents table
+    const { error: dbError } = await supabase
+      .from('documents')
+      .insert([{
+        name: file.name,
+        url: urlData.publicUrl,
+        uploaded_by: currentUser?.id,
+        uploaded_at: new Date().toISOString(),
+        contact_id: null // or set if linking to a contact
+      }]);
+    if (dbError) {
+      alert(`Failed to save ${file.name} in DB: ${dbError.message}`);
+    } else {
+      uploadedCount++;
+    }
+  }
+  fetchDocuments();
+  if (uploadedCount > 0) {
+    alert(`${uploadedCount} document${uploadedCount > 1 ? 's' : ''} uploaded successfully!`);
+  }
+};
+
+const handleDeleteDocument = async (doc) => {
+  if (!window.confirm(`Delete ${doc.name}?`)) return;
+  // 1. Remove from storage
+  const { error: storageError } = await supabase.storage
+    .from('documents')
+    .remove([`public/${doc.name}`]);
+  if (storageError) {
+    alert('Delete from storage failed: ' + storageError.message);
+    return;
+  }
+  // 2. Remove from DB
+  const { error: dbError } = await supabase
+    .from('documents')
+    .delete()
+    .eq('id', doc.id);
+  if (dbError) {
+    alert('Delete from DB failed: ' + dbError.message);
+    return;
+  }
+  fetchDocuments();
 };
 
   return (
@@ -535,6 +666,45 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
             onSave={handleCategorySave}
             onCancel={() => setShowAddCategory(false)}
           />
+        )}
+
+        {/* Documents Tab - New UI */}
+        {activeTab === 'documents' && (
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Documents</h2>
+            <input
+              type="file"
+              multiple
+              accept=".pdf,.doc,.docx,.txt"
+              onChange={handleUploadDocuments}
+            />
+            <div className="mt-4">
+              {documents.length === 0 ? (
+                <div className="text-slate-400">No documents uploaded.</div>
+              ) : (
+                <ul>
+                  {documents.map(doc => (
+                    <li key={doc.id} className="flex items-center justify-between py-2 border-b">
+                      <a
+                        href={doc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-700 underline"
+                      >
+                        {doc.name}
+                      </a>
+                      <button
+                        className="ml-4 text-red-600 hover:underline"
+                        onClick={() => handleDeleteDocument(doc)}
+                      >
+                        Delete
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
         )}
       </div>
   );
