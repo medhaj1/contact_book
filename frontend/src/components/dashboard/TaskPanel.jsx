@@ -39,13 +39,6 @@ const TaskPanel = () => {
         badge: '⚠️ Due Tomorrow',
         badgeClass: 'bg-yellow-100 text-yellow-800'
       };
-    } else if (diffDays <= 3) {
-      return {
-        status: 'due-soon',
-        class: 'border-l-4 border-green-600 bg-green-50 dark:bg-green-900 dark:bg-opacity-40 ',
-        badge: `📅 Due in ${diffDays} days`,
-        badgeClass: 'bg-green-100 text-green-800'
-      };
     
     } else {
       return {
