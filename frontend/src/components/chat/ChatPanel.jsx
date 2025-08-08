@@ -151,10 +151,10 @@ const ChatPanel = ({ currentUser }) => {
   }, [currentUserId]);
 
   return (
-    <div className="flex w-full h-[500px] bg-white rounded-lg shadow-lg overflow-hidden min-h-[440px]">
+    <div className="flex w-full h-[600px] bg-white dark:bg-slate-950 border dark:border-slate-700 rounded-2xl shadow-lg overflow-hidden min-h-[440px]">
       {/* Contact List */}
-      <div className="w-72 bg-blue-50 border-r border-blue-200 p-4 overflow-y-auto">
-        <h3 className="font-semibold text-lg mb-3 text-blue-800">Chats</h3>
+      <div className="w-72 bg-blue-50 dark:bg-slate-900 border-r border-blue-200 dark:border-slate-700 p-4 overflow-y-auto">
+        <h3 className="font-semibold text-lg mb-3 text-blue-800 dark:text-slate-400">Chats</h3>
         <ul>
           {contacts.map((c) => (
             <li

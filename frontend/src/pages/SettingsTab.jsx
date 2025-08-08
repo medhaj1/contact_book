@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeftIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, DocumentArrowDownIcon, UserCircleIcon, NoSymbolIcon, MoonIcon, SunIcon, IdentificationIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../supabaseClient';
 
 function SettingsTab({ currentUser }) {
@@ -7,6 +7,8 @@ function SettingsTab({ currentUser }) {
   const[isDark, setIsDark] = useState(()=>{
       return localStorage.getItem('theme') === 'dark';
     });
+  // Track active sub-page in settings
+  const [activeSubPage, setActiveSubPage] = useState(null);
   useEffect(() => {
       if (isDark) {
         document.documentElement.classList.add('dark');
@@ -86,8 +88,9 @@ function SettingsTab({ currentUser }) {
     });
   }
   const handleNameformat=()=> {}
-  const handleAccountSettings=()=> {}
-  const handleBlockedContacts=()=> {}
+  // Open subpages for account settings and blocked contacts
+  const handleAccountSettings = () => setActiveSubPage('account');
+  const handleBlockedContacts = () => setActiveSubPage('blocked');
 
   // Export functions
   const handleExport = async () => {
@@ -200,64 +203,104 @@ function SettingsTab({ currentUser }) {
 
   return (
     <div className="bg-white dark:bg-slate-700 dark:bg-opacity-50 rounded-xl shadow-md overflow-hidden">
-      {/* Section 1: Account */}
-      <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-500">
-        <h2 className="text-slate-500 dark:text-gray-400 text-md font-semibold uppercase mb-2">Account</h2>
+      {!activeSubPage && (
+        <>
+          {/* Section 1: Account */}
+          <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-500">
+            <h2 className="text-slate-500 dark:text-gray-400 text-md font-semibold uppercase mb-2">Account</h2>
+            <div className="divide-y divide-slate-200 dark:divide-slate-500">
+              <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700 flex items-center"
+                onClick={() => setActiveSubPage('account')}>
+                <UserCircleIcon className="w-5 h-5 mr-3 inline" />
+                Account Settings
+              </button>
+              <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700 flex items-center"
+                onClick={() => setActiveSubPage('blocked')}>
+                <NoSymbolIcon className="w-5 h-5 mr-3 inline" />
+                Blocked Contacts
+              </button>
+            </div>
+          </div>
 
-        <div className="divide-y divide-slate-200 dark:divide-slate-500">
-          <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700"
-            onClick={handleAccountSettings}>
-            Account Settings
+          {/* Section 2: Preferences */}
+          <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-500">
+            <h2 className="text-gray-500 dark:text-gray-400 text-md font-semibold uppercase mb-2">Preferences</h2>
+            <div className="divide-y divide-slate-200 dark:divide-slate-500">
+              <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700 flex items-center"
+                onClick={handlethemeToggle}>
+                {isDark ? <MoonIcon className="w-5 h-5 mr-3 inline" /> : <SunIcon className="w-5 h-5 mr-3 inline" />}
+                Theme
+              </button>
+              <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700 flex items-center"
+                onClick={handleNameformat} >
+                <IdentificationIcon className="w-5 h-5 mr-3 inline" />
+                Format
+              </button>
+            </div>
+          </div>
+
+          {/* Section 3: Export */}
+          <div className="px-6 py-4">
+            <h2 className="text-gray-500 dark:text-gray-400 text-md font-semibold uppercase mb-2">Export</h2>
+            <div className="divide-y divide-slate-200 dark:divide-slate-500">
+              <button 
+                className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700 flex items-center"
+                onClick={() => openExportPanel('csv')}
+              >
+                <DocumentArrowDownIcon className="w-5 h-5 mr-3" />
+                Export as CSV
+              </button>
+              <button 
+                className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700 flex items-center"
+                onClick={() => openExportPanel('vcf')}
+              >
+                <DocumentArrowDownIcon className="w-5 h-5 mr-3" />
+                Export as VCF
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {activeSubPage === 'account' && (
+        <div className="px-6 py-4">
+          <button onClick={() => setActiveSubPage(null)}>
+            <ArrowLeftIcon className="w-4 -4 inline mr-1 mb-4 text-sm text-slate-400 scale-100 hover:scale-105 hover:text-slate-800 transform transition-tranform duration-200" />
           </button>
-          <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700"
-            onClick={handleBlockedContacts}>
-            Blocked Contacts
-          </button>
+          <h2 className="text-slate-500 dark:text-gray-400 text-md font-semibold uppercase mb-2">Account Settings</h2>
+          <div className="divide-y divide-slate-200 dark:divide-slate-500">
+            <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700 flex items-center">
+              <UserCircleIcon className="w-5 h-5 mr-3 inline" />
+              Account Details
+            </button>
+            <button className="w-full text-left py-5 px-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-slate-700 flex items-center">
+              <NoSymbolIcon className="w-5 h-5 mr-3 inline" />
+              Clear All Account Data
+            </button>
+            <button className="w-full text-left py-5 px-2 rounded-lg text-red-600 hover:bg-red-100 dark:hover:bg-slate-700 flex items-center">
+              <NoSymbolIcon className="w-5 h-5 mr-3 inline" />
+              Permanently Delete Account
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Section 2: Preferences */}
-      <div className="px-6 py-4 border-b border-slate-200">
-        <h2 className="text-gray-500 dark:text-gray-400 text-md font-semibold uppercase mb-2">Preferences</h2>
-
-        <div className="divide-y divide-slate-200 dark:divide-slate-500">
-          <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700"
-            onClick={handlethemeToggle}>
-            Theme
+      {activeSubPage === 'blocked' && (
+        <div className="px-6 py-4">
+          <button onClick={() => setActiveSubPage(null)}>
+            <ArrowLeftIcon className="w-4 -4 inline mr-1 mb-4 text-sm text-slate-400 scale-100 hover:scale-105 hover:text-slate-800 transform transition-tranform duration-200" />
           </button>
-          <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700"
-          onClick={handleNameformat} >
-            Name Format
-          </button>
+          <h2 className="text-slate-500 dark:text-gray-400 text-md font-semibold uppercase mb-2">Blocked Contacts</h2>
+          <div className="text-slate-700 dark:text-white py-4">
+            No blocked contacts.
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Section 3: Export */}
-      <div className="px-6 py-4">
-        <h2 className="text-gray-500 dark:text-gray-400 text-md font-semibold uppercase mb-2">Export</h2>
-
-        <div className="divide-y divide-slate-200">
-          <button 
-            className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-600 flex items-center"
-            onClick={() => openExportPanel('csv')}
-          >
-            <DocumentArrowDownIcon className="w-5 h-5 mr-3" />
-            Export as CSV
-          </button>
-          <button 
-            className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-600 flex items-center"
-            onClick={() => openExportPanel('vcf')}
-          >
-            <DocumentArrowDownIcon className="w-5 h-5 mr-3" />
-            Export as VCF
-          </button>
-        </div>
-      </div>
       {/* Theme Panel */}
       {showThemePanel && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000]">
           <div className="relative bg-slate-100 border-2 border-slate-300 rounded-3xl w-[500px] h-[400px] shadow-xl p-6 flex flex-col items-center dark:bg-slate-800 dark:border-slate-700">
-
             {/* Back Arrow - absolute top-left inside the panel */}
             <button
               className="absolute top-4 left-4 scale-100 hover:scale-110 transition-transform"
@@ -265,12 +308,10 @@ function SettingsTab({ currentUser }) {
             >
               <ArrowLeftIcon className="w-5 h-5 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400" />
             </button>
-
             {/* Centered Heading */}
             <h3 className="text-lg font-semibold text-black dark:text-white text-center mt-4 mb-6">
               Change Theme
             </h3>
-
             {/* Inner block for toggle and image */}
             <div className="flex flex-col w-[250px] h-[200px] items-center justify-center mt-6 space-y-4">
               <img
@@ -292,8 +333,7 @@ function SettingsTab({ currentUser }) {
       {/* Export Panel */}
       {showExportPanel && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000]">
-          <div className="relative bg-white border-[10px] border-slate-200 rounded-3xl w-[600px] h-[500px] shadow-xl p-6 flex flex-col dark:bg-slate-700 dark:border-slate-800">
-
+          <div className="relative bg-white border border-slate-200 rounded-3xl w-[600px] h-[500px] shadow-xl p-6 flex flex-col dark:bg-slate-800 dark:border-slate-600">
             {/* Back Arrow - absolute top-left inside the panel */}
             <button
               className="absolute top-4 left-4 scale-100 hover:scale-110 transition-transform"
@@ -301,12 +341,10 @@ function SettingsTab({ currentUser }) {
             >
               <ArrowLeftIcon className="w-5 h-5 text-slate-400 hover:text-slate-600" />
             </button>
-
             {/* Centered Heading */}
             <h3 className="text-lg font-semibold text-black dark:text-white text-center mt-4 mb-6">
               Export Contacts as {exportFormat.toUpperCase()}
             </h3>
-
             {/* Export Form */}
             <div className="flex-1 px-4 space-y-4 overflow-y-auto">
               {/* Filename */}
@@ -322,7 +360,6 @@ function SettingsTab({ currentUser }) {
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-500 rounded-lg text-slate-700 dark:text-white dark:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-
               {/* Search Filter */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -336,7 +373,6 @@ function SettingsTab({ currentUser }) {
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-500 rounded-lg text-slate-700 dark:text-white dark:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-
               {/* Category Filter */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -355,7 +391,6 @@ function SettingsTab({ currentUser }) {
                   ))}
                 </select>
               </div>
-
               {/* Birthday Filter */}
               <div className="flex items-center">
                 <input
@@ -370,7 +405,6 @@ function SettingsTab({ currentUser }) {
                 </label>
               </div>
             </div>
-
             {/* Action Buttons */}
             <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-slate-200 dark:border-slate-600">
               <button
@@ -381,7 +415,7 @@ function SettingsTab({ currentUser }) {
               </button>
               <button
                 onClick={handleExport}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                className="btn"
               >
                 <DocumentArrowDownIcon className="w-4 h-4 mr-2" />
                 Export {exportFormat.toUpperCase()}
@@ -390,7 +424,6 @@ function SettingsTab({ currentUser }) {
           </div>
         </div>
       )}
-
     </div>
   );
 }
