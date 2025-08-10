@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../../supabaseClient';
 
 
@@ -74,6 +74,22 @@ const TaskPanel = () => {
     });
   };
 
+  const fetchTasks = useCallback(async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('task')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('deadline', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching tasks:', error);
+    } else {
+      setTasks(data);
+    }
+  }, [user]);
+
   useEffect(() => {
     const getUser = async () => {
       const {
@@ -94,23 +110,7 @@ const TaskPanel = () => {
 
     // Initial fetch
     fetchTasks();
-  }, [user]);
-
-  const fetchTasks = async () => {
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('task')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('deadline', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching tasks:', error);
-    } else {
-      setTasks(data);
-    }
-  };
+  }, [user, fetchTasks]);
 
   const addTask = async () => {
     if (!user || !newTask.trim()) {
