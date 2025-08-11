@@ -9,6 +9,7 @@ import LandingPage from './LandingPage';
 import UserProfile from './UserProfile';
 
 import { supabase } from '../supabaseClient';
+import ResetPassword from './ResetPassword';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -85,6 +86,7 @@ function App() {
           path="/profile"
           element={isLoggedIn ? <UserProfile currentUser={currentUser} onLogout={handleLogout} /> : <Navigate to="/signin" />}
         />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>

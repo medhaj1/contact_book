@@ -282,15 +282,14 @@ const handleUploadDocuments = async (e) => {
     const { data: urlData } = supabase.storage
       .from('documents')
       .getPublicUrl(`public/${file.name}`);
-    // 3. Insert metadata into documents table
+    // 3. Insert metadata into documents table (removed contact_id)
     const { error: dbError } = await supabase
       .from('documents')
       .insert([{
         name: file.name,
         url: urlData.publicUrl,
         uploaded_by: currentUser?.id,
-        uploaded_at: new Date().toISOString(),
-        contact_id: null // or set if linking to a contact
+        uploaded_at: new Date().toISOString()
       }]);
     if (dbError) {
       alert(`Failed to save ${file.name} in DB: ${dbError.message}`);
@@ -324,6 +323,27 @@ const handleDeleteDocument = async (doc) => {
     return;
   }
   fetchDocuments();
+};
+
+const handlePasswordReset = async (email) => {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: 'http://localhost:3000/reset-password', // Change to your frontend URL
+  });
+  if (error) {
+    alert('Error sending password reset email: ' + error.message);
+  } else {
+    alert('Password reset email sent! Check your inbox.');
+  }
+};
+
+const handleNewPassword = async (newPassword) => {
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) {
+    alert('Error resetting password: ' + error.message);
+  } else {
+    alert('Password has been reset!');
+    // Optionally redirect to login
+  }
 };
 
   return (
