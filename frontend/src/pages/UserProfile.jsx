@@ -4,6 +4,7 @@ import { FiEdit2,FiLogOut,FiKey,FiArrowLeft} from "react-icons/fi";
 import {MdEmail, MdPhone, MdPerson, MdLock} from "react-icons/md";
 import ProfileAvatar from "../components/profile/ProfileAvatar";
 import {supabase} from "../supabaseClient";
+import { getUserProfile, updateUserProfile, uploadUserAvatar } from "../services/userService";
 
 
 const UserProfile = ({ currentUser, onLogout }) => {
@@ -30,30 +31,26 @@ const UserProfile = ({ currentUser, onLogout }) => {
     const fetchUserProfile = async () => {
       if (currentUser) {
         try {
-          // Fetch user profile from user_profile table
-          const { data: userProfile, error } = await supabase
-            .from("user_profile")
-            .select("*")
-            .eq("u_id", currentUser.id)
-            .single();
-
-          if (error) {
-            console.warn("Failed to fetch user profile from database:", error.message);
+          const result = await getUserProfile(currentUser.id);
+          
+          if (result.success) {
+            // Use data from user_profile table
+            const userProfile = result.data;
+            setUserData({
+              name: userProfile.name || currentUser?.user_metadata?.name || currentUser?.email?.split('@')[0] || "User",
+              email: userProfile.email || currentUser?.email || "No email provided",
+              phone: userProfile.phone || currentUser?.user_metadata?.contact || "Not provided",
+              photo: userProfile.avatar_url || currentUser?.user_metadata?.image || null,
+              password: "dummy123",
+            });
+          } else {
+            console.warn("Failed to fetch user profile:", result.error);
             // Fallback to auth metadata if database fetch fails
             setUserData({
               name: currentUser?.user_metadata?.name || currentUser?.email?.split('@')[0] || "User",
               email: currentUser?.email || "No email provided",
               phone: currentUser?.user_metadata?.contact || currentUser?.phone || "Not provided",
               photo: currentUser?.user_metadata?.image || null,
-              password: "dummy123",
-            });
-          } else {
-            // Use data from user_profile table
-            setUserData({
-              name: userProfile.name || currentUser?.user_metadata?.name || currentUser?.email?.split('@')[0] || "User",
-              email: userProfile.email || currentUser?.email || "No email provided",
-              phone: userProfile.phone || currentUser?.user_metadata?.contact || "Not provided",
-              photo: userProfile.image || currentUser?.user_metadata?.image || null,
               password: "dummy123",
             });
           }
@@ -75,81 +72,23 @@ const UserProfile = ({ currentUser, onLogout }) => {
   }, [currentUser]);
 
   const handlePhotoChange = async (e) => {
-  const file = e.target.files[0];
-  if (!file || !currentUser) return;
+    const file = e.target.files[0];
+    if (!file || !currentUser) return;
 
-  const userName = userData.name.replace(/\s+/g, "_") || "user";
-  const folderPath = `users/${userName}`;
-
-  const fileExt = file.name.split('.').pop();
-  const uniqueFileName = `${userName}-${Date.now()}.${fileExt}`;
-  const filePath = `${folderPath}/${uniqueFileName}`;
-
-  try {
-    // 1. Fetch old photo path from metadata (if exists)
-    const oldUrl = currentUser?.user_metadata?.image;
-    let oldPath = null;
-
-    if (oldUrl) {
-      const fullPath = new URL(oldUrl).pathname; // e.g. /storage/v1/object/public/user-images/users/Name/file.jpg
-      oldPath = decodeURIComponent(fullPath.replace("/storage/v1/object/public/user-images/", ""));
-    }
-
-    // 2. Upload new image to Supabase Storage
-    const { error: uploadError } = await supabase.storage
-      .from("user-images")
-      .upload(filePath, file, {
-        cacheControl: "3600",
-        upsert: false,
-        contentType: file.type,
-      });
-
-    if (uploadError) throw new Error("Upload failed: " + uploadError.message);
-
-    // 3. Get public URL of uploaded image
-    const { data: publicData } = supabase.storage
-      .from("user-images")
-      .getPublicUrl(filePath);
-
-    const newPhotoUrl = publicData.publicUrl;
-
-    // 4. Delete old image (if any)
-    if (oldPath) {
-      const { error: deleteError } = await supabase.storage
-        .from("user-images")
-        .remove([oldPath]);
+    try {
+      const result = await uploadUserAvatar(currentUser.id, file);
       
-      if (deleteError) {
-        console.warn("Failed to delete old image:", deleteError.message);
+      if (result.success) {
+        setUserData((prev) => ({ ...prev, photo: result.avatarUrl }));
+        alert("Profile picture updated!");
+      } else {
+        alert("Error updating profile picture: " + result.error);
       }
+    } catch (error) {
+      console.error("Image upload error:", error.message);
+      alert("Error updating profile picture.");
     }
-
-    // 5. Update Supabase Auth user metadata
-    const { error: updateError } = await supabase.auth.updateUser({
-      data: {image: newPhotoUrl },
-    });
-
-    if (updateError) throw new Error("Failed to update metadata: " + updateError.message);
-
-    // 6. Update user_profile table
-    const { error: profileUpdateError } = await supabase
-      .from("user_profile")
-      .update({ image: newPhotoUrl })
-      .eq("u_id", currentUser.id);
-
-    if (profileUpdateError) {
-      console.warn("Failed to update profile table:", profileUpdateError.message);
-    }
-
-    // 7. Update UI
-    setUserData((prev) => ({ ...prev, photo: newPhotoUrl }));
-    alert("Profile picture updated!");
-
-  } catch (error) {
-    console.error("Image upload error:", error.message);
-    alert("Error updating profile picture.");
-  }
-};
+  };
 
 
   const handleEditToggle = async () => {
@@ -162,34 +101,30 @@ const UserProfile = ({ currentUser, onLogout }) => {
 
   const handleSaveProfile = async () => {
     try {
-      // Update user_profile table in Supabase
-      const { error: profileError } = await supabase
-        .from("user_profile")
-        .update({
-          name: userData.name,
-          email: userData.email,
-          phone: userData.phone
-        })
-        .eq("u_id", currentUser.id);
-
-      if (profileError) {
-        throw new Error("Failed to update profile: " + profileError.message);
-      }
-
-      // Update Supabase Auth user metadata
-      const { error: authError } = await supabase.auth.updateUser({
-        data: {
-          name: userData.name,
-          contact: userData.phone,
-          email: userData.email
-        }
+      const result = await updateUserProfile(currentUser.id, {
+        name: userData.name,
+        email: userData.email,
+        phone: userData.phone
       });
 
-      if (authError) {
-        console.warn("Failed to update auth metadata:", authError.message);
-      }
+      if (result.success) {
+        // Update Supabase Auth user metadata
+        const { error: authError } = await supabase.auth.updateUser({
+          data: {
+            name: userData.name,
+            contact: userData.phone,
+            email: userData.email
+          }
+        });
 
-      alert("Profile updated successfully!");
+        if (authError) {
+          console.warn("Failed to update auth metadata:", authError.message);
+        }
+
+        alert("Profile updated successfully!");
+      } else {
+        alert("Error updating profile: " + result.error);
+      }
     } catch (error) {
       console.error("Profile update error:", error.message);
       alert("Error updating profile: " + error.message);
@@ -205,6 +140,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
   };
 
   // Add form submission handlers for Enter key support
+  // eslint-disable-next-line no-unused-vars
   const handleProfileFormSubmit = (e) => {
     e.preventDefault();
     if (isEditing) {
@@ -212,6 +148,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
     }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const handlePasswordFormSubmit = (e) => {
     e.preventDefault();
     handleSaveNewPassword();
