@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import {Camera, X } from 'lucide-react';
+import { NoSymbolIcon } from "@heroicons/react/24/solid";
+import { useBlockedContacts } from './BlockedContactsContext';
 
 const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => {
     const [formData, setFormData] = useState({
@@ -72,6 +74,13 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
         setIsSubmitting(false);
       }
     };
+
+    const { blockedContacts, setBlockedContacts } = useBlockedContacts();
+    const handleBlockContact = () => {
+      // Placeholder for block contact functionality
+      alert('Block contact functionality is not implemented yet.');
+
+    }
   
     const handleImageUpload = (e) => {
       const file = e.target.files[0];
@@ -190,6 +199,14 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
                 Cancel
               </button>
             </div>
+            <button
+              type="button"
+              onClick={handleBlockContact}
+              className="mt-4 h-[48px] flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-100 px-4 py-2 text-red-600 dark:text-red-200 hover:bg-red-200 dark:border-red-950 dark:bg-red-950 dark:bg-opacity-60 dark:hover:bg-red-950 scale-100 hover:scale-105 transition duration-200"
+            >
+              <NoSymbolIcon className="h-5 w-5" />
+              Block Contact
+            </button>
           </form>
         </div>
       </div>

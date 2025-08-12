@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  User, Phone, Mail, Search, Plus, Edit2, Trash2,
-  Users, BookOpen, Settings, LogOut, CheckSquare, MessageSquare, FolderTree,
-  Tags,
-  Bookmark
+  User, Phone, Mail, Search, Plus, Edit2, Trash2, Users, BookOpen, Settings, LogOut, CheckSquare, MessageSquare, Tags,
 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import ChatPanel from '../components/chat/ChatPanel';
@@ -263,11 +260,11 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
 
   const sidebarItems = [
     { id: 'contacts', label: 'Contacts', icon: Users },
+    { id: 'chat', label: 'Chat', icon: MessageSquare }, // Add Task section
     { id: 'categories', label: 'Categories', icon: Tags },
     { id: 'documents', label: 'Documents', icon: BookOpen },
-    { id: 'settings', label: 'Settings', icon: Settings },
     { id: 'task', label: 'Task', icon: CheckSquare },
-    { id: 'chat', label: 'Chat', icon: MessageSquare }, // Add Task section
+    { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
   // Classnames for prettier transitions/buttons - reference 22: use 2nd code style
@@ -662,11 +659,6 @@ const handleDeleteDocument = async (doc) => {
           </>
         )}
 
-        {/* Settings Tab */}
-        {activeTab === 'settings' && (
-          <SettingsTab currentUser={currentUser}/>
-        )}
-
         {/* Task Tab */}
         {activeTab === 'task' && (
           <div className="flex flex-col items-center w-full">
@@ -676,6 +668,11 @@ const handleDeleteDocument = async (doc) => {
 
         {activeTab === 'chat' && (
           <ChatPanel currentUser={currentUser} />
+        )}
+
+        {/* Settings Tab */}
+        {activeTab === 'settings' && (
+          <SettingsTab currentUser={currentUser}/>
         )}
 
         </div>

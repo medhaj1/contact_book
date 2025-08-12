@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeftIcon, DocumentArrowDownIcon, UserCircleIcon, NoSymbolIcon, MoonIcon, SunIcon, IdentificationIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 const BlockedContacts =({onCancel})=>{
 
