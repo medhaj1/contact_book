@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeftIcon, DocumentArrowDownIcon, UserCircleIcon, NoSymbolIcon, MoonIcon, SunIcon, IdentificationIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../supabaseClient';
+import AccountSettings from '../components/settings/AccountSettings';
+import BlockedContacts from '../components/settings/BlockedContacts';
 
 function SettingsTab({ currentUser }) {
 
@@ -88,10 +90,7 @@ function SettingsTab({ currentUser }) {
     });
   }
   const handleNameformat=()=> {}
-  // Open subpages for account settings and blocked contacts
-  const handleAccountSettings = () => setActiveSubPage('account');
-  const handleBlockedContacts = () => setActiveSubPage('blocked');
-
+  
   // Export functions
   const handleExport = async () => {
     try {
@@ -202,19 +201,19 @@ function SettingsTab({ currentUser }) {
 
 
   return (
-    <div className="bg-white dark:bg-slate-700 dark:bg-opacity-50 rounded-xl shadow-md overflow-hidden">
+    <div className="bg-white dark:bg-[#161b22] rounded-xl shadow-md overflow-hidden">
       {!activeSubPage && (
         <>
           {/* Section 1: Account */}
-          <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-500">
+          <div className="px-6 py-4 border-b border-slate-200 dark:border-[#30363d]">
             <h2 className="text-slate-500 dark:text-gray-400 text-md font-semibold uppercase mb-2">Account</h2>
-            <div className="divide-y divide-slate-200 dark:divide-slate-500">
-              <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700 flex items-center"
+            <div className="divide-y divide-slate-200 dark:divide-[#30363d]">
+              <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 flex items-center"
                 onClick={() => setActiveSubPage('account')}>
                 <UserCircleIcon className="w-5 h-5 mr-3 inline" />
                 Account Settings
               </button>
-              <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700 flex items-center"
+              <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 flex items-center"
                 onClick={() => setActiveSubPage('blocked')}>
                 <NoSymbolIcon className="w-5 h-5 mr-3 inline" />
                 Blocked Contacts
@@ -223,15 +222,15 @@ function SettingsTab({ currentUser }) {
           </div>
 
           {/* Section 2: Preferences */}
-          <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-500">
+          <div className="px-6 py-4 border-b border-slate-200 dark:border-[#30363d]">
             <h2 className="text-gray-500 dark:text-gray-400 text-md font-semibold uppercase mb-2">Preferences</h2>
-            <div className="divide-y divide-slate-200 dark:divide-slate-500">
-              <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700 flex items-center"
+            <div className="divide-y divide-slate-200 dark:divide-[#30363d]">
+              <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 flex items-center"
                 onClick={handlethemeToggle}>
                 {isDark ? <MoonIcon className="w-5 h-5 mr-3 inline" /> : <SunIcon className="w-5 h-5 mr-3 inline" />}
                 Theme
               </button>
-              <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700 flex items-center"
+              <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 flex items-center"
                 onClick={handleNameformat} >
                 <IdentificationIcon className="w-5 h-5 mr-3 inline" />
                 Format
@@ -242,16 +241,16 @@ function SettingsTab({ currentUser }) {
           {/* Section 3: Export */}
           <div className="px-6 py-4">
             <h2 className="text-gray-500 dark:text-gray-400 text-md font-semibold uppercase mb-2">Export</h2>
-            <div className="divide-y divide-slate-200 dark:divide-slate-500">
+            <div className="divide-y divide-slate-200 dark:divide-[#30363d]">
               <button 
-                className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700 flex items-center"
+                className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 flex items-center"
                 onClick={() => openExportPanel('csv')}
               >
                 <DocumentArrowDownIcon className="w-5 h-5 mr-3" />
                 Export as CSV
               </button>
               <button 
-                className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700 flex items-center"
+                className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 flex items-center"
                 onClick={() => openExportPanel('vcf')}
               >
                 <DocumentArrowDownIcon className="w-5 h-5 mr-3" />
@@ -263,44 +262,17 @@ function SettingsTab({ currentUser }) {
       )}
 
       {activeSubPage === 'account' && (
-        <div className="px-6 py-4">
-          <button onClick={() => setActiveSubPage(null)}>
-            <ArrowLeftIcon className="w-4 -4 inline mr-1 mb-4 text-sm text-slate-400 scale-100 hover:scale-105 hover:text-slate-800 transform transition-tranform duration-200" />
-          </button>
-          <h2 className="text-slate-500 dark:text-gray-400 text-md font-semibold uppercase mb-2">Account Settings</h2>
-          <div className="divide-y divide-slate-200 dark:divide-slate-500">
-            <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-white hover:bg-blue-50 dark:hover:bg-slate-700 flex items-center">
-              <UserCircleIcon className="w-5 h-5 mr-3 inline" />
-              Account Details
-            </button>
-            <button className="w-full text-left py-5 px-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-slate-700 flex items-center">
-              <NoSymbolIcon className="w-5 h-5 mr-3 inline" />
-              Clear All Account Data
-            </button>
-            <button className="w-full text-left py-5 px-2 rounded-lg text-red-600 hover:bg-red-100 dark:hover:bg-slate-700 flex items-center">
-              <NoSymbolIcon className="w-5 h-5 mr-3 inline" />
-              Permanently Delete Account
-            </button>
-          </div>
-        </div>
+        <AccountSettings onCancel = {() => setActiveSubPage(false)}/>
       )}
 
       {activeSubPage === 'blocked' && (
-        <div className="px-6 py-4">
-          <button onClick={() => setActiveSubPage(null)}>
-            <ArrowLeftIcon className="w-4 -4 inline mr-1 mb-4 text-sm text-slate-400 scale-100 hover:scale-105 hover:text-slate-800 transform transition-tranform duration-200" />
-          </button>
-          <h2 className="text-slate-500 dark:text-gray-400 text-md font-semibold uppercase mb-2">Blocked Contacts</h2>
-          <div className="text-slate-700 dark:text-white py-4">
-            No blocked contacts.
-          </div>
-        </div>
+        <BlockedContacts onCancel={() => setActiveSubPage(false)}/>
       )}
 
       {/* Theme Panel */}
       {showThemePanel && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000]">
-          <div className="relative bg-slate-100 border-2 border-slate-300 rounded-3xl w-[500px] h-[400px] shadow-xl p-6 flex flex-col items-center dark:bg-slate-800 dark:border-slate-700">
+          <div className="relative bg-slate-100 border border-slate-300 rounded-3xl w-[500px] h-[400px] shadow-xl p-6 flex flex-col items-center dark:bg-[#161b22] dark:border-[#30363d]">
             {/* Back Arrow - absolute top-left inside the panel */}
             <button
               className="absolute top-4 left-4 scale-100 hover:scale-110 transition-transform"
@@ -309,7 +281,7 @@ function SettingsTab({ currentUser }) {
               <ArrowLeftIcon className="w-5 h-5 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400" />
             </button>
             {/* Centered Heading */}
-            <h3 className="text-lg font-semibold text-black dark:text-white text-center mt-4 mb-6">
+            <h3 className="text-lg font-semibold text-black dark:text-gray-300 text-center mt-4 mb-6">
               Change Theme
             </h3>
             {/* Inner block for toggle and image */}
@@ -317,13 +289,14 @@ function SettingsTab({ currentUser }) {
               <img
                 src={isDark ? '/dark-preview.png' : '/light-preview.png'}
                 alt="Theme Preview"
-                className="w-[220px] h-[150px] dark:text-white rounded-md shadow"
+                className="w-[220px] h-[150px] dark:text-white rounded-md shadow-lg"
               />
               <button
                 onClick={toggleTheme}
                 className="btn"
               >
-                {isDark ? '☀️  Light' : '🌙 Dark'}
+                {isDark ? <SunIcon className="w-5 h-5 inline" /> : <MoonIcon className="w-5 h-5 inline" />}
+                {isDark ? 'Light' : 'Dark'}
               </button>
             </div>
           </div>
@@ -333,7 +306,7 @@ function SettingsTab({ currentUser }) {
       {/* Export Panel */}
       {showExportPanel && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000]">
-          <div className="relative bg-white border border-slate-200 rounded-3xl w-[600px] h-[500px] shadow-xl p-6 flex flex-col dark:bg-slate-800 dark:border-slate-600">
+          <div className="relative bg-white border border-slate-200 rounded-3xl w-[600px] h-[500px] shadow-xl p-6 flex flex-col dark:bg-[#161b22] dark:border-[#30363d]">
             {/* Back Arrow - absolute top-left inside the panel */}
             <button
               className="absolute top-4 left-4 scale-100 hover:scale-110 transition-transform"
@@ -357,7 +330,7 @@ function SettingsTab({ currentUser }) {
                   placeholder={`contacts_${new Date().toISOString().slice(0,10)}.${exportFormat}`}
                   value={exportFilters.filename}
                   onChange={(e) => setExportFilters({...exportFilters, filename: e.target.value})}
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-500 rounded-lg text-slate-700 dark:text-white dark:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-white dark:bg-[#21262d] focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               {/* Search Filter */}
@@ -370,7 +343,7 @@ function SettingsTab({ currentUser }) {
                   placeholder="Enter search term..."
                   value={exportFilters.search}
                   onChange={(e) => setExportFilters({...exportFilters, search: e.target.value})}
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-500 rounded-lg text-slate-700 dark:text-white dark:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-white dark:bg-[#21262d] focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-indigo-400"
                 />
               </div>
               {/* Category Filter */}
@@ -381,7 +354,7 @@ function SettingsTab({ currentUser }) {
                 <select
                   value={exportFilters.category}
                   onChange={(e) => setExportFilters({...exportFilters, category: e.target.value})}
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-500 rounded-lg text-slate-700 dark:text-white dark:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-gray-400 dark:bg-[#21262d] focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-indigo-400"
                 >
                   <option value="">All Categories</option>
                   {categories.map((category) => (

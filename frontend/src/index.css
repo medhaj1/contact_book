@@ -18,7 +18,7 @@ code {
 
 @layer components {
   .btn {
-    @apply flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-700 to-blue-400 dark:bg-gradient-to-r dark:from-indigo-800 dark:to-indigo-500 text-white dark:text-slate-100 border dark:border-indigo-700 rounded-xl text-base font-semibold scale-100 hover:from-blue-800 hover:to-blue-500 dark:hover:from-indigo-900 dark:hover:to-indigo-600 hover:scale-105 transform transition-transform duration-200;
+    @apply flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-700 to-blue-400 dark:bg-gradient-to-r dark:from-indigo-950 dark:to-indigo-800 text-white dark:text-slate-100 border dark:border-indigo-900 rounded-xl text-base font-semibold scale-100 hover:from-blue-800 hover:to-blue-500 dark:hover:from-indigo-900 dark:hover:to-indigo-700 hover:scale-105 transform transition-transform duration-200;
   }
 }
 

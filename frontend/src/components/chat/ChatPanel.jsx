@@ -151,10 +151,10 @@ const ChatPanel = ({ currentUser }) => {
   }, [currentUserId]);
 
   return (
-    <div className="flex w-full h-[600px] bg-white dark:bg-slate-950 border dark:border-slate-700 rounded-2xl shadow-lg overflow-hidden min-h-[440px]">
+    <div className="flex w-full h-[600px] bg-white dark:bg-[#0d1117] border dark:border-[#21262d] rounded-2xl shadow-lg overflow-hidden min-h-[440px]">
       {/* Contact List */}
-      <div className="w-72 bg-blue-50 dark:bg-slate-900 border-r border-blue-200 dark:border-slate-700 p-4 overflow-y-auto">
-        <h3 className="font-semibold text-lg mb-3 text-blue-800 dark:text-slate-400">Chats</h3>
+      <div className="w-72 bg-blue-50 dark:bg-[#161b22] border-r border-blue-200 dark:border-[#21262d] p-4 overflow-y-auto">
+        <h3 className="font-semibold text-lg mb-3 text-blue-800 dark:text-gray-400">Chats</h3>
         <ul>
           {contacts.map((c) => (
             <li
@@ -172,17 +172,17 @@ const ChatPanel = ({ currentUser }) => {
                 onError={(e) => (e.target.src = '/user-placeholder.png')}
               />
               <div className="flex-1">
-                <div className="font-medium text-blue-900 truncate">
+                <div className="font-medium text-blue-900 truncate dark:text-gray-400">
                   {c.user_profile?.name || c.name}
                 </div>
-                <div className="text-xs text-slate-500 truncate">
+                <div className="text-xs text-gray-400 truncate dark:text-gray-500">
                   {c.user_profile?.email}
                 </div>
               </div>
               {isOnline(c.user_profile?.last_seen) ? (
                 <span className="w-3 h-3 rounded-full bg-green-500" title="Online"></span>
               ) : (
-                <span className="w-3 h-3 rounded-full bg-slate-400"></span>
+                <span className="w-3 h-3 rounded-full bg-neutral-500"></span>
               )}
             </li>
           ))}
@@ -193,7 +193,7 @@ const ChatPanel = ({ currentUser }) => {
         {selectedContact ? (
           <>
             {/* Chat header */}
-            <div className="flex gap-3 items-center border-b p-4 bg-blue-100 min-h-[70px]">
+            <div className="flex gap-3 items-center border-b p-4 bg-blue-100 dark:bg-[#161b22] min-h-[70px]">
               <img
                 src={selectedContact.user_profile?.image || '/user-placeholder.png'}
                 alt={selectedContact.user_profile?.name}
@@ -201,19 +201,19 @@ const ChatPanel = ({ currentUser }) => {
                 onError={(e) => (e.target.src = '/user-placeholder.png')}
               />
               <div>
-                <div className="text-blue-900 font-bold">{selectedContact.user_profile?.name || selectedContact.name}</div>
-                <div className="text-xs text-slate-500">{selectedContact.user_profile?.email}</div>
+                <div className="text-blue-900 font-bold dark:text-gray-400">{selectedContact.user_profile?.name || selectedContact.name}</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500">{selectedContact.user_profile?.email}</div>
                 <div className="text-xs">
-                  <span className={isOnline(selectedContact.user_profile?.last_seen) ? "text-green-500" : "text-slate-500"}>
+                  <span className={isOnline(selectedContact.user_profile?.last_seen) ? "text-green-500" : "text-gray-500"}>
                     {isOnline(selectedContact.user_profile?.last_seen) ? "Online" : "Offline"}
                   </span>
                 </div>
               </div>
             </div>
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 bg-slate-50">
+            <div className="flex-1 overflow-y-auto p-4 bg-slate-50 dark:bg-[#0d1117]">
               {messages.length === 0 ? (
-                <div className="text-slate-500 py-24 text-center">No messages yet.</div>
+                <div className="text-slate-500 dark:text-gray-500 py-24 text-center">No messages yet.</div>
               ) : (
                 messages.map((m, idx) => (
                   <div
@@ -226,11 +226,11 @@ const ChatPanel = ({ currentUser }) => {
                       className={`rounded-xl px-4 py-2 max-w-[72%] text-sm whitespace-pre-line ${
                         m.sender_id === currentUserId
                           ? 'bg-blue-600 text-white'
-                          : 'bg-white border border-slate-200'
+                          : 'bg-white dark:bg-[#0d1117] border dark:border-[#21262d]'
                       }`}
                     >
                       {m.content}
-                      <div className="text-xs text-right text-slate-300 mt-1">
+                      <div className="text-xs text-right text-slate-300 dark:text-gray-500 mt-1">
                         {new Date(m.timestamp).toLocaleTimeString(undefined, {
                           hour: '2-digit',
                           minute: '2-digit',
@@ -249,7 +249,7 @@ const ChatPanel = ({ currentUser }) => {
             >
               <input
                 type="text"
-                className="flex-1 px-4 py-2 rounded-lg border border-blue-200 outline-none text-slate-700"
+                className="flex-1 px-4 py-2 rounded-lg border border-blue-200 dark:border-[#21262d] outline-none text-slate-700 dark:text-gray-400 placeholder-gray-400 dark:placeholder-gray-500"
                 placeholder="Type a message..."
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
@@ -264,7 +264,7 @@ const ChatPanel = ({ currentUser }) => {
             </form>
           </>
         ) : (
-          <div className="flex flex-1 items-center justify-center text-slate-400">
+          <div className="flex flex-1 items-center justify-center text-slate-400 dark:text-gray-500">
             Select a contact to start chatting
           </div>
         )}
