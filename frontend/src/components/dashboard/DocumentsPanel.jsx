@@ -9,16 +9,21 @@ const DocumentsPanel = ({ currentUser }) => {
   // Fetch documents from Supabase
   const fetchDocuments = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch uploaded documents only
+      const { data: uploadedDocs, error: uploadedError } = await supabase
         .from('documents')
         .select('*')
+        .eq('uploaded_by', currentUser?.id)
         .order('uploaded_at', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching documents:', error.message);
+
+      if (uploadedError) {
+        console.error('Error fetching documents:', uploadedError?.message);
         setDocuments([]);
       } else {
-        setDocuments(data || []);
+        setDocuments((uploadedDocs || []).map(doc => ({
+          ...doc,
+          isShared: false
+        })));
       }
     } catch (error) {
       console.error('Error fetching documents:', error);
@@ -28,7 +33,7 @@ const DocumentsPanel = ({ currentUser }) => {
 
   useEffect(() => {
     fetchDocuments();
-  }, []);
+  }, [currentUser?.id]);
 
   const handleUploadDocuments = async (e) => {
     const files = Array.from(e.target.files);

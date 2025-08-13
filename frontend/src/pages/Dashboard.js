@@ -13,10 +13,12 @@ import SettingsTab from '../components/dashboard/SettingsTab';
 import DocumentsPanel from '../components/dashboard/DocumentsPanel';
 import CategoriesPanel from '../components/dashboard/CategoriesPanel';
 import ImportModal from '../components/dashboard/ImportModal';
+import SharedDocumentsPanel from '../components/dashboard/SharedDocumentsPanel';
 
 // Import services
 import { getContacts, deleteContact } from '../services/contactService';
 import { getCategories } from '../services/categoryService';
+import { supabase } from '../supabaseClient';
 
 // Utility function to check if birthday is today
 function isBirthdayToday(birthday) {
@@ -192,6 +194,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     { id: 'contacts', label: 'Contacts', icon: Users },
     { id: 'categories', label: 'Categories', icon: BookOpen },
     { id: 'documents', label: 'Documents', icon: BookOpen },
+    { id: 'shared_documents', label: 'Shared Documents', icon: BookOpen },
     { id: 'settings', label: 'Settings', icon: Settings },
     { id: 'task', label: 'Task', icon: CheckSquare },
     { id: 'chat', label: 'Chat', icon: MessageSquare },
@@ -207,6 +210,29 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   
   // Card border color from 2nd code
   const cardBorderClass = "bg-white border border-blue-100 p-6 rounded-2xl transition hover:shadow-md hover:-translate-y-1";
+
+  // Add this function inside Dashboard component
+  const handleSendDocument = async (file) => {
+    if (!file || !currentUser?.id) return;
+    // Generate a unique filename
+    const filePath = `chat/${currentUser.id}/${Date.now()}_${file.name}`;
+    // Upload to Supabase Storage (make sure you have a 'chat' bucket)
+    const { data, error } = await supabase.storage.from('chat').upload(filePath, file);
+    if (error) {
+      alert('File upload failed: ' + error.message);
+      return;
+    }
+    // Get public URL
+    const { data: publicUrlData } = supabase.storage.from('chat').getPublicUrl(filePath);
+    const fileUrl = publicUrlData?.publicUrl;
+    if (!fileUrl) {
+      alert('Could not get file URL');
+      return;
+    }
+    // Send as a message (you may want to distinguish file messages)
+    // You need to know the selectedContact here, so you may need to lift state up if needed
+    // For now, you can pass a callback to ChatPanel and handle message sending there
+  };
 
   return (
     <div className="flex min-h-screen font-sans">
@@ -481,7 +507,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
         )}
 
         {activeTab === 'chat' && (
-  <ChatPanel currentUser={currentUser} />
+  <ChatPanel currentUser={currentUser} onSendDocument={handleSendDocument} />
 )}
 
   </div>
@@ -508,6 +534,11 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
         {/* Documents Tab */}
         {activeTab === 'documents' && (
           <DocumentsPanel currentUser={currentUser} />
+        )}
+
+        {/* Shared Documents Tab */}
+        {activeTab === 'shared_documents' && (
+          <SharedDocumentsPanel currentUser={currentUser} />
         )}
 
         {/* Import Modal */}
