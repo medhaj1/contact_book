@@ -4,46 +4,53 @@ import { NoSymbolIcon } from "@heroicons/react/24/solid";
 import { useBlockedContacts } from './BlockedContactsContext';
 
 const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => {
-    const [formData, setFormData] = useState({
-      name: contact?.name || '',
-      email: contact?.email || '',
-      phone: contact?.phone || '',
-      birthday: contact?.birthday || '',
-      category_id: contact?.category_id || (categories.length > 0 ? String(categories[0]?.category_id) : null),
-      image: contact?.photo_url || contact?.image || null
-    });
-    
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [selectedFile, setSelectedFile] = useState(null);
-  
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      
-      // Validate required fields
-      if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim()) {
-        alert("Name, email, and phone are required");
-        return;
-      }
-      
-      setIsSubmitting(true);
-      
-      try {
-        const contactData = {
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          birthday: formData.birthday,
-          category_id: formData.category_id
-        };
+  const [formData, setFormData] = useState({
+    name: contact?.name != null ? String(contact.name) : '',
+    email: contact?.email != null ? String(contact.email) : '',
+    phone: contact?.phone != null ? String(contact.phone) : '',
+    birthday: contact?.birthday || '',
+    category_id:
+      contact?.category_id != null
+        ? String(contact.category_id)
+        : categories.length > 0
+        ? String(categories[0]?.category_id)
+        : '',
+    image: contact?.photo_url || contact?.image || null
+  });
 
-        let result;
-        if (contact) {
-          // Update existing contact
-          result = await updateContact(contact.contact_id, contactData, selectedFile, userId);
-        } else {
-          // Add new contact
-          result = await addContact(contactData, selectedFile, userId);
-        }
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // ✅ String-safe validation
+    if (
+      !String(formData.name || '').trim() ||
+      !String(formData.email || '').trim() ||
+      !String(formData.phone || '').trim()
+    ) {
+      alert('Name, email, and phone are required');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const contactData = {
+        name: String(formData.name).trim(),
+        email: String(formData.email).trim(),
+        phone: String(formData.phone).trim(),
+        birthday: formData.birthday,
+        category_id: formData.category_id || null
+      };
+
+      let result;
+      if (contact) {
+        result = await updateContact(contact.contact_id, contactData, selectedFile, userId);
+      } else {
+        result = await addContact(contactData, selectedFile, userId);
+      }
 
         if (result.success) {
           onSave();
