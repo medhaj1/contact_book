@@ -3,6 +3,35 @@ import { supabase } from '../../supabaseClient';
 
 const SharedDocumentsPanel = ({ currentUser }) => {
   const [sharedDocs, setSharedDocs] = useState([]);
+    const handleDeleteSharedDoc = async (doc) => {
+      if (!window.confirm(`Delete ${doc.file_name}?`)) return;
+      try {
+        // Remove from storage
+        const { error: storageError } = await supabase.storage
+          .from('shared_documents')
+          .remove([`public/${doc.file_name}`]);
+        if (storageError) {
+          console.error('Delete from storage failed:', storageError.message);
+          alert('Failed to delete file from storage: ' + storageError.message);
+          return;
+        }
+        // Remove from DB
+        const { error: dbError } = await supabase
+          .from('shared_documents')
+          .delete()
+          .eq('id', doc.id);
+        if (dbError) {
+          console.error('Delete from DB failed:', dbError.message);
+          alert('Failed to delete document metadata: ' + dbError.message);
+          return;
+        }
+        // Refresh list
+        setSharedDocs(prev => prev.filter(d => d.id !== doc.id));
+      } catch (error) {
+        console.error('Error deleting shared document:', error);
+        alert('Error deleting document: ' + error.message);
+      }
+    };
 
   useEffect(() => {
     console.log('Current user id:', currentUser?.id); // <-- Add this line
@@ -60,6 +89,7 @@ const SharedDocumentsPanel = ({ currentUser }) => {
                   </p>
                 </div>
               </div>
+                <div className="flex gap-2">
               <a
                 href={doc.file_url}
                 target="_blank"
@@ -69,6 +99,14 @@ const SharedDocumentsPanel = ({ currentUser }) => {
               >
                 📎 Download
               </a>
+                  <button
+                    className="flex items-center gap-1 justify-center px-3 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors text-sm"
+                    onClick={() => handleDeleteSharedDoc(doc)}
+                    title="Delete Document"
+                  >
+                    🗑️ Delete
+                  </button>
+                </div>
             </div>
           ))}
         </div>

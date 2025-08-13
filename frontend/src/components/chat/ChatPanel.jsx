@@ -7,6 +7,41 @@ function isOnline(lastSeen) {
 }
 
 function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSendDocument }) {
+  const currentUserId = currentUser?.id;
+  // Fetch contacts not registered (not in user_profile)
+  const [inviteContacts, setInviteContacts] = useState([]);
+  useEffect(() => {
+    if (!currentUserId) return;
+    const fetchInviteContacts = async () => {
+      // Get all contacts for current user
+      const { data: contacts } = await supabase
+        .from('contact')
+        .select('*')
+        .eq('user_id', currentUserId)
+        .not('email', 'is', null);
+
+      if (!contacts?.length) {
+        setInviteContacts([]);
+        return;
+      }
+      // Get all registered emails
+      const emails = contacts.map(c => c.email);
+      const { data: profiles } = await supabase
+        .from('user_profile')
+        .select('email');
+      const registeredEmails = profiles?.map(p => p.email) || [];
+      // Filter contacts whose email is not in registeredEmails
+      const notRegistered = contacts.filter(c => !registeredEmails.includes(c.email));
+      setInviteContacts(notRegistered);
+    };
+    fetchInviteContacts();
+  }, [currentUserId]);
+
+  // Invite handler (dummy, replace with backend API for real email)
+  const handleInvite = async (email) => {
+    alert(`Invite sent to ${email}`);
+    // TODO: Call backend API to send email invite
+  };
   const [contacts, setContacts] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
   const [messages, setMessages] = useState(initialMessages);
@@ -16,7 +51,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
   const chatEndRef = useRef();
   const fileInputRef = useRef(null);
 
-  const currentUserId = currentUser?.id;
+  // ...existing code...
 
   // Fetch contacts
   useEffect(() => {
@@ -274,6 +309,43 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
           </li>
         ))}
       </ul>
+        {/* Invite Users Section - Chat List Style */}
+        <div className="mt-8">
+          <h4 className="font-semibold text-md mb-2 text-blue-800">Invite Users</h4>
+          {inviteContacts.length === 0 ? (
+            <div className="text-slate-400 text-sm">No users to invite.</div>
+          ) : (
+            <ul>
+              {inviteContacts.map((c) => (
+                <li
+                  key={c.contact_id}
+                  className="flex items-center p-2 rounded-lg mb-1 cursor-pointer hover:bg-blue-100"
+                >
+                  <div className="relative mr-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-200 border border-sky-200 flex items-center justify-center">
+                      <span className="text-blue-600 font-semibold text-sm">
+                        {(c.name || c.email || 'U').charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-blue-900 truncate w-full">{c.name}</div>
+                    <div className="text-xs text-slate-500 truncate w-full">{c.email}</div>
+                  </div>
+                  <div className="flex-shrink-0 flex items-center justify-end" style={{ minWidth: '80px' }}>
+                    <button
+                      className="w-[70px] px-0 py-1 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 shadow text-center"
+                      onClick={() => handleInvite(c.email)}
+                      title="Send invite via email"
+                    >
+                      Invite
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
     </div>
 
     {/* Chat Area */}

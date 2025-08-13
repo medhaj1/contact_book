@@ -165,13 +165,12 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   }
 
   const sidebarItems = [
-    { id: 'contacts', label: 'Contacts', icon: Users },
-    { id: 'categories', label: 'Categories', icon: BookOpen },
-    { id: 'documents', label: 'Documents', icon: BookOpen },
-    { id: 'shared_documents', label: 'Shared Documents', icon: BookOpen },
-    { id: 'settings', label: 'Settings', icon: Settings },
-    { id: 'task', label: 'Task', icon: CheckSquare },
-    { id: 'chat', label: 'Chat', icon: MessageSquare },
+  { id: 'contacts', label: 'Contacts', icon: Users },
+  { id: 'categories', label: 'Categories', icon: BookOpen },
+  { id: 'documents', label: 'Documents', icon: BookOpen },
+  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'task', label: 'Task', icon: CheckSquare },
+  { id: 'chat', label: 'Chat', icon: MessageSquare },
   ];
 
   // Classnames for prettier transitions/buttons - reference 22: use 2nd code style
@@ -444,17 +443,35 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
           />
         )}
 
-        {/* Shared Documents Tab */}
-        {activeTab === 'shared_documents' && (
-          <SharedDocumentsPanel currentUser={currentUser} />
-        )}
 
         {activeTab === "settings" && (
           <SettingsTab currentUser={currentUser} isDark={isDark} setIsDark={setIsDark} />
         )}
         {activeTab === "task" && <TaskPanel />}
         {activeTab === "chat" && <ChatPanel currentUser={currentUser} />}
-        {activeTab === "documents" && <DocumentsPanel currentUser={currentUser} />}
+        {activeTab === "documents" && (
+          <div>
+            <div className="flex items-center gap-4 mb-8">
+              <label htmlFor="docType" className="font-semibold text-lg text-blue-700">Select:</label>
+              <select
+                id="docType"
+                className="px-4 py-2 rounded-lg border text-md bg-white text-blue-700"
+                value={viewMode}
+                onChange={e => setViewMode(e.target.value)}
+              >
+                <option value="my">My Documents</option>
+                <option value="shared">Shared Documents</option>
+              </select>
+            </div>
+            {viewMode === "my" ? (
+              <DocumentsPanel currentUser={currentUser} />
+            ) : (
+              <div className="mt-4">
+                <SharedDocumentsPanel currentUser={currentUser} />
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {activeTab === "contacts" && (
