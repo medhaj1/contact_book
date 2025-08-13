@@ -14,7 +14,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
     });
     
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const API_BASE_URL = 'http://localhost:5050';
+    const [selectedFile, setSelectedFile] = useState(null);
   
     const handleSubmit = async (e) => {
       e.preventDefault();
@@ -28,48 +28,30 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
       setIsSubmitting(true);
       
       try {
-        // Create FormData for API call
-        const apiFormData = new FormData();
-        apiFormData.append('name', formData.name);
-        apiFormData.append('email', formData.email);
-        apiFormData.append('phone', formData.phone);
-        apiFormData.append('user_id', userId);
-        if (formData.category_id) apiFormData.append('category_id', String(formData.category_id));
-        if (formData.birthday) apiFormData.append('birthday', formData.birthday);
-        
-        // Handle image upload
-        if (formData.image && formData.image.startsWith('data:')) {
-          const response = await fetch(formData.image);
-          const blob = await response.blob();
-          apiFormData.append('photo', blob, `${formData.name}.jpg`);
+        const contactData = {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          birthday: formData.birthday,
+          category_id: formData.category_id
+        };
+
+        let result;
+        if (contact) {
+          // Update existing contact
+          result = await updateContact(contact.contact_id, contactData, selectedFile, userId);
+        } else {
+          // Add new contact
+          result = await addContact(contactData, selectedFile, userId);
         }
 
-        // Make API call
-        const url = contact 
-          ? `${API_BASE_URL}/contacts/${contact.contact_id}`
-          : `${API_BASE_URL}/contacts`;
-        const method = contact ? 'PUT' : 'POST';
-        
-        const response = await fetch(url, {
-          method: method,
-          body: apiFormData,
-        });
-
-        if (response.ok) {
+        if (result.success) {
           onSave();
         } else {
-          const text = await response.text();
-          let errorMessage = 'Failed to add contact';
-          try {
-            const errorJson = text ? JSON.parse(text) : {};
-            errorMessage += ': ' + (errorJson.details || errorJson.error || text);
-          } catch {
-            errorMessage += ': ' + text;
-          }
-          alert(errorMessage);
+          alert(`Failed to ${contact ? 'update' : 'add'} contact: ${result.error}`);
         }
       } catch (error) {
-        alert(`Error ${contact ? 'updating' : 'adding'} contact: ` + error.message);
+        alert(`Error ${contact ? 'updating' : 'adding'} contact: ${error.message}`);
       } finally {
         setIsSubmitting(false);
       }
@@ -85,6 +67,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
     const handleImageUpload = (e) => {
       const file = e.target.files[0];
       if (file) {
+        setSelectedFile(file);
         const reader = new FileReader();
         reader.onload = (event) => {
           setFormData({...formData, image: event.target.result});
@@ -95,6 +78,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
   
     const removeImage = () => {
       setFormData({...formData, image: null});
+      setSelectedFile(null);
     };
   
     return (
@@ -174,7 +158,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
                 <option value="">Select Category</option>
                 {categories.map((category) => (
                   <option key={category.category_id} value={category.category_id}>
-                    {category.name}
+                    {category.category_name || category.name}
                   </option>
                 ))}
               </select>

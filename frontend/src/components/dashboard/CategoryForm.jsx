@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { addCategory } from '../../services/categoryService';
 
-const CategoryForm = ({ onSave, onCancel, existingCategories = [] }) => {
+const CategoryForm = ({ onSave, onCancel, existingCategories = [], userId }) => {
   const [categoryName, setCategoryName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -29,7 +30,7 @@ const CategoryForm = ({ onSave, onCancel, existingCategories = [] }) => {
     
     // Check for duplicates
     const isDuplicate = existingCategories.some(
-      category => category.name.toLowerCase() === trimmedName.toLowerCase()
+      category => category.category_name?.toLowerCase() === trimmedName.toLowerCase()
     );
     
     if (isDuplicate) {
@@ -40,15 +41,14 @@ const CategoryForm = ({ onSave, onCancel, existingCategories = [] }) => {
     setIsSubmitting(true);
     
     try {
-      // Create new category object
-      const newCategory = {
-        category_id: Date.now(), // Simple ID generation
-        name: trimmedName
-      };
+      const result = await addCategory(trimmedName);
       
-      // Call parent save function
-      onSave(newCategory);
-      
+      if (result.success) {
+        onSave(result.data);
+      } else {
+        setError(result.error);
+        setIsSubmitting(false);
+      }
     } catch (error) {
       setError('Failed to create category: ' + error.message);
       setIsSubmitting(false);

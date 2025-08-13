@@ -13,40 +13,56 @@ const ChatPanel = ({ currentUser }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [realtimeSub, setRealtimeSub] = useState(null);
+  const [imageErrors, setImageErrors] = useState(new Set());
   const chatEndRef = useRef();
 
   const currentUserId =currentUser.id;
 
-  // 1. Fetch contacts who are users
+  // 1. Fetch contacts who are users (simpler approach)
   useEffect(() => {
   if (!currentUserId) return;
   
   const fetchContacts = async () => {
     try {
-      const { data, error } = await supabase
+      // Get contacts with emails
+      const { data: contacts } = await supabase
         .from('contact')
-        .select(`
-          name,
-          contact_user_id,
-          user_profile!contact_user_id (
-            name,
-            email,
-            image,
-            last_seen
-          )
-        `)
+        .select('*')
         .eq('user_id', currentUserId)
-        .not('contact_user_id', 'is', null);  // This is the correct syntax
+        .not('email', 'is', null);
 
-      if (error) {
-        console.error('Error fetching contacts:', error);
+      if (!contacts || contacts.length === 0) {
         setContacts([]);
-      } else {
-        console.log('Fetched contacts:', data);
-        setContacts(data || []);
+        return;
       }
+
+      // Get user profiles for these emails
+      const emails = contacts.map(c => c.email);
+      const { data: profiles } = await supabase
+        .from('user_profile')
+        .select('*')
+        .in('email', emails);
+
+      // Match contacts with profiles
+      const chatContacts = contacts
+        .map(contact => {
+          const profile = profiles?.find(p => p.email === contact.email);
+          if (profile) {
+            return {
+              ...contact,
+              contact_user_id: profile.u_id,
+              user_profile: profile
+            };
+          }
+          return null;
+        })
+        .filter(Boolean);
+
+      console.log('Chat contacts:', chatContacts);
+      setContacts(chatContacts);
+
     } catch (err) {
-      console.error('Catch error:', err);
+      console.error('Error:', err);
       setContacts([]);
     }
   };
@@ -150,6 +166,14 @@ const ChatPanel = ({ currentUser }) => {
     return () => clearInterval(ping);
   }, [currentUserId]);
 
+  const handleImageError = (contactId, e) => {
+    // Prevent infinite loop by checking if we already handled this error
+    if (imageErrors.has(contactId)) return;
+    
+    setImageErrors(prev => new Set([...prev, contactId]));
+    e.target.style.display = 'none'; // Hide the broken image
+  };
+
   return (
     <div className="flex w-full h-[600px] bg-white dark:bg-[#0d1117] border dark:border-[#21262d] rounded-2xl shadow-lg overflow-hidden min-h-[440px]">
       {/* Contact List */}
@@ -165,12 +189,22 @@ const ChatPanel = ({ currentUser }) => {
               }`}
               onClick={() => setSelectedContact(c)}
             >
-              <img
-                className="w-10 h-10 rounded-full object-cover border border-sky-200"
-                src={c.user_profile?.image || '/user-placeholder.png'}
-                alt={c.user_profile?.name}
-                onError={(e) => (e.target.src = '/user-placeholder.png')}
-              />
+              <div className="relative">
+                {!imageErrors.has(c.contact_user_id) ? (
+                  <img
+                    className="w-10 h-10 rounded-full object-cover border border-sky-200"
+                    src={c.user_profile?.image || '/user-placeholder.png'}
+                    alt={c.user_profile?.name}
+                    onError={(e) => handleImageError(c.contact_user_id, e)}
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-blue-200 border border-sky-200 flex items-center justify-center">
+                    <span className="text-blue-600 font-semibold text-sm">
+                      {(c.user_profile?.name || c.name || 'U').charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+              </div>
               <div className="flex-1">
                 <div className="font-medium text-blue-900 truncate dark:text-gray-400">
                   {c.user_profile?.name || c.name}
@@ -194,12 +228,22 @@ const ChatPanel = ({ currentUser }) => {
           <>
             {/* Chat header */}
             <div className="flex gap-3 items-center border-b p-4 bg-blue-100 dark:bg-[#161b22] min-h-[70px]">
-              <img
-                src={selectedContact.user_profile?.image || '/user-placeholder.png'}
-                alt={selectedContact.user_profile?.name}
-                className="w-12 h-12 rounded-full border border-sky-300 object-cover"
-                onError={(e) => (e.target.src = '/user-placeholder.png')}
-              />
+              <div className="relative">
+                {!imageErrors.has(selectedContact.contact_user_id) ? (
+                  <img
+                    src={selectedContact.user_profile?.image || '/user-placeholder.png'}
+                    alt={selectedContact.user_profile?.name}
+                    className="w-12 h-12 rounded-full border border-sky-300 object-cover"
+                    onError={(e) => handleImageError(selectedContact.contact_user_id, e)}
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-blue-200 border border-sky-300 flex items-center justify-center">
+                    <span className="text-blue-600 font-semibold text-lg">
+                      {(selectedContact.user_profile?.name || selectedContact.name || 'U').charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+              </div>
               <div>
                 <div className="text-blue-900 font-bold dark:text-gray-400">{selectedContact.user_profile?.name || selectedContact.name}</div>
                 <div className="text-xs text-gray-400 dark:text-gray-500">{selectedContact.user_profile?.email}</div>
