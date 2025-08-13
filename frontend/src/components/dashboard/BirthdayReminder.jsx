@@ -1,78 +1,97 @@
 import React from "react";
 
 const BirthdayReminder = ({ contacts }) => {
-  function isBirthdayInNext7Days(birthday) {
+  function isBirthdayToday(birthday) {
     if (!birthday) return false;
-    
+    const today = new Date();
+    const bday = new Date(birthday);
+    if (isNaN(bday.getTime())) return false;
+    return bday.getDate() === today.getDate() && bday.getMonth() === today.getMonth();
+  }
+
+  function isBirthdayInNext7DaysExcludingToday(birthday) {
+    if (!birthday) return false;
     try {
       const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1); // start from tomorrow
       const nextWeek = new Date(today);
       nextWeek.setDate(today.getDate() + 7);
 
-      // Parse the birthday date (database stores as YYYY-MM-DD)
       const bday = new Date(birthday);
-      
-      // Check if the date is valid
-      if (isNaN(bday.getTime())) {
-        console.warn("Invalid birthday date:", birthday);
-        return false;
-      }
-      
-      // Set the year to current year for comparison
+      if (isNaN(bday.getTime())) return false;
       bday.setFullYear(today.getFullYear());
 
-      return bday >= today && bday <= nextWeek;
-    } catch (error) {
-      console.error("Error parsing birthday:", birthday, error);
+      return bday >= tomorrow && bday <= nextWeek;
+    } catch {
       return false;
     }
   }
 
-  const upcomingBirthdays = contacts.filter((contact) =>
-    isBirthdayInNext7Days(contact.birthday)
+  const todaysBirthdays = contacts.filter(c => isBirthdayToday(c.birthday));
+  const upcomingBirthdays = contacts.filter(c => isBirthdayInNext7DaysExcludingToday(c.birthday));
+
+  function prettyDate(dateStr) {
+    try {
+      const date = new Date(dateStr);
+      return isNaN(date.getTime())
+        ? dateStr
+        : date.toLocaleDateString(undefined, { day: "numeric", month: "long" });
+    } catch {
+      return dateStr;
+    }
+  }
+
+  const BirthdaySection = ({ title, people }) => (
+    people.length > 0 && (
+      <div className="relative mb-6 p-6 rounded-2xl shadow-lg overflow-hidden bg-gradient-to-r from-pink-300 via-purple-300 to-indigo-300 dark:from-pink-700 dark:via-purple-700 dark:to-indigo-800">
+        <h3 className="text-2xl font-extrabold text-white mb-4 flex items-center gap-2 relative z-10">
+          {title}
+        </h3>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 relative z-10">
+          {people.map(c => (
+            <div
+              key={c.contact_id}
+              className="flex items-center gap-4 bg-white/30 dark:bg-white/10 backdrop-blur-md p-4 rounded-xl shadow-md border border-white/20 hover:scale-[1.02] transition-transform"
+            >
+              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-yellow-400 to-orange-400 flex justify-center items-center font-bold text-white overflow-hidden shadow">
+                {c.photo_url
+                  ? <img src={c.photo_url} alt={c.name} className="w-full h-full object-cover" />
+                  : c.name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <div className="font-semibold text-white text-lg">{c.name}</div>
+                <div className="text-sm text-white/90">{c.email}</div>
+                <div className="text-xs text-yellow-200">🎂 {prettyDate(c.birthday)}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(12)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-2 h-2 bg-white rounded-full opacity-70 animate-bounce"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 2}s`,
+                animationDuration: `${1 + Math.random()}s`,
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    )
   );
 
   return (
-    <div className="bg-blue-100 dark:bg-indigo-950 p-5 rounded-2xl shadow-md mb-6 hover:shadow-lg transition-shadow duration-200">
-      <h3 className="text-xl font-bold mb-3 text-blue-800 dark:text-indigo-300 flex items-center gap-2">
-        🎂 Upcoming Birthdays
-      </h3>
-      {upcomingBirthdays.length > 0 ? (
-        <ul className="space-y-2">
-          {upcomingBirthdays.map((c) => (
-            <li
-              key={c.contact_id}
-              className="bg-white dark:bg-indigo-800 p-3 font-semibold rounded-lg shadow-sm dark:shadow-indigo-500 border border-blue-200 dark:border-indigo-600 text-blue-800 dark:text-indigo-100 flex justify-between"
-            >
-              <span className="font-medium">{c.name}</span>
-              <span className="text-sm">
-                {(() => {
-                  try {
-                    const date = new Date(c.birthday);
-                    if (isNaN(date.getTime())) {
-                      return c.birthday; // Return raw value if parsing fails
-                    }
-                    return date.toLocaleDateString(undefined, {
-                      day: "numeric",
-                      month: "short"
-                    });
-                  } catch (error) {
-                    console.error("Error formatting birthday:", c.birthday, error);
-                    return c.birthday;
-                  }
-                })()}
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-blue-700 dark:text-indigo-400">No birthdays in the next 7 days</p>
-      )}
-    </div>
+    <>
+      <BirthdaySection title="🎉 Birthdays Today" people={todaysBirthdays} />
+      <BirthdaySection title="🎂 Upcoming Birthdays" people={upcomingBirthdays} />
+    </>
   );
 };
 
 export default BirthdayReminder;
-
-
 
