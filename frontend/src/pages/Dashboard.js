@@ -204,9 +204,6 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
         ? 'bg-blue-100 dark:bg-indigo-300 text-blue-700 dark:text-indigo-900 scale-100 hover:scale-105'
         : 'text-slate-500 dark:text-slate-400 scale-100 hover:bg-slate-100 dark:hover:bg-slate-800 hover:scale-105 hover:text-slate-600 dark:hover:text-slate-300'
     }`;
-  
-  // Card border color from 2nd code
-  const cardBorderClass = "bg-white border border-blue-100 p-6 rounded-2xl transition hover:shadow-md hover:-translate-y-1";
 
   return (
     <div className="flex min-h-screen font-sans">
