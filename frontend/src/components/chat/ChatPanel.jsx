@@ -95,7 +95,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
     fetchContacts();
   }, [currentUserId]);
 
-  // Fetch message history
+  // Fetch message history and mark received messages as seen
   useEffect(() => {
     if (!selectedContact) return;
 
@@ -109,6 +109,26 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
         .order('timestamp', { ascending: true });
 
       setMessages(data || []);
+
+      // Mark all received messages as seen
+      const unseenIds = (data || [])
+        .filter(m => m.receiver_id === currentUserId && !m.seen)
+        .map(m => m.id);
+      if (unseenIds.length > 0) {
+        await supabase
+          .from('messages')
+          .update({ seen: true })
+          .in('id', unseenIds);
+        // Re-fetch messages to get updated seen status
+        const { data: updatedData } = await supabase
+          .from('messages')
+          .select('*')
+          .or(
+            `and(sender_id.eq.${currentUserId},receiver_id.eq.${selectedContact.contact_user_id}),and(sender_id.eq.${selectedContact.contact_user_id},receiver_id.eq.${currentUserId})`
+          )
+          .order('timestamp', { ascending: true });
+        setMessages(updatedData || []);
+      }
     };
 
     fetchMessages();
@@ -265,7 +285,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
  return (
   <div className="flex w-full h-[500px] bg-white rounded-lg shadow-lg overflow-hidden min-h-[440px]">
     {/* Contact List */}
-    <div className="w-72 bg-blue-50 border-r border-blue-200 p-4 overflow-y-auto">
+    <div className="w-96 bg-blue-50 border-r border-blue-200 p-4 overflow-y-auto">
       <h3 className="font-semibold text-lg mb-3 text-blue-800">Chats</h3>
       <ul>
         {contacts.map((c) => (
@@ -348,8 +368,8 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
         </div>
     </div>
 
-    {/* Chat Area */}
-    <div className="flex-1 flex flex-col h-full">
+  {/* Chat Area */}
+  <div className="flex-[2] flex flex-col h-full min-w-0">
       {selectedContact ? (
         <>
           {/* Chat Header */}
@@ -421,11 +441,31 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
                       ) : (
                         m.content
                       )}
-                      <div className="text-xs text-right text-slate-300 mt-1">
-                        {new Date(m.timestamp).toLocaleTimeString(undefined, {
+                      <div className="flex items-center justify-end gap-1 text-xs text-right text-slate-300 mt-1">
+                        <span>{new Date(m.timestamp).toLocaleTimeString(undefined, {
                           hour: '2-digit',
                           minute: '2-digit',
-                        })}
+                        })}</span>
+                        {m.sender_id === currentUserId && (
+                          <span title={m.seen ? 'Seen' : 'Sent'} className="ml-1 flex items-center">
+                            {m.seen ? (
+                              // Blue double tick SVG with spacing
+                              <span className="flex items-center">
+                                <svg width="15" height="15" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M5 9.5L8 12.5L13 7.5" stroke="#e3f706ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                                <svg width="15" height="15" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style={{marginLeft: '-4px'}}>
+                                  <path d="M9 9.5L12 12.5L17 7.5" stroke="#e3f706ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </span>
+                            ) : (
+                              // Gray single tick SVG
+                              <svg width="15" height="15" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M5 9.5L8 12.5L13 7.5" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            )}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -443,6 +483,12 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
               placeholder="Type a message..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage(e);
+                }
+              }}
             />
             <button
               className="bg-blue-600 text-white rounded-lg px-5 py-2 font-semibold hover:bg-blue-700"
