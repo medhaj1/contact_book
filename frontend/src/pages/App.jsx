@@ -15,9 +15,6 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
-  const[isDark, setIsDark] = useState(()=>{
-    return localStorage.getItem('theme') === 'dark';
-  });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -37,17 +34,6 @@ function App() {
       authListener.subscription.unsubscribe();
     };
   }, []);
-
-  useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    }
-    else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [isDark]);
 
   const handleLogout = async () => {
     try {

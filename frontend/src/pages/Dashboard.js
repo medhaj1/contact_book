@@ -2,15 +2,21 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   User, Phone, Mail, Search, Plus, Edit2, Trash2,
-  Users, BookOpen, Settings, LogOut, CheckSquare
+  Users, BookOpen, Settings, LogOut, CheckSquare,MessageSquare
 } from 'lucide-react';
-import { supabase } from '../supabaseClient';
+import ChatPanel from '../components/chat/ChatPanel';
 
 import ContactForm from '../components/dashboard/ContactForm';
-import CategoryForm from '../components/dashboard/CategoryForm';
-import BirthdayReminder from './BirthdayReminder'; // Only UI, uses contacts with .birthday supported
+import BirthdayReminder from '../components/dashboard/BirthdayReminder';
 import TaskPanel from '../components/dashboard/TaskPanel';
-import SettingsTab from './SettingsTab';
+import SettingsTab from '../components/dashboard/SettingsTab';
+import DocumentsPanel from '../components/dashboard/DocumentsPanel';
+import CategoriesPanel from '../components/dashboard/CategoriesPanel';
+import ImportModal from '../components/dashboard/ImportModal';
+
+// Import services
+import { getContacts, deleteContact } from '../services/contactService';
+import { getCategories } from '../services/categoryService';
 
 // Utility function to check if birthday is today
 function isBirthdayToday(birthday) {
@@ -36,40 +42,50 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
 
   // --- Contacts and Categories Data (API driven, from First Code) ---
   const userName = currentUser?.user_metadata?.name || currentUser?.email?.split('@')[0] || 'User';
-  const userEmail = currentUser?.email || 'No email';
   const userId = currentUser?.id || 'unknown';
 
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [categories, setCategories] = useState([
-    { category_id: 1, name: 'Family' },
-    { category_id: 2, name: 'Friends' },
-    { category_id: 3, name: 'Work' },
-    { category_id: 4, name: 'Business' }
-  ]);
+  const [categories, setCategories] = useState([]);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [showAddContact, setShowAddContact] = useState(false);
   const [editingContact, setEditingContact] = useState(null);
-  const [showAddCategory, setShowAddCategory] = useState(false);
-  const [activeTab, setActiveTab] = useState('contacts');
+  const [activeTab, setActiveTab] = useState(() => {
+    // Restore active tab from localStorage, default to 'contacts'
+    return localStorage.getItem('dashboardActiveTab') || 'contacts';
+  });
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showAddContactDropdown, setShowAddContactDropdown] = useState(false);
-  const [documents, setDocuments] = useState([]);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [profileImageError, setProfileImageError] = useState(false);
 
-  const API_BASE_URL = 'http://localhost:5000';
+  // Dark mode state
+  const [isDark, setIsDark] = useState(() => {
+    return localStorage.getItem('theme') === 'dark';
+  });
 
-  // Fetch contacts from backend (including .birthday, as per 16)
+  // Apply dark mode effect
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDark]);
+
+  // Fetch contacts using service
   const fetchContacts = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/contacts/${userId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setContacts(data);
+      const result = await getContacts(userId);
+      if (result.success) {
+        setContacts(result.data);
       } else {
-        console.error('Failed to fetch contacts');
+        console.error('Failed to fetch contacts:', result.error);
         setContacts([]);
       }
     } catch (error) {
@@ -86,24 +102,33 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     }
   }, [userId, fetchContacts]);
 
-  // Fetch documents from Supabase
-  const fetchDocuments = async () => {
-    const { data, error } = await supabase
-      .from('documents')
-      .select('*')
-      .order('uploaded_at', { ascending: false });
-    if (error) {
-      alert('Error fetching documents: ' + error.message);
-      setDocuments([]);
-    } else {
-      setDocuments(data);
+  // Fetch categories using service
+  const fetchCategories = useCallback(async () => {
+    try {
+      const result = await getCategories();
+      if (result.success) {
+        console.log('Fetched categories from database:', result.data);
+        setCategories(result.data);
+      } else {
+        console.error('Error fetching categories:', result.error);
+        // Only set default categories if no categories exist
+        setCategories([]);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      setCategories([]);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    if (activeTab === 'documents') {
-      fetchDocuments();
+    if (userId && userId !== 'unknown') {
+      fetchCategories();
     }
+  }, [userId, fetchCategories]);
+
+  // Save active tab to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('dashboardActiveTab', activeTab);
   }, [activeTab]);
 
   // Close dropdown when clicking outside
@@ -122,7 +147,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     };
   }, [showUserDropdown, showAddContactDropdown]);
 
-  // --- Contact CRUD (Simplified - API calls moved to ContactForm) ---
+  // --- Contact CRUD using services ---
   const handleContactSave = async () => {
     // Refresh contacts list after successful save
     await fetchContacts();
@@ -131,17 +156,14 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     setEditingContact(null);
   };
 
-  const deleteContact = async (contactId) => {
+  const handleDeleteContact = async (contactId) => {
     if (window.confirm('Are you sure you want to delete this contact?')) {
       try {
-        const response = await fetch(`${API_BASE_URL}/contacts/${contactId}`, {
-          method: 'DELETE',
-        });
-        if (response.ok) {
+        const result = await deleteContact(contactId);
+        if (result.success) {
           await fetchContacts();
         } else {
-          const error = await response.json();
-          alert('Failed to delete contact: ' + (error.details || error.error));
+          alert('Failed to delete contact: ' + result.error);
         }
       } catch (error) {
         alert('Error deleting contact: ' + error.message);
@@ -149,61 +171,8 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     }
   };
 
-  // --- Category Management (Simplified - validation moved to CategoryForm) ---
-  const handleCategorySave = (newCategory) => {
-    setCategories([...categories, newCategory]);
-    setShowAddCategory(false);
-  };
-
-  const addCategory = async (categoryName) => {
-    const { data, error } = await supabase
-      .from('category')
-      .insert([{ name: categoryName }])
-      .select();
-
-    if (error) {
-      alert('Error adding category: ' + error.message);
-      return;
-    }
-
-    // Refresh categories from DB
-    const { data: updatedCategories } = await supabase
-      .from('category')
-      .select('*')
-      .order('category_id', { ascending: true });
-
-    setCategories(updatedCategories);
-    setShowAddCategory(false);
-  };
-
-  const deleteCategory = async (categoryId) => {
-    if (window.confirm('Are you sure you want to delete this category?')) {
-      // Optional: Prevent deletion if any contact uses this category
-      const hasContacts = contacts.some(c => c.category_id === categoryId);
-      if (hasContacts) {
-        alert('Cannot delete category: There are contacts using this category.');
-        return;
-      }
-
-      const { error } = await supabase
-        .from('category')
-        .delete()
-        .eq('category_id', categoryId);
-
-      if (error) {
-        alert('Error deleting category: ' + error.message);
-        return;
-      }
-
-      // Refresh categories from DB
-      const { data: updatedCategories } = await supabase
-        .from('category')
-        .select('*')
-        .order('category_id', { ascending: true });
-
-      setCategories(updatedCategories);
-    }
-  };
+  // --- Category Management using services ---
+  // Category management is now handled by CategoriesPanel component
 
   // Filtering (search + category)
   const filteredContacts = contacts.filter(contact => {
@@ -222,9 +191,10 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const sidebarItems = [
     { id: 'contacts', label: 'Contacts', icon: Users },
     { id: 'categories', label: 'Categories', icon: BookOpen },
-    { id: 'documents', label: 'Documents', icon: /* choose an icon, e.g. */ BookOpen },
+    { id: 'documents', label: 'Documents', icon: BookOpen },
     { id: 'settings', label: 'Settings', icon: Settings },
-    { id: 'task', label: 'Task', icon: CheckSquare }, // Add Task section
+    { id: 'task', label: 'Task', icon: CheckSquare },
+    { id: 'chat', label: 'Chat', icon: MessageSquare },
   ];
 
   // Classnames for prettier transitions/buttons - reference 22: use 2nd code style
@@ -348,8 +318,8 @@ const handleNewPassword = async (newPassword) => {
 
   return (
     <div className="flex min-h-screen font-sans">
-      {/* Sidebar */}
-      <div className="w-60 bg-white dark:bg-slate-900 p-6 border-r border-slate-200 dark:border-slate-600 flex flex-col">
+      {/* Fixed Sidebar */}
+      <div className="fixed left-0 top-0 w-60 h-screen bg-white dark:bg-slate-900 p-6 border-r border-slate-200 dark:border-slate-600 flex flex-col overflow-y-auto z-10 fixed-sidebar">
         <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-300 mb-8">Contact Book</h2>
         <nav className="flex-1 space-y-2">
           {sidebarItems.map(item => {
@@ -370,8 +340,8 @@ const handleNewPassword = async (newPassword) => {
 
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 p-8 bg-blue-50 dark:bg-slate-800 transition-all duration-200">
+      {/* Main Content - with left margin to account for fixed sidebar */}
+      <div className="flex-1 ml-60 p-8 bg-blue-50 dark:bg-slate-800 transition-all duration-200 min-h-screen">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-300 capitalize">{activeTab}</h1>
@@ -381,17 +351,12 @@ const handleNewPassword = async (newPassword) => {
               onClick={() => setShowUserDropdown(!showUserDropdown)}
             >
               <div className="w-9 h-9 bg-gradient-to-r from-blue-700 to-blue-400 shadow-lg border-2 border-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm overflow-hidden">
-                {currentUser?.user_metadata?.image || currentUser?.user_metadata?.picture || currentUser?.user_metadata?.image ? (
+                {(currentUser?.user_metadata?.image || currentUser?.user_metadata?.picture) && !profileImageError ? (
                   <img 
-                    src={currentUser.user_metadata.image || currentUser.user_metadata.picture || currentUser.user_metadata.image} 
+                    src={currentUser.user_metadata.image || currentUser.user_metadata.picture} 
                     alt={userName}
                     className="w-full h-full object-cover rounded-full"
-                    onError={(e) => {
-                      // Hide the image and show initials fallback
-                      e.target.style.display = 'none';
-                      const parent = e.target.parentElement;
-                      parent.innerHTML = `<span class="w-full h-full flex items-center justify-center">${userName?.charAt(0).toUpperCase()}</span>`;
-                    }}
+                    onError={() => setProfileImageError(true)}
                   />
                 ) : (
                   <span className="w-full h-full flex items-center justify-center">
@@ -400,8 +365,14 @@ const handleNewPassword = async (newPassword) => {
                 )}
               </div>
               <span className="text-sm text-slate-600 dark:text-slate-300 font-medium">{userName}</span>
-              <svg className={`w-4 h-4 text-slate-400 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`}
-                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+             <svg
+  className={`w-4 h-4 text-slate-400 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`}
+  fill="none"
+  stroke="currentColor"
+  viewBox="0 0 24 24"
+>
+
+                fill="none" stroke="currentColor" viewBox="0 0 24 24"
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </div>
@@ -455,14 +426,14 @@ const handleNewPassword = async (newPassword) => {
                 <option value="">All Categories</option>
                 {categories.map((c) => (
                   <option key={c.category_id} value={c.category_id}>
-                    {c.name}
+                    {c.category_name || c.name}
                   </option>
                 ))}
               </select>
               <div className="relative">
   <button
     onClick={() => setShowAddContactDropdown(prev => !prev)}
-    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-700 to-blue-400 text-white rounded-xl text-md scale-100 hover:from-blue-800 hover:to-blue-500 hover:scale-105 transform transition-transform duration-200 transition-colors"
+    className="btn"
   >
     <Plus size={16} />
     Add Contact
@@ -485,38 +456,28 @@ const handleNewPassword = async (newPassword) => {
       <div
         className="px-4 py-2 hover:bg-slate-100 cursor-pointer text-sm text-slate-700"
         onClick={() => {
-          document.getElementById('csvFileInput').click();
+          setShowImportModal(true);
           setShowAddContactDropdown(false);
         }}
       >
-        Import via CSV
+        Import Contacts
       </div>
     </div>
   )}
-
-  {/* Hidden CSV Input */}
-  <input
-    type="file"
-    id="csvFileInput"
-    accept=".csv,.vcf"
-    className="hidden"
-    onChange={handleImportCSV}/*remember to add a onChange={}*/
-  />
 </div>
 
             </div>
 
             {/* Today's Birthday Reminders */}
             {todaysBirthdays.length > 0 && (
-              <div className="mb-6 p-4 bg-amber-50 rounded-xl border border-amber-200 flex flex-col gap-2">
-                <div className="font-semibold text-amber-700 flex items-center gap-1">
+              <div className="mb-6 p-4 bg-sky-200 bg-opacity-60 dark:bg-blue-900 dark:bg-opacity-50 rounded-xl shadow-md hover:shadow-lg border border-sky-200 dark:border-none flex flex-col gap-2">
+                <div className="font-bold text-lg text-sky-700 dark:text-blue-300 flex items-center gap-1">
                   🎂 Birthday{todaysBirthdays.length > 1 ? "s" : ""} Today!
                 </div>
                 {todaysBirthdays.map((contact) => (
-                  <div key={contact.contact_id} className="flex items-center gap-3 text-amber-700">
+                  <div key={contact.contact_id} className="flex items-center gap-3 text-sky-700 dark:text-blue-400">
                     <span className="font-bold">{contact.name}</span>
-                    <span className="text-xs">(Today)</span>
-                    <span className="text-slate-500 text-sm">{contact.email}</span>
+                    <span className="text-slate-500 dark:text-slate-500 text-base">{contact.email}</span>
                   </div>
                 ))}
               </div>
@@ -527,7 +488,7 @@ const handleNewPassword = async (newPassword) => {
 
             {/* Contact Cards */}
             {loading ? (
-              <div className="text-center text-slate-400 py-12">
+              <div className="text-center text-slate-400 dark:text-slate-300 py-12">
                 Loading contacts...
               </div>
             ) : filteredContacts.length === 0 ? (
@@ -541,23 +502,23 @@ const handleNewPassword = async (newPassword) => {
                 {filteredContacts.map(contact => (
                   <div
                     key={contact.contact_id}
-                    className={cardBorderClass}
+                    className="bg-white dark:bg-slate-700 dark:bg-opacity-50 border border-blue-100 dark:border-slate-600 dark:border-opacity-60 dark:hover:shadow-slate-700 p-6 rounded-2xl transition hover:shadow-md hover:-translate-y-1"
                   >
                     <div className="flex items-center mb-4">
-                      <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-semibold text-lg overflow-hidden mr-4">
+                      <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-indigo-300 flex items-center justify-center text-blue-700 dark:text-indigo-700 font-semibold text-lg overflow-hidden mr-4">
                         {contact.photo_url
                           ? <img src={contact.photo_url} alt={contact.name} className="w-full h-full object-cover rounded-full" />
                           : contact.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <h3 className="text-lg font-semibold text-slate-900">{contact.name}</h3>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-200">{contact.name}</h3>
                         {contact.category_id && (
                           <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-medium">
-                            {categories.find(cat => String(cat.category_id) === String(contact.category_id))?.name || "Unknown"}
+                            {categories.find(cat => String(cat.category_id) === String(contact.category_id))?.category_name || categories.find(cat => String(cat.category_id) === String(contact.category_id))?.name || "Unknown"}
                           </span>
                         )}
                         {contact.birthday && (
-                          <div className="text-xs text-sky-500 mt-1">
+                          <div className="text-xs text-blue-600 dark:text-indigo-300 mt-1">
                             🎂 {(() => {
                               try {
                                 // Parse the date from the database (YYYY-MM-DD format)
@@ -580,17 +541,17 @@ const handleNewPassword = async (newPassword) => {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-slate-500 text-sm mb-1">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-300 text-sm mb-1">
                       <Mail size={16} />
                       <span>{contact.email}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-slate-500 text-sm mb-1">
+                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-300 text-sm mb-1">
                       <Phone size={16} />
                       <span>{contact.phone}</span>
                     </div>
                     <div className="flex gap-2 mt-4">
                       <button
-                        className="p-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100"
+                        className="p-2 bg-blue-50 dark:bg-indigo-300 text-blue-600 rounded-md hover:bg-blue-100"
                         onClick={() => setEditingContact(contact)}
                         title="Edit"
                       >
@@ -598,7 +559,7 @@ const handleNewPassword = async (newPassword) => {
                       </button>
                       <button
                         className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100"
-                        onClick={() => deleteContact(contact.contact_id)}
+                        onClick={() => handleDeleteContact(contact.contact_id)}
                         title="Delete"
                       >
                         <Trash2 size={16} />
@@ -613,42 +574,17 @@ const handleNewPassword = async (newPassword) => {
 
         {/* Categories Tab */}
         {activeTab === 'categories' && (
-          <>
-            <div className="flex mb-8">
-              <button
-                onClick={() => setShowAddCategory(true)}
-                className="btn"
-              >
-                <Plus size={16} />
-                Add Category
-              </button>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {categories.map(category => (
-                <div key={category.category_id} className="bg-white dark:bg-slate-600 border border-blue-100 dark:border-slate-500 p-6 rounded-2xl">
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-300">{category.name}</h3>
-                  <p className="text-sm text-slate-500 mt-1">
-                    {contacts.filter(c => String(c.category_id) === String(category.category_id)).length} contacts
-                  </p>
-                </div>
-              ))}
-            </div>
-          </>
+          <CategoriesPanel 
+            categories={categories}
+            contacts={contacts}
+            userId={userId}
+            onCategoriesChange={fetchCategories}
+          />
         )}
 
         {/* Settings Tab */}
         {activeTab === 'settings' && (
-          <div className="bg-white p-6 rounded-xl border border-slate-200 max-w-md">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">Account Settings</h3>
-            <div className="flex items-center gap-2 text-slate-500 text-sm mb-2">
-              <User size={16} />
-              <span>{userName}</span>
-            </div>
-            <div className="flex items-center gap-2 text-slate-500 text-sm">
-              <Mail size={16} />
-              <span>{userEmail}</span>
-            </div>
-          </div>
+          <SettingsTab currentUser={currentUser} isDark={isDark} setIsDark={setIsDark}/>
         )}
 
         {/* Task Tab */}
@@ -657,9 +593,11 @@ const handleNewPassword = async (newPassword) => {
             <TaskPanel />
           </div>
         )}
-    {activeTab === 'settings' && (
-      <SettingsTab currentUser={currentUser}/>
-    )}
+
+        {activeTab === 'chat' && (
+  <ChatPanel currentUser={currentUser} />
+)}
+
   </div>
 
         {/* Modals with categories passed to ContactForm */}
@@ -680,56 +618,23 @@ const handleNewPassword = async (newPassword) => {
             onCancel={() => setEditingContact(null)}
           />
         )}
-        {showAddCategory && (
-          <CategoryForm
-            existingCategories={categories}
-            onSave={handleCategorySave}
-            onCancel={() => setShowAddCategory(false)}
-          />
+
+        {/* Documents Tab */}
+        {activeTab === 'documents' && (
+          <DocumentsPanel currentUser={currentUser} />
         )}
 
-        {/* Documents Tab - New UI */}
-        {activeTab === 'documents' && (
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Documents</h2>
-            <input
-              type="file"
-              multiple
-              accept=".pdf,.doc,.docx,.txt"
-              onChange={handleUploadDocuments}
-            />
-            <div className="mt-4">
-              {documents.length === 0 ? (
-                <div className="text-slate-400">No documents uploaded.</div>
-              ) : (
-                <ul>
-                  {documents.map(doc => (
-                    <li key={doc.id} className="flex items-center justify-between py-2 border-b">
-                      <a
-                        href={doc.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-700 underline"
-                      >
-                        {doc.name}
-                      </a>
-                      <button
-                        className="ml-4 text-red-600 hover:underline"
-                        onClick={() => handleDeleteDocument(doc)}
-                      >
-                        Delete
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
+        {/* Import Modal */}
+        {showImportModal && (
+          <ImportModal
+            userId={userId}
+            onImportComplete={fetchContacts}
+            onClose={() => setShowImportModal(false)}
+          />
         )}
       </div>
   );
 };
-
 
 
 export default Dashboard;
