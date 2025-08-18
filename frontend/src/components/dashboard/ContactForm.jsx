@@ -8,12 +8,10 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
     email: contact?.email != null ? String(contact.email) : '',
     phone: contact?.phone != null ? String(contact.phone) : '',
     birthday: contact?.birthday || '',
-    category_id:
-      contact?.category_id != null
-        ? String(contact.category_id)
-        : categories.length > 0
-        ? String(categories[0]?.category_id)
-        : '',
+    category_ids:
+      contact?.category_ids != null
+        ? contact.category_ids.map(String)
+        : [], // ✅ switch from single to multiple
     image: contact?.photo_url || contact?.image || null
   });
 
@@ -41,7 +39,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
         email: String(formData.email).trim(),
         phone: String(formData.phone).trim(),
         birthday: formData.birthday,
-        category_id: formData.category_id || null
+        category_ids: formData.category_ids // ✅ now array of IDs instead of single
       };
 
       let result;
@@ -78,6 +76,23 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
   const removeImage = () => {
     setFormData({ ...formData, image: null });
     setSelectedFile(null);
+  };
+
+  // ✅ Category tag handling
+  const addCategory = (id) => {
+    if (!formData.category_ids.includes(id)) {
+      setFormData({
+        ...formData,
+        category_ids: [...formData.category_ids, id]
+      });
+    }
+  };
+
+  const removeCategory = (id) => {
+    setFormData({
+      ...formData,
+      category_ids: formData.category_ids.filter((cid) => cid !== id)
+    });
   };
 
   return (
@@ -163,14 +178,38 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
             />
           </div>
 
-          {/* Category */}
+          {/* ✅ Category Multi-Select + Tagging */}
           <div className="mb-6">
+            <div className="flex flex-wrap gap-2 mb-2">
+              {formData.category_ids.map((id) => {
+                const cat = categories.find((c) => String(c.category_id) === id);
+                return (
+                  <span
+                    key={id}
+                    className="px-3 py-1 bg-blue-100 dark:bg-indigo-700 text-blue-700 dark:text-slate-100 rounded-full flex items-center gap-2 text-sm"
+                  >
+                    {cat?.category_name || cat?.name || 'Unknown'}
+                    <button
+                      type="button"
+                      className="text-red-500 hover:text-red-700"
+                      onClick={() => removeCategory(id)}
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                );
+              })}
+            </div>
             <select
-              value={formData.category_id || ''}
-              onChange={(e) => setFormData({ ...formData, category_id: e.target.value || '' })}
+              onChange={(e) => {
+                if (e.target.value) {
+                  addCategory(e.target.value);
+                  e.target.value = ''; // reset
+                }
+              }}
               className="w-full px-4 py-3 dark:bg-slate-600 dark:border-slate-500 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 focus:scale-105 bg-white text-slate-600 transition duration-200"
             >
-              <option value="">Select Category</option>
+              <option value="">+ Add more</option>
               {categories.map((category) => (
                 <option key={category.category_id} value={category.category_id}>
                   {category.category_name || category.name}
@@ -208,3 +247,6 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
 };
 
 export default ContactForm;
+
+
+
