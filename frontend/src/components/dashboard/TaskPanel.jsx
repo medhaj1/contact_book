@@ -21,28 +21,28 @@ const TaskPanel = () => {
     if (diffDays < 0) {
       return {
         status: 'overdue',
-        class: 'border-l-4 border-red-600 bg-red-50 dark:bg-red-900 dark:bg-opacity-40',
+        class: 'border-l-4 border-red-500 dark:border-red-700 bg-red-50 dark:bg-red-800 dark:bg-opacity-30',
         badge: `🚨 Overdue (${Math.abs(diffDays)} days)`,
         badgeClass: 'bg-red-100 text-red-800'
       };
     } else if (diffDays === 0) {
       return {
         status: 'due-today',
-        class: 'border-l-4 border-orange-600 bg-orange-50 dark:bg-orange-900 dark:bg-opacity-40',
+        class: 'border-l-4 border-orange-500 dark:border-orange-700 bg-orange-50 dark:bg-orange-800 dark:bg-opacity-30',
         badge: '🚨 Due Today',
         badgeClass: 'bg-orange-100 text-orange-900'
       };
     } else if (diffDays === 1) {
       return {
         status: 'due-tomorrow',
-        class: 'border-l-4 border-yellow-600 bg-yellow-50 dark:bg-yellow-900 dark:bg-opacity-40',
+        class: 'border-l-4 border-yellow-500 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-800 dark:bg-opacity-30',
         badge: '⚠️ Due Tomorrow',
         badgeClass: 'bg-yellow-100 text-yellow-800'
       };
     } else {
       return {
         status: 'normal',
-        class: 'border-l-4 border-gray-400 bg-gray-50 dark:bg-slate-600',
+        class: 'border-l-4 border-gray-400 dark:border-gray-600 bg-gray-50 dark:bg-[#21262d]',
         badge: `📅 Due in ${diffDays} days`,
         badgeClass: 'bg-gray-100 text-gray-800'
       };
@@ -136,8 +136,8 @@ const TaskPanel = () => {
   };
 
   return (
-    <div className="p-6 bg-white rounded-xl shadow-lg w-full max-w-3xl mx-auto mt-10 border border-gray-200 dark:bg-slate-700 dark:border-slate-500">
-      <h2 className="text-3xl font-bold mb-6 text-blue-900 border-b pb-3 border-slate-300 dark:text-indigo-300 dark:border-slate-400 text-center">📝 My Tasks</h2>
+    <div className="p-6 bg-white rounded-xl shadow-lg w-full max-w-3xl mx-auto dark:bg-[#161b22]">
+      <h2 className="text-3xl font-bold mb-6 text-blue-900 border-b pb-5 border-slate-300 dark:text-indigo-400 dark:border-[#484f58] text-center">📝 My Tasks</h2>
 
       {!user ? (
         <p className="text-gray-500 dark:text-slate-400 text-center">Loading user...</p>
@@ -174,7 +174,7 @@ const TaskPanel = () => {
               <label className="block text-blue-800 dark:text-indigo-300 font-semibold mb-1">Task Description</label>
               <input
                 type="text"
-                className="w-full dark:text-slate-200 dark:bg-slate-600 dark:border-slate-500 border border-slate-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 hover:ring-1 hover:ring-blue-300 dark:focus:ring-indigo-300 dark:hover:ring-indigo-300 transition"
+                className="w-full dark:text-slate-200 dark:bg-[#21262d] dark:border-[#484f58] border-[.5px] border-slate-300 p-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 hover:ring-1 hover:ring-blue-300 dark:focus:ring-indigo-300 dark:hover:ring-indigo-300 transition"
                 placeholder="Enter task..."
                 value={newTask}
                 onChange={e => setNewTask(e.target.value)}
@@ -185,20 +185,20 @@ const TaskPanel = () => {
               <label className="block text-blue-800 dark:text-indigo-300 font-semibold mb-1">Deadline Date</label>
               <input
                 type="date"
-                className="w-full text-slate-500 dark:text-slate-300 dark:bg-slate-600 dark:border-slate-500 border border-slate-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 hover:ring-1 hover:ring-blue-300 dark:focus:ring-indigo-300 dark:hover:ring-indigo-300 transition"
+                className="w-full text-slate-500 dark:text-slate-300 dark:bg-[#21262d] dark:border-[#484f58] border-[.5px] border-slate-300 p-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 hover:ring-1 hover:ring-blue-300 dark:focus:ring-indigo-300 dark:hover:ring-indigo-300 transition"
                 value={deadline}
                 onChange={e => setDeadline(e.target.value)}
               />
             </div>
 
             <button
-              className="w-full bg-gradient-to-r from-blue-800 to-blue-400 hover:from-blue-900 hover:to-blue-500 dark:from-indigo-800 dark:to-indigo-400 dark:hover:from-indigo-900 dark:hover:to-indigo-500 text-white font-semibold py-3 px-4 rounded-xl transition-all shadow-md hover:shadow-lg"
+              className="w-full bg-gradient-to-r from-blue-800 to-blue-400 hover:from-blue-900 hover:to-blue-500 dark:from-indigo-950 dark:to-indigo-800 dark:hover:from-indigo-900 dark:hover:to-indigo-700 text-white font-semibold py-3 px-4 rounded-xl transition-all shadow-md hover:shadow-lg"
               onClick={addTask}
               disabled={loading}
             >
               {loading ? 'Adding...' : '+ Add Task'}
             </button>
-          </div>
+          </div> 
 
           <ul className="space-y-4">
             {tasks.length === 0 ? (

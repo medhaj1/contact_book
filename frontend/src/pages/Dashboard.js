@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Users, BookOpen, Settings, CheckSquare, MessageSquare,
   Grid, List, Plus, Edit2, Trash2, User, LogOut,
-  Mail, Phone, Search, Star
+  Mail, Phone, Search, Star, Tags
 } from "lucide-react";
 import ChatPanel from "../components/chat/ChatPanel";
 import ContactForm from "../components/dashboard/ContactForm";
@@ -15,6 +15,7 @@ import CategoriesPanel from "../components/dashboard/CategoriesPanel";
 import ImportModal from "../components/dashboard/ImportModal";
 import SharedDocumentsPanel from '../components/dashboard/SharedDocumentsPanel';
 import { supabase } from "../supabaseClient";
+import { useBlockedContacts } from "../components/dashboard/BlockedContactsContext";
 
 // Services
 import { getContacts, deleteContact } from "../services/contactService";
@@ -22,6 +23,7 @@ import { getCategories } from "../services/categoryService";
 import { getFavouritesByUser, addFavourite, removeFavourite } from "../services/favouriteService";
 
 const Dashboard = ({ currentUser, onLogout = () => {} }) => {
+  const { blockedContacts } = useBlockedContacts();
   const navigate = useNavigate();
   const userName =
     currentUser?.user_metadata?.name ||
@@ -152,6 +154,10 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
       !selectedCategory || String(contact.category_id) === String(selectedCategory);
     return matchesSearch && matchesCategory;
   });
+  // Filter out blocked contacts
+  filteredContacts = filteredContacts.filter(
+    contact => !blockedContacts.some(b => b.contact_id === contact.contact_id)
+  );
 
   if (contactViewFilter === "favourites") {
     filteredContacts = filteredContacts.filter((c) =>
@@ -164,13 +170,14 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     );
   }
 
+  // Remove duplicate entries, keep intended icons.
   const sidebarItems = [
-  { id: 'contacts', label: 'Contacts', icon: Users },
-  { id: 'categories', label: 'Categories', icon: BookOpen },
-  { id: 'documents', label: 'Documents', icon: BookOpen },
-  { id: 'settings', label: 'Settings', icon: Settings },
-  { id: 'task', label: 'Task', icon: CheckSquare },
-  { id: 'chat', label: 'Chat', icon: MessageSquare },
+    { id: 'contacts', label: 'Contacts', icon: Users },
+    { id: 'chat', label: 'Chat', icon: MessageSquare },
+    { id: 'categories', label: 'Categories', icon: Tags },
+    { id: 'documents', label: 'Documents', icon: BookOpen },
+    { id: 'task', label: 'Task', icon: CheckSquare },
+    { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
   // Classnames for prettier transitions/buttons - reference 22: use 2nd code style
@@ -209,9 +216,9 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
 
   return (
     <div className="flex min-h-screen font-sans">
-      {/* Sidebar */}
-      <div className="fixed left-0 top-0 w-60 h-screen bg-white dark:bg-slate-900 p-6 border-r dark:border-slate-600 flex flex-col z-10">
-        <h2 className="text-xl font-semibold dark:text-slate-300 mb-8">Contact Book</h2>
+      {/* Sidebar (deduplicated) */}
+      <div className="fixed left-0 top-0 w-60 h-screen bg-white dark:bg-[#161b22] p-6 border-r border-slate-200 dark:border-[#30363d] flex flex-col overflow-y-auto z-10 fixed-sidebar">
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-300 mb-8">Contact Book</h2>
         <nav className="flex-1 space-y-2">
           {sidebarItems.map((item) => {
             const Icon = item.icon;
@@ -234,13 +241,13 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
       </div>
 
       {/* Main area */}
-      <div className="flex-1 ml-60 p-8 bg-blue-50 dark:bg-slate-800">
+      <div className="flex-1 ml-60 p-8 bg-blue-50 dark:bg-[#0d1117]">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-semibold capitalize dark:text-slate-300">{activeTab}</h1>
-          <div className="relative">
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-[#c9d1d9] capitalize">{activeTab}</h1>
+          <div className="relative flex items-center gap-3">
             <div
-              className="flex items-center gap-3 px-4 py-2 rounded-xl cursor-pointer hover:bg-white dark:hover:bg-slate-700"
+              className="flex items-center gap-3 px-4 py-2 rounded-xl cursor-pointer hover:bg-white dark:hover:bg-[#161b22] hover:shadow-sm transition-all duration-200"
               onClick={() => setShowUserDropdown(!showUserDropdown)}
             >
               <div className="w-9 h-9 bg-gradient-to-r from-blue-700 to-blue-400 rounded-full flex justify-center items-center text-white font-bold overflow-hidden">
@@ -255,18 +262,25 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                   userName.charAt(0).toUpperCase()
                 )}
               </div>
-              <span className="text-sm">{userName}</span>
+              <span className="text-sm text-slate-600 dark:text-[#c9d1d9] font-medium">{userName}</span>
+              <svg className={`w-4 h-4 text-slate-400 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`}
+                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
             </div>
             {showUserDropdown && (
-              <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-slate-700 rounded-xl shadow-lg">
+              <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-[#161b22] rounded-xl shadow-lg border border-slate-200 dark:border-[#30363d] py-1 z-50">
                 <div
-                  className="px-4 py-2 hover:bg-blue-100 cursor-pointer"
-                  onClick={() => navigate("/profile")}
+                  className="flex items-center mx-1 px-4 py-2 text-sm rounded-lg text-slate-700 dark:text-[#c9d1d9] hover:text-blue-700 dark:hover:font-semibold dark:hover:text-indigo-200 hover:bg-blue-100 dark:hover:bg-indigo-500/30 cursor-pointer"
+                  onClick={() => {
+                    navigate('/profile');
+                    setShowUserDropdown(false);
+                  }}
                 >
                   <User size={16} className="mr-2 inline" /> Profile
                 </div>
                 <div
-                  className="px-4 py-2 hover:bg-red-100 cursor-pointer"
+                  className="flex items-center mx-1 px-4 py-2 text-sm rounded-lg text-slate-700 dark:text-[#c9d1d9] hover:text-blue-700 dark:hover:font-semibold dark:hover:text-red-200 hover:bg-blue-100 dark:hover:bg-red-700/30 cursor-pointer"
                   onClick={onLogout}
                 >
                   <LogOut size={16} className="mr-2 inline" /> Logout
@@ -285,13 +299,13 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                 <input
                   type="text"
                   placeholder="Search contacts..."
-                  className="w-full pl-10 pr-4 py-2 rounded-xl border text-sm"
+                  className="w-full pl-10 pr-4 py-2 rounded-xl border text-sm dark:bg-[#161b22] dark:border-slate-700 dark:text-slate-200 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 outline-none"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
               <select
-                className="pl-6 pr-3 py-2 rounded-xl border text-md"
+                className="pl-6 pr-3 py-2 rounded-xl border text-md dark:bg-[#161b22] dark:border-slate-700 dark:text-slate-200 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 outline-none"
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
               >
@@ -303,18 +317,18 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                 ))}
               </select>
               <select
-                className="px-3 py-2 rounded-xl border text-md"
+                className="px-3 py-2 rounded-xl border text-md dark:bg-[#161b22] dark:border-slate-700 dark:text-slate-200 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 outline-none"
                 value={contactViewFilter}
                 onChange={(e) => setContactViewFilter(e.target.value)}
               >
                 <option value="all">All</option>
                 <option value="favourites">Favourites</option>
               </select>
-              <div className="flex gap-2 ml-auto bg-white dark:bg-slate-600 p-1 rounded-lg border">
-                <button onClick={() => setViewMode("card")} className={`p-2 rounded-md ${viewMode === "card" ? "bg-blue-500 text-white" : "text-slate-600 hover:bg-blue-100"}`} title="Card view">
+              <div className="flex h-10 bg-white dark:bg-[#161b22] rounded-xl border dark:border-slate-700">
+                <button onClick={() => setViewMode("card")} className={`p-2 rounded-xl ${viewMode === "card" ? "bg-blue-500 dark:bg-indigo-600 text-white" : "text-slate-600 dark:text-gray-400 hover:text-slate-800 dark:hover:text-gray-200"}`} title="Card view">
                   <Grid size={18} />
                 </button>
-                <button onClick={() => setViewMode("list")} className={`p-2 rounded-md ${viewMode === "list" ? "bg-blue-500 text-white" : "text-slate-600 hover:bg-blue-100"}`} title="List view">
+                <button onClick={() => setViewMode("list")} className={`p-2 rounded-xl ${viewMode === "list" ? "bg-blue-500 dark:bg-indigo-600 text-white" : "text-slate-600 dark:text-gray-400 hover:text-slate-800 dark:hover:text-gray-200"}`} title="List view">
                   <List size={18} />
                 </button>
               </div>
@@ -334,16 +348,16 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                   const categoryName = categoryObj?.category_name || categoryObj?.name || "Unknown";
                   const isFav = favourites.includes(c.contact_id);
                   return (
-                    <div key={c.contact_id} className="bg-white dark:bg-slate-700 p-6 rounded-2xl border hover:shadow-lg transition space-y-3">
+                    <div key={c.contact_id} className="bg-white dark:text-gray-300 dark:bg-[#161b22] p-6 rounded-2xl border dark:border-[#30363d] hover:shadow-lg scale-100 hover:scale-105 transition transition-transform duration-200 space-y-3 ">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-full bg-blue-100 flex justify-center items-center font-bold overflow-hidden">
+                          <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-indigo-500 flex justify-center items-center font-bold overflow-hidden">
                             {c.photo_url ? <img src={c.photo_url} alt={c.name} className="w-full h-full object-cover" /> : safeString(c.name).charAt(0).toUpperCase()}
                           </div>
                           <div>
                             <h3 className="text-lg font-bold">{c.name}</h3>
                             {c.category_id && (
-                              <span className="text-xs bg-blue-100 px-2 py-0.5 rounded-full">{categoryName}</span>
+                              <span className="text-xs dark:text-gray-200 bg-blue-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{categoryName}</span>
                             )}
                           </div>
                         </div>
@@ -351,17 +365,17 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                           <Star size={18} className={isFav ? "text-yellow-400 fill-yellow-400" : "text-slate-400"} />
                         </button>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-gray-400">
                         <Mail size={14} /> {c.email}
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-gray-400">
                         <Phone size={14} /> {c.phone}
                       </div>
                       <div className="flex gap-2 pt-2">
-                        <button onClick={() => handleEditContact(c)} className="p-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100">
+                        <button onClick={() => handleEditContact(c)} className="p-2 bg-blue-50 dark:bg-indigo-600/50 text-blue-600 dark:text-indigo-200 rounded-lg hover:bg-blue-100">
                           <Edit2 size={14} />
                         </button>
-                        <button onClick={() => handleDeleteContact(c.contact_id)} className="p-2 bg-red-50 text-red-600 rounded hover:bg-red-100">
+                        <button onClick={() => handleDeleteContact(c.contact_id)} className="p-2 bg-red-50 dark:bg-red-600/50 text-red-600 rounded-lg dark:text-red-200 hover:bg-red-100">
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -370,20 +384,20 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                 })}
               </div>
             ) : (
-              <div className="bg-white dark:bg-slate-700 rounded-lg shadow overflow-hidden">
+              <div className="bg-white dark:bg-[#161b22] border dark:border-[#30363d] rounded-lg shadow overflow-hidden">
                 {filteredContacts.map((c) => {
                   const categoryObj = categories.find(cat => String(cat.category_id ?? cat.id) === String(c.category_id));
                   const categoryName = categoryObj?.category_name || categoryObj?.name || "Unknown";
                   const isFav = favourites.includes(c.contact_id);
                   return (
-                    <div key={c.contact_id} className="flex items-center justify-between px-4 py-4 hover:bg-blue-50 dark:hover:bg-slate-600 even:bg-slate-50 dark:even:bg-slate-800/30">
+                    <div key={c.contact_id} className="flex items-center justify-between px-4 py-4 hover:bg-blue-50 dark:hover:bg-gray-800/40 even:bg-slate-50 dark:even:bg-[#30363d]/10">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-indigo-300 flex items-center justify-center font-semibold text-blue-700 dark:text-indigo-700 overflow-hidden">
                           {c.photo_url ? <img src={c.photo_url} alt={c.name} className="w-full h-full object-cover" /> : safeString(c.name).charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div className="font-bold text-slate-900 dark:text-slate-100">
-                            {c.name} <span className="ml-2 text-xs bg-blue-100 px-2 py-0.5 rounded-full">{categoryName}</span>
+                          <div className="text-slate-900 dark:text-slate-300">
+                            {c.name} <span className="ml-2 text-xs bg-blue-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{categoryName}</span>
                           </div>
                           <div className="text-xs text-slate-500">{c.email}</div>
                           <div className="text-xs text-slate-500">{c.phone}</div>
@@ -393,10 +407,10 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                         <button onClick={() => toggleFavourite(c.contact_id)}>
                           <Star size={16} className={isFav ? "text-yellow-400 fill-yellow-400" : "text-slate-400"} />
                         </button>
-                        <button onClick={() => handleEditContact(c)} className="p-1.5 sm:p-2 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100">
+                        <button onClick={() => handleEditContact(c)} className="p-1.5 sm:p-2 rounded-full bg-blue-50 dark:bg-indigo-800/70 text-blue-600 dark:text-indigo-100 hover:bg-blue-100 dark:hover:bg-indigo-700">
                           <Edit2 size={14} />
                         </button>
-                        <button onClick={() => handleDeleteContact(c.contact_id)} className="p-1.5 sm:p-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100">
+                        <button onClick={() => handleDeleteContact(c.contact_id)} className="p-1.5 sm:p-2 w-8 h-18 rounded-full bg-red-50 dark:bg-red-800/40 text-red-600 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-800">
                           <Trash2 size={14} />
                         </button>
                       </div>
@@ -475,13 +489,13 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
       </div>
 
       {activeTab === "contacts" && (
-        <div className="fixed bottom-7 right-7 z-40">
+        <div className="fixed bottom-10 right-10 z-40">
           <div className="relative">
             <button
               onClick={() => setShowAddContactDropdown((prev) => !prev)}
-              className="flex items-center gap-2 px-4 py-3 rounded-full shadow-lg bg-blue-600 text-white font-bold hover:bg-blue-700"
+              className="flex w-[70px] h-[70px] items-center px-5 py-3 rounded-full shadow-lg bg-blue-600 text-white font-bold hover:bg-blue-700 dark:bg-indigo-600/70 dark:hover:bg-indigo-600 scale-100 hover:scale-110 transition-transform duration-200"
             >
-              <Plus size={20} /> Add Contact
+              <Plus size={30}/>
             </button>
             {showAddContactDropdown && (
               <div className="absolute bottom-14 right-0 w-48 bg-white border rounded-lg shadow-lg">
@@ -492,7 +506,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                     setShowAddContactDropdown(false);
                   }}
                 >
-                  Add via Form
+                  Add Contact via Form
                 </div>
                 <div
                   className="px-4 py-3 hover:bg-slate-100 cursor-pointer"
