@@ -1,10 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeftIcon, DocumentArrowDownIcon, UserCircleIcon, NoSymbolIcon, MoonIcon, SunIcon, IdentificationIcon } from '@heroicons/react/24/outline';
-import { supabase } from '../supabaseClient';
-import AccountSettings from '../components/settings/AccountSettings';
-import BlockedContacts from '../components/settings/BlockedContacts';
+import { supabase } from '../../supabaseClient';
+import AccountSettings from '../settings/AccountSettings';
+import BlockedContacts from '../settings/BlockedContacts';
+import { getCategories } from '../../services/categoryService';
+import { exportContactsCSV, exportContactsVCF } from '../../services/importExportService';
 
-function SettingsTab({ currentUser, isDark, setIsDark }) {
+function SettingsTab({ currentUser }) {
+
+  const [showFormatPanel, setShowFormatPanel] = useState(false);
+  const [isFirstLast, setIsFirstLast] = useState(true);
+  const [isDayMonthYear, setIsDayMonthYear] = useState(true);
+
+  const openFormatPanel = () => setShowFormatPanel(true);
+  const closeFormatPanel = () => setShowFormatPanel(false);
+  const toggleNameFormat = () => setIsFirstLast(!isFirstLast);
+  const toggleDateFormat = () => setIsDayMonthYear(!isDayMonthYear);
+  const [showNameToggle, setShowNameToggle] = useState(false);
+  const [showDateToggle, setShowDateToggle] = useState(false);
 
   const[isDark, setIsDark] = useState(()=>{
       return localStorage.getItem('theme') === 'dark';
@@ -151,8 +164,9 @@ function SettingsTab({ currentUser, isDark, setIsDark }) {
                 {isDark ? <MoonIcon className="w-5 h-5 mr-3 inline" /> : <SunIcon className="w-5 h-5 mr-3 inline" />}
                 Theme
               </button>
-              <button className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 flex items-center"
-                onClick={handleNameformat} >
+              <button
+                className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 flex items-center"
+                onClick={openFormatPanel}>
                 <IdentificationIcon className="w-5 h-5 mr-3 inline" />
                 Format
               </button>
@@ -224,6 +238,70 @@ function SettingsTab({ currentUser, isDark, setIsDark }) {
         </div>
       )}
 
+      {/* Format Panel */}
+      {showFormatPanel && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000]">
+          <div className="relative bg-slate-100 border border-slate-300 rounded-3xl w-[500px] h-auto shadow-xl p-6 flex flex-col items-center dark:bg-[#161b22] dark:border-[#30363d]">
+            {/* Back Button */}
+            <button
+              className="absolute top-4 left-4 scale-100 hover:scale-110 transition-transform"
+              onClick={closeFormatPanel}
+            >
+              <ArrowLeftIcon className="w-5 h-5 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400" />
+            </button>
+
+            {/* Heading */}
+            <h3 className="text-lg font-semibold text-black dark:text-gray-300 text-center mt-4 mb-6">
+              Change Formats
+            </h3>
+
+            {/* Settings-style buttons */}
+            <div className="w-full divide-y divide-slate-200 dark:divide-[#30363d]">
+              {/* Name Format */}
+              <div>
+                <button
+                  className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 flex items-center"
+                  onClick={() => setShowNameToggle((prev) => !prev)}
+                >
+                  <IdentificationIcon className="w-5 h-5 mr-3 inline" />
+                  Name Format
+                </button>
+                {showNameToggle && (
+                  <div className="px-2 pb-4">
+                    <button
+                      onClick={toggleNameFormat}
+                      className="btn w-full flex justify-center items-center"
+                    >
+                      {isFirstLast ? 'First Name / Last Name' : 'Last Name / First Name'}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Date Format */}
+              <div>
+                <button
+                  className="w-full text-left py-5 px-2 rounded-lg text-slate-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 flex items-center"
+                  onClick={() => setShowDateToggle((prev) => !prev)}
+                >
+                  <IdentificationIcon className="w-5 h-5 mr-3 inline" />
+                  Date Format
+                </button>
+                {showDateToggle && (
+                  <div className="px-2 pb-4">
+                    <button
+                      onClick={toggleDateFormat}
+                      className="btn w-full flex justify-center items-center"
+                    >
+                      {isDayMonthYear ? 'DD/MM/YYYY' : 'MM/DD/YYYY'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Export Panel */}
       {showExportPanel && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000]">
