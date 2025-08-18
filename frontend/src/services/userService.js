@@ -178,8 +178,6 @@ export const deleteUserAvatar = async (userId) => {
       throw new Error(`Failed to fetch user data: ${userError.message}`);
     }
 
-    const userName = userData.name;
-
     // Delete avatar from storage
     if (userData.avatar_url) {
       const fullPath = new URL(userData.avatar_url).pathname;
