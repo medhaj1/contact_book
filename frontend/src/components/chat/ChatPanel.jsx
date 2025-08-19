@@ -283,10 +283,10 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
   };
 
   return (
-    <div className="flex w-full h-[500px] bg-white rounded-lg shadow-lg overflow-hidden min-h-[440px]">
+    <div className="flex w-full h-[600px] bg-white dark:bg-[#0d1117] border dark:border-[#21262d] rounded-2xl shadow-lg overflow-hidden min-h-[440px]">
       {/* Contact List */}
-      <div className="w-96 bg-blue-50 border-r border-blue-200 p-4 overflow-y-auto">
-        <h3 className="font-semibold text-lg mb-3 text-blue-800">Chats</h3>
+      <div className="w-72 bg-blue-50 dark:bg-[#161b22] border-r border-blue-200 dark:border-[#21262d] p-4 overflow-y-auto">
+        <h3 className="font-semibold text-lg mb-3 text-blue-800 dark:text-gray-400">Chats</h3>
         <ul>
           {contacts.map((c) => (
             <li
@@ -313,10 +313,10 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
                 )}
               </div>
               <div className="flex-1">
-                <div className="font-medium text-blue-900 truncate">
+                <div className="font-medium text-blue-900 truncate dark:text-gray-400">
                   {c.user_profile?.name || c.name}
                 </div>
-                <div className="text-xs text-slate-500 truncate">
+                <div className="text-xs text-gray-400 truncate dark:text-gray-500">
                   {c.user_profile?.email}
                 </div>
               </div>
@@ -378,8 +378,8 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
       <div className="flex-[2] flex flex-col h-full min-w-0">
         {selectedContact ? (
           <>
-            {/* Chat Header */}
-            <div className="flex gap-3 items-center border-b p-4 bg-blue-100 min-h-[70px]">
+            {/* Chat header */}
+            <div className="flex gap-3 items-center border-b p-4 bg-blue-100 dark:bg-[#161b22] min-h-[70px]">
               <div className="relative">
                 {!imageErrors.has(selectedContact.contact_user_id) ? (
                   <img
@@ -397,12 +397,12 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
                 )}
               </div>
               <div>
-                <div className="text-blue-900 font-bold">
+                <div className="text-blue-900 font-bold dark:text-gray-400">
                   {selectedContact.user_profile?.name || selectedContact.name}
                 </div>
-                <div className="text-xs text-slate-500">{selectedContact.user_profile?.email}</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500">{selectedContact.user_profile?.email}</div>
                 <div className="text-xs">
-                  <span className={isOnline(selectedContact.user_profile?.last_seen) ? "text-green-500" : "text-slate-500"}>
+                  <span className={isOnline(selectedContact.user_profile?.last_seen) ? "text-green-500" : "text-gray-500"}>
                     {isOnline(selectedContact.user_profile?.last_seen) ? "Online" : "Offline"}
                   </span>
                 </div>
@@ -410,7 +410,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 bg-slate-50">
+            <div className="flex-1 overflow-y-auto p-4 bg-slate-50 dark:bg-[#0d1117]">
               {/* Selection controls */}
               <div className="mb-2 flex gap-2">
                 <button
@@ -433,7 +433,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
                 )}
               </div>
               {messages.length === 0 ? (
-                <div className="text-slate-500 py-24 text-center">No messages yet.</div>
+                <div className="text-slate-500 dark:text-gray-500 py-24 text-center">No messages yet.</div>
               ) : (
                 messages.map((m) => {
                   // Message rendering
@@ -566,7 +566,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
             </form>
           </>
         ) : (
-          <div className="flex flex-1 items-center justify-center text-slate-400">
+          <div className="flex flex-1 items-center justify-center text-slate-400 dark:text-gray-500">
             Select a contact to start chatting
           </div>
         )}
