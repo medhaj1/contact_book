@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import {Camera, X } from 'lucide-react';
-import { NoSymbolIcon } from "@heroicons/react/24/solid";
+import { Camera, X } from 'lucide-react';
+import { NoSymbolIcon } from '@heroicons/react/24/solid';
 import { useBlockedContacts } from './BlockedContactsContext';
 import { addContact, updateContact } from '../../services/contactService';
 
@@ -13,17 +13,21 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
     category_ids:
       contact?.category_ids != null
         ? contact.category_ids.map(String)
-        : [], // ✅ switch from single to multiple
+        : [], // ✅ multiple categories
     image: contact?.photo_url || contact?.image || null
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
 
+  // ✅ Blocked Contacts Context
+  const { blockedContacts, setBlockedContacts } = useBlockedContacts();
+  const isBlocked = contact && blockedContacts.some(c => c.contact_id === contact.contact_id);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // ✅ String-safe validation
+    // String-safe validation
     if (
       !String(formData.name || '').trim() ||
       !String(formData.email || '').trim() ||
@@ -41,7 +45,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
         email: String(formData.email).trim(),
         phone: String(formData.phone).trim(),
         birthday: formData.birthday,
-        category_ids: formData.category_ids // ✅ now array of IDs instead of single
+        category_ids: formData.category_ids // ✅ multi-category
       };
 
       let result;
@@ -51,23 +55,35 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
         result = await addContact(contactData, selectedFile, userId);
       }
 
-        if (result.success) {
-          onSave();
-        } else {
-          alert(`Failed to ${contact ? 'update' : 'add'} contact: ${result.error}`);
-        }
-      } catch (error) {
-        alert(`Error ${contact ? 'updating' : 'adding'} contact: ${error.message}`);
-      } finally {
-        setIsSubmitting(false);
+      if (result.success) {
+        onSave();
+      } else {
+        alert(`Failed to ${contact ? 'update' : 'add'} contact: ${result.error}`);
       }
-    };
+    } catch (error) {
+      alert(`Error ${contact ? 'updating' : 'adding'} contact: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-    const { blockedContacts, setBlockedContacts } = useBlockedContacts();
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setFormData({ ...formData, image: event.target.result });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
-    const isBlocked = contact && blockedContacts.some(c => c.contact_id === contact.contact_id);
+  const removeImage = () => {
+    setFormData({ ...formData, image: null });
+    setSelectedFile(null);
+  };
 
-<<<<<<< HEAD
   // ✅ Category tag handling
   const addCategory = (id) => {
     if (!formData.category_ids.includes(id)) {
@@ -85,9 +101,33 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
     });
   };
 
+  // ✅ Block/unblock handler
+  const handleBlockContact = () => {
+    if (!contact) {
+      alert("You can only block saved contacts.");
+      return;
+    }
+
+    if (isBlocked) {
+      if (window.confirm(`Are you sure you want to unblock ${contact.name}?`)) {
+        setBlockedContacts((prev) => prev.filter(c => c.contact_id !== contact.contact_id));
+        alert(`${contact.name} has been unblocked.`);
+      }
+    } else {
+      setBlockedContacts((prev) => {
+        if (prev.some(c => c.contact_id === contact.contact_id)) {
+          alert("This contact is already blocked.");
+          return prev;
+        }
+        return [...prev, contact];
+      });
+      alert(`${contact.name} has been blocked.`);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-60 flex items-center justify-center z-[1000]">
-      <div className="bg-white dark:bg-slate-800 p-8 rounded-[16px] border dark:border-slate-600 w-[400px] max-h-[90vh] overflow-y-auto shadow-[0_10px_40px_rgba(0,0,0,0.15)]">
+    <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-[1000]">
+      <div className="bg-white dark:bg-[#161b22] p-8 rounded-[16px] border dark:border-slate-700 w-[400px] max-h-[90vh] overflow-y-auto shadow-[0_10px_40px_rgba(0,0,0,0.15)]">
         <h3 className="text-[1.4rem] font-semibold text-[#334155] dark:text-slate-300 mb-6 text-center">
           {contact ? 'Edit Contact' : 'Add New Contact'}
         </h3>
@@ -95,7 +135,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
           {/* Image Upload */}
           <div className="mb-4 text-center">
             <label htmlFor="image-upload">
-              <div className="w-[100px] h-[100px] mx-auto mb-4 rounded-full bg-slate-100 dark:bg-slate-600 flex items-center justify-center relative overflow-hidden border-2 border-dashed border-slate-300 dark:border-slate-500 cursor-pointer hover:scale-105 transform transition duration-200">
+              <div className="w-[100px] h-[100px] mx-auto mb-4 rounded-full bg-slate-100 dark:bg-gray-800/50 flex items-center justify-center relative overflow-hidden border-2 border-dashed border-slate-300 dark:border-slate-700 cursor-pointer hover:scale-105 transform transition duration-200">
                 {formData.image ? (
                   <>
                     <img src={formData.image} alt="Contact" className="w-full h-full object-cover" />
@@ -127,8 +167,8 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
               type="text"
               placeholder="Name"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: String(e.target.value) })}
-              className="w-full px-4 py-3 dark:bg-slate-600 dark:border-slate-500 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 focus:scale-105 transition duration-200"
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 transform transition duration-200"
               required
             />
           </div>
@@ -139,8 +179,8 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
               type="email"
               placeholder="Email"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: String(e.target.value) })}
-              className="w-full px-4 py-3 dark:bg-slate-600 dark:border-slate-500 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 focus:scale-105 transition duration-200"
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 transform transition duration-200"
               required
             />
           </div>
@@ -151,8 +191,8 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
               type="tel"
               placeholder="Phone"
               value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: String(e.target.value) })}
-              className="w-full px-4 py-3 dark:bg-slate-600 dark:border-slate-500 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 focus:scale-105 transition duration-200"
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 transform transition duration-200"
               required
             />
           </div>
@@ -164,11 +204,11 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
               placeholder="Birthday"
               value={formData.birthday}
               onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
-              className="w-full px-4 py-3 dark:bg-slate-600 dark:border-slate-500 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 focus:scale-105 transition duration-200"
+              className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 transform transition duration-200"
             />
           </div>
 
-          {/* ✅ Category Multi-Select + Tagging */}
+          {/* ✅ Multi-Category Select with Tags */}
           <div className="mb-6">
             <div className="flex flex-wrap gap-2 mb-2">
               {formData.category_ids.map((id) => {
@@ -181,8 +221,8 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
                     {cat?.category_name || cat?.name || 'Unknown'}
                     <button
                       type="button"
-                      className="text-red-500 hover:text-red-700"
                       onClick={() => removeCategory(id)}
+                      className="text-red-500 hover:text-red-700"
                     >
                       <X size={12} />
                     </button>
@@ -194,10 +234,10 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
               onChange={(e) => {
                 if (e.target.value) {
                   addCategory(e.target.value);
-                  e.target.value = ''; // reset
+                  e.target.value = '';
                 }
               }}
-              className="w-full px-4 py-3 dark:bg-slate-600 dark:border-slate-500 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 focus:scale-105 bg-white text-slate-600 transition duration-200"
+              className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 bg-white text-slate-600 transform transition duration-200"
             >
               <option value="">+ Add more</option>
               {categories.map((category) => (
@@ -216,155 +256,23 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
               className={`flex-1 py-3 rounded-xl text-white text-base font-medium transition-all duration-200 ${
                 isSubmitting
                   ? 'bg-gray-400 dark:bg-slate-600 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-blue-700 to-blue-400 dark:from-indigo-800 dark:to-indigo-500'
+                  : 'bg-gradient-to-r from-blue-700 to-blue-400 dark:from-indigo-950 dark:to-indigo-700 dark:text-slate-100 border dark:border-slate-800 hover:scale-105 hover:from-blue-800 hover:to-blue-500 dark:hover:from-indigo-900/70 dark:hover:to-indigo-600'
               }`}
             >
               {isSubmitting ? 'Saving...' : 'Save'}
             </button>
-=======
-    const handleBlockContact = () => {
-      if (!contact) {
-        alert("You can only block saved contacts.");
-        return;
-      }
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={isSubmitting}
+              className="flex-1 py-3 rounded-xl text-slate-500 dark:text-slate-300 bg-slate-100 dark:bg-gray-700/70 text-base font-medium scale-100 hover:scale-105 hover:bg-slate-200 dark:hover:bg-slate-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+          </div>
 
-      if (isBlocked) {
-        if (window.confirm(`Are you sure you want to unblock ${contact.name}?`)) {
-          setBlockedContacts((prev) => prev.filter(c => c.contact_id !== contact.contact_id));
-          alert(`${contact.name} has been unblocked.`);
-        }
-      } else {
-        setBlockedContacts((prev) => {
-          if (prev.some(c => c.contact_id === contact.contact_id)) {
-            alert("This contact is already blocked.");
-            return prev;
-          }
-          return [...prev, contact];
-        });
-        alert(`${contact.name} has been blocked.`);
-      }
-    };
-  
-    const handleImageUpload = (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        setSelectedFile(file);
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          setFormData({...formData, image: event.target.result});
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-  
-    const removeImage = () => {
-      setFormData({...formData, image: null});
-      setSelectedFile(null);
-    };
-  
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-[1000]">
-        <div className="bg-white dark:bg-[#161b22] p-8 rounded-[16px] border dark:border-slate-700 w-[400px] max-h-[90vh] overflow-y-auto shadow-[0_10px_40px_rgba(0,0,0,0.15)]">
-          <h3 className="text-[1.4rem] font-semibold text-[#334155] dark:text-slate-300 mb-6 text-center">
-            {contact ? 'Edit Contact' : 'Add New Contact'}
-          </h3>
-          <form onSubmit={handleSubmit}>
-            {/* Image Upload Section */}
-            <div className="mb-4 text-center">
-              <label htmlFor="image-upload">
-                  <div className="w-[100px] h-[100px] mx-auto mb-4 rounded-full bg-slate-100 dark:bg-gray-800/50 flex items-center justify-center relative overflow-hidden border-2 border-dashed border-slate-300 dark:border-slate-700 cursor-pointer hover:scale-105 transform transition duration-200">
-                    {formData.image ? (
-                      <>
-                        <img src={formData.image} alt="Contact" className="w-full h-full object-cover" />
-                        <button
-                          className="absolute top-[5px] right-[5px] bg-red-600/80 text-white rounded-full w-6 h-6 flex items-center justify-center cursor-pointer text-[12px]"
-                          type="button"
-                          onClick={removeImage}
-                        >
-                          <X size={12} />
-                        </button>
-                      </>
-                    ) : (
-                      <Camera size={32} color="#94a3b8" />
-                    )}
-                  </div>
-               </label>
-                <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} id="image-upload" />
-            </div>
-            <div className="mb-4">
-              <input
-                type="text"
-                placeholder="Name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 focus:scale-105 transform transition duration-200"
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <input
-                type="email"
-                placeholder="Email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 focus:scale-105 transform transition duration-200"
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <input
-                type="tel"
-                placeholder="Phone"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 focus:scale-105 transform transition duration-200"
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <input
-                type="date"
-                placeholder="Birthday"
-                value={formData.birthday}
-                onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
-                className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 focus:scale-105 transform transition duration-200"
-              />
-            </div>
-            <div className="mb-6">
-              <select
-                value={formData.category_id || ""}
-                onChange={(e) => setFormData({ ...formData, category_id: e.target.value || null })}
-                className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 focus:scale-105 bg-white text-slate-600 transform transition duration-200"
-              >
-                <option value="">Select Category</option>
-                {categories.map((category) => (
-                  <option key={category.category_id} value={category.category_id}>
-                    {category.category_name || category.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex gap-4">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className={`flex-1 py-3 rounded-xl text-white text-base font-medium transition-all duration-200 ${
-                  isSubmitting 
-                    ? 'bg-gray-400 dark:bg-slate-600 cursor-not-allowed' 
-                    : 'bg-gradient-to-r from-blue-700 to-blue-400 dark:bg-gradient-to-r dark:from-indigo-950 dark:to-indigo-700 dark:text-slate-100 border dark:border-slate-800 dark:hover:from-indigo-900/70 dark:hover:to-indigo-600 scale-100 hover:scale-105 hover:from-blue-800 hover:to-blue-500'
-                }`}
-              >
-                {isSubmitting ? 'Saving...' : 'Save'}
-              </button>
-              <button
-                type="button"
-                onClick={onCancel}
-                disabled={isSubmitting}
-                className="flex-1 py-3 rounded-xl text-slate-500 dark:text-slate-300 dark:hover:text-slate-200 bg-slate-100 dark:bg-gray-700/70 text-base font-medium scale-100 hover:scale-105 hover:bg-slate-200 dark:hover:bg-slate-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
-                Cancel
-              </button>
-            </div>
->>>>>>> c88244540ce6372d33298617dedd8c327b4962d3
+          {/* Block / Unblock */}
+          {contact && (
             <button
               type="button"
               onClick={handleBlockContact}
@@ -377,21 +285,11 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
               <NoSymbolIcon className="h-5 w-5" />
               {isBlocked ? 'Unblock Contact' : 'Block Contact'}
             </button>
-          </form>
-        </div>
+          )}
+        </form>
       </div>
-<<<<<<< HEAD
     </div>
   );
 };
 
 export default ContactForm;
-
-
-
-=======
-    );
-    
-  };
-export default ContactForm; 
->>>>>>> c88244540ce6372d33298617dedd8c327b4962d3
