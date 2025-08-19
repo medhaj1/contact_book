@@ -17,10 +17,12 @@ import SharedDocumentsPanel from '../components/dashboard/SharedDocumentsPanel';
 import { supabase } from "../supabaseClient";
 import { useBlockedContacts } from "../components/dashboard/BlockedContactsContext";
 
+
 // Services
 import { getContacts, deleteContact } from "../services/contactService";
 import { getCategories } from "../services/categoryService";
 import { getFavouritesByUser, addFavourite, removeFavourite } from "../services/favouriteService";
+
 
 const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const { blockedContacts } = useBlockedContacts();
@@ -30,6 +32,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     currentUser?.email?.split("@")[0] ||
     "User";
   const userId = currentUser?.id || "unknown";
+
 
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,8 +53,10 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   );
   const [viewMode, setViewMode] = useState("card");
 
+
   const [favourites, setFavourites] = useState([]);
   const [contactViewFilter, setContactViewFilter] = useState("all");
+
 
   // Fetch contacts
   const fetchContacts = useCallback(async () => {
@@ -64,6 +69,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     }
   }, [userId]);
 
+
   // Fetch categories
   const fetchCategories = useCallback(async () => {
     try {
@@ -74,6 +80,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     }
   }, []);
 
+
   // Fetch favourites from Supabase
   const fetchFavourites = useCallback(async () => {
     if (!userId || userId === "unknown") return;
@@ -83,10 +90,12 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     }
   }, [userId]);
 
+
   useEffect(() => {
     document.documentElement.classList.toggle("dark", isDark);
     localStorage.setItem("theme", isDark ? "dark" : "light");
   }, [isDark]);
+
 
   useEffect(() => {
     if (userId && userId !== "unknown") {
@@ -96,9 +105,11 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     }
   }, [userId, fetchContacts, fetchCategories, fetchFavourites]);
 
+
   useEffect(() => {
     localStorage.setItem("dashboardActiveTab", activeTab);
   }, [activeTab]);
+
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -112,16 +123,19 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
       document.removeEventListener("mousedown", handleClickOutside);
   }, [showUserDropdown, showAddContactDropdown]);
 
+
   const handleContactSave = async () => {
     await fetchContacts();
     setShowAddContact(false);
     setEditingContact(null);
   };
 
+
   const handleEditContact = (contact) => {
     setEditingContact(contact);
     setShowAddContact(false);
   };
+
 
   const handleDeleteContact = async (contactId) => {
     if (window.confirm("Are you sure you want to delete this contact?")) {
@@ -129,6 +143,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
       if (result.success) fetchContacts();
     }
   };
+
 
   // Toggle favourite in Supabase
   const toggleFavourite = async (contactId) => {
@@ -142,33 +157,34 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     }
   };
 
+
   const safeString = (val) => (val ? String(val) : "");
 
-  // ✅ Modified filtering + sorting logic
+
+  // Modified filtering + sorting logic
   let filteredContacts = contacts.filter((contact) => {
     const matchesSearch =
       safeString(contact.name).toLowerCase().includes(searchTerm.toLowerCase()) ||
       safeString(contact.email).toLowerCase().includes(searchTerm.toLowerCase()) ||
       safeString(contact.phone).includes(searchTerm);
     const matchesCategory =
-      !selectedCategory || String(contact.category_id) === String(selectedCategory);
+      !selectedCategory || 
+      (Array.isArray(contact.category_ids) && contact.category_ids.some(id => String(id) === String(selectedCategory)));
     return matchesSearch && matchesCategory;
   });
-  // Filter out blocked contacts
-  filteredContacts = filteredContacts.filter(
-    contact => !blockedContacts.some(b => b.contact_id === contact.contact_id)
-  );
 
   if (contactViewFilter === "favourites") {
     filteredContacts = filteredContacts.filter((c) =>
       favourites.includes(c.contact_id)
     );
   } else if (contactViewFilter === "all") {
-    // ✅ Sort alphabetically by name when showing all
+    //  Sort alphabetically by name when showing all
     filteredContacts = filteredContacts.sort((a, b) =>
       safeString(a.name).localeCompare(safeString(b.name))
     );
   }
+
+
 
   // Remove duplicate entries, keep intended icons.
   const sidebarItems = [
@@ -180,6 +196,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
+
   // Classnames for prettier transitions/buttons - reference 22: use 2nd code style
   const getSidebarItemClass = (isActive) =>
     `flex items-center px-4 py-2 rounded-lg cursor-pointer transition text-sm font-medium ${
@@ -190,6 +207,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   
   // Card border color from 2nd code
   const cardBorderClass = "bg-white border border-blue-100 p-6 rounded-2xl transition hover:shadow-md hover:-translate-y-1";
+
 
   // Add this function inside Dashboard component
   const handleSendDocument = async (file) => {
@@ -213,6 +231,24 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     // You need to know the selectedContact here, so you may need to lift state up if needed
     // For now, you can pass a callback to ChatPanel and handle message sending there
   };
+
+  const renderCategoryBadges = (contact) => {
+    if (!Array.isArray(contact.category_ids) || contact.category_ids.length === 0) return null;
+    return (
+      <div className="flex flex-wrap gap-1 mt-1">
+        {contact.category_ids.map((id) => {
+          const cat = categories.find(c => String(c.category_id ?? c.id) === String(id));
+          const name = cat?.category_name || cat?.name || "Unknown";
+          return (
+            <span key={id} className="text-xs bg-blue-100 px-2 py-0.5 rounded-full">
+              {name}
+            </span>
+          );
+        })}
+      </div>
+    );
+  };
+
 
   return (
     <div className="flex min-h-screen font-sans">
@@ -239,6 +275,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
           })}
         </nav>
       </div>
+
 
       {/* Main area */}
       <div className="flex-1 ml-60 p-8 bg-blue-50 dark:bg-[#0d1117]">
@@ -270,25 +307,26 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
             </div>
             {showUserDropdown && (
               <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-[#161b22] rounded-xl shadow-lg border border-slate-200 dark:border-[#30363d] py-1 z-50">
-                <div
-                  className="flex items-center mx-1 px-4 py-2 text-sm rounded-lg text-slate-700 dark:text-[#c9d1d9] hover:text-blue-700 dark:hover:font-semibold dark:hover:text-indigo-200 hover:bg-blue-100 dark:hover:bg-indigo-500/30 cursor-pointer"
-                  onClick={() => {
+                  <div
+                    className="flex items-center mx-1 px-4 py-2 text-sm rounded-lg text-slate-700 dark:text-[#c9d1d9] hover:text-blue-700 dark:hover:font-semibold dark:hover:text-indigo-200 hover:bg-blue-100 dark:hover:bg-indigo-500/30 cursor-pointer"
+                    onClick={() => {
                     navigate('/profile');
                     setShowUserDropdown(false);
                   }}
-                >
-                  <User size={16} className="mr-2 inline" /> Profile
-                </div>
-                <div
-                  className="flex items-center mx-1 px-4 py-2 text-sm rounded-lg text-slate-700 dark:text-[#c9d1d9] hover:text-blue-700 dark:hover:font-semibold dark:hover:text-red-200 hover:bg-blue-100 dark:hover:bg-red-700/30 cursor-pointer"
-                  onClick={onLogout}
-                >
-                  <LogOut size={16} className="mr-2 inline" /> Logout
-                </div>
+                  >
+                    <User size={16} className="mr-2 inline" /> Profile
+                  </div>
+                  <div
+                    className="flex items-center mx-1 px-4 py-2 text-sm rounded-lg text-slate-700 dark:text-[#c9d1d9] hover:text-blue-700 dark:hover:font-semibold dark:hover:text-red-200 hover:bg-blue-100 dark:hover:bg-red-700/30 cursor-pointer"
+                    onClick={onLogout}
+                  >
+                    <LogOut size={16} className="mr-2 inline" /> Logout
+                  </div>
               </div>
             )}
           </div>
         </div>
+
 
         {activeTab === "contacts" && (
           <>
@@ -334,7 +372,9 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
               </div>
             </div>
 
+
             <BirthdayReminder contacts={contacts} />
+
 
             {/* Contact display */}
             {loading ? (
@@ -344,8 +384,6 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
             ) : viewMode === "card" ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredContacts.map((c) => {
-                  const categoryObj = categories.find(cat => String(cat.category_id ?? cat.id) === String(c.category_id));
-                  const categoryName = categoryObj?.category_name || categoryObj?.name || "Unknown";
                   const isFav = favourites.includes(c.contact_id);
                   return (
                     <div key={c.contact_id} className="bg-white dark:text-gray-300 dark:bg-[#161b22] p-6 rounded-2xl border dark:border-[#30363d] hover:shadow-lg scale-100 hover:scale-105 transition transition-transform duration-200 space-y-3 ">
@@ -356,9 +394,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                           </div>
                           <div>
                             <h3 className="text-lg font-bold">{c.name}</h3>
-                            {c.category_id && (
-                              <span className="text-xs dark:text-gray-200 bg-blue-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{categoryName}</span>
-                            )}
+                            {renderCategoryBadges(c)}
                           </div>
                         </div>
                         <button onClick={() => toggleFavourite(c.contact_id)}>
@@ -386,8 +422,6 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
             ) : (
               <div className="bg-white dark:bg-[#161b22] border dark:border-[#30363d] rounded-lg shadow overflow-hidden">
                 {filteredContacts.map((c) => {
-                  const categoryObj = categories.find(cat => String(cat.category_id ?? cat.id) === String(c.category_id));
-                  const categoryName = categoryObj?.category_name || categoryObj?.name || "Unknown";
                   const isFav = favourites.includes(c.contact_id);
                   return (
                     <div key={c.contact_id} className="flex items-center justify-between px-4 py-4 hover:bg-blue-50 dark:hover:bg-gray-800/40 even:bg-slate-50 dark:even:bg-[#30363d]/10">
@@ -399,6 +433,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                           <div className="text-slate-900 dark:text-slate-300">
                             {c.name} <span className="ml-2 text-xs bg-blue-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{categoryName}</span>
                           </div>
+                          {renderCategoryBadges(c)}
                           <div className="text-xs text-slate-500">{c.email}</div>
                           <div className="text-xs text-slate-500">{c.phone}</div>
                         </div>
@@ -419,6 +454,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                 })}
               </div>
             )}
+
 
             {/* Modals */}
             {showAddContact && (
@@ -448,6 +484,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
           </>
         )}
 
+
         {activeTab === "categories" && (
           <CategoriesPanel
             categories={categories}
@@ -456,6 +493,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
             onCategoriesChange={fetchCategories}
           />
         )}
+
 
 
         {activeTab === "settings" && (
@@ -488,6 +526,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
         )}
       </div>
 
+
       {activeTab === "contacts" && (
         <div className="fixed bottom-10 right-10 z-40">
           <div className="relative">
@@ -506,7 +545,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                     setShowAddContactDropdown(false);
                   }}
                 >
-                  Add Contact via Form
+                  Add via Form
                 </div>
                 <div
                   className="px-4 py-3 hover:bg-slate-100 cursor-pointer"
@@ -526,7 +565,5 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   );
 };
 
+
 export default Dashboard;
-
-
-

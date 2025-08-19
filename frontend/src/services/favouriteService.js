@@ -1,5 +1,5 @@
 // src/services/favouriteService.js
-import { supabase } from '../supabaseClient'; // ✅ Make sure supabaseClient.js is inside src/
+import { supabase } from '../supabaseClient'; //  Make sure supabaseClient.js is inside src/
 
 // Get all favourites for a user
 export async function getFavouritesByUser(userId) {
@@ -37,7 +37,9 @@ export async function removeFavourite(userId, contactId) {
   if (error) {
     console.error('Error removing favourite:', error);
   }
-}
+} 
+
+
 
 
 
