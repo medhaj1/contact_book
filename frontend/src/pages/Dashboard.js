@@ -240,9 +240,13 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
           const cat = categories.find(c => String(c.category_id ?? c.id) === String(id));
           const name = cat?.category_name || cat?.name || "Unknown";
           return (
-            <span key={id} className="text-xs bg-blue-100 px-2 py-0.5 rounded-full">
-              {name}
-            </span>
+<span
+            key={id}
+            className="text-xs font-semibold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full dark:bg-indigo-700 dark:text-indigo-100"
+          >
+            {name}
+          </span>
+
           );
         })}
       </div>
@@ -252,7 +256,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
 
   return (
     <div className="flex min-h-screen font-sans">
-      {/* Sidebar (deduplicated) */}
+      {/* Sidebar */}
       <div className="fixed left-0 top-0 w-60 h-screen bg-white dark:bg-[#161b22] p-6 border-r border-slate-200 dark:border-[#30363d] flex flex-col overflow-y-auto z-10 fixed-sidebar">
         <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-300 mb-8">Contact Book</h2>
         <nav className="flex-1 space-y-2">
@@ -287,7 +291,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
               className="flex items-center gap-3 px-4 py-2 rounded-xl cursor-pointer hover:bg-white dark:hover:bg-[#161b22] hover:shadow-sm transition-all duration-200"
               onClick={() => setShowUserDropdown(!showUserDropdown)}
             >
-              <div className="w-9 h-9 bg-gradient-to-r from-blue-700 to-blue-400 rounded-full flex justify-center items-center text-white font-bold overflow-hidden">
+              <div className="w-9 h-9 bg-gradient-to-r from-blue-700 to-blue-400 dark:from-indigo-700 dark:to-indigo-400 rounded-full flex justify-center items-center text-white font-bold overflow-hidden">
                 {currentUser?.user_metadata?.image && !profileImageError ? (
                   <img
                     src={currentUser.user_metadata.image}
@@ -376,84 +380,87 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
             <BirthdayReminder contacts={contacts} />
 
 
-            {/* Contact display */}
-            {loading ? (
-              <div className="text-center py-12 text-slate-400">Loading contacts...</div>
-            ) : filteredContacts.length === 0 ? (
-              <div className="text-center py-12 text-slate-400">{contacts.length === 0 ? "No contacts yet." : "No matches found."}</div>
-            ) : viewMode === "card" ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredContacts.map((c) => {
-                  const isFav = favourites.includes(c.contact_id);
-                  return (
-                    <div key={c.contact_id} className="bg-white dark:text-gray-300 dark:bg-[#161b22] p-6 rounded-2xl border dark:border-[#30363d] hover:shadow-lg scale-100 hover:scale-105 transition transition-transform duration-200 space-y-3 ">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-indigo-500 flex justify-center items-center font-bold overflow-hidden">
-                            {c.photo_url ? <img src={c.photo_url} alt={c.name} className="w-full h-full object-cover" /> : safeString(c.name).charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-bold">{c.name}</h3>
-                            {renderCategoryBadges(c)}
-                          </div>
-                        </div>
-                        <button onClick={() => toggleFavourite(c.contact_id)}>
-                          <Star size={18} className={isFav ? "text-yellow-400 fill-yellow-400" : "text-slate-400"} />
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-gray-400">
-                        <Mail size={14} /> {c.email}
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-gray-400">
-                        <Phone size={14} /> {c.phone}
-                      </div>
-                      <div className="flex gap-2 pt-2">
-                        <button onClick={() => handleEditContact(c)} className="p-2 bg-blue-50 dark:bg-indigo-600/50 text-blue-600 dark:text-indigo-200 rounded-lg hover:bg-blue-100">
-                          <Edit2 size={14} />
-                        </button>
-                        <button onClick={() => handleDeleteContact(c.contact_id)} className="p-2 bg-red-50 dark:bg-red-600/50 text-red-600 rounded-lg dark:text-red-200 hover:bg-red-100">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+{/* Contact display */}
+{loading ? (
+  <div className="text-center py-12 text-slate-400">Loading contacts...</div>
+) : filteredContacts.length === 0 ? (
+  <div className="text-center py-12 text-slate-400">{contacts.length === 0 ? "No contacts yet." : "No matches found."}</div>
+) : viewMode === "card" ? (
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    {filteredContacts.map((c) => {
+      const isFav = favourites.includes(c.contact_id);
+      return (
+        <div key={c.contact_id} className="bg-white dark:text-gray-300 dark:bg-[#161b22] p-6 rounded-2xl border dark:border-[#30363d] hover:shadow-lg scale-100 hover:scale-105 transition transition-transform duration-200 space-y-3 ">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-indigo-500 flex justify-center items-center font-bold overflow-hidden">
+                {c.photo_url ? <img src={c.photo_url} alt={c.name} className="w-full h-full object-cover" /> : safeString(c.name).charAt(0).toUpperCase()}
               </div>
-            ) : (
-              <div className="bg-white dark:bg-[#161b22] border dark:border-[#30363d] rounded-lg shadow overflow-hidden">
-                {filteredContacts.map((c) => {
-                  const isFav = favourites.includes(c.contact_id);
-                  return (
-                    <div key={c.contact_id} className="flex items-center justify-between px-4 py-4 hover:bg-blue-50 dark:hover:bg-gray-800/40 even:bg-slate-50 dark:even:bg-[#30363d]/10">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-indigo-300 flex items-center justify-center font-semibold text-blue-700 dark:text-indigo-700 overflow-hidden">
-                          {c.photo_url ? <img src={c.photo_url} alt={c.name} className="w-full h-full object-cover" /> : safeString(c.name).charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <div className="text-slate-900 dark:text-slate-300">
-                            {c.name} <span className="ml-2 text-xs bg-blue-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{categoryName}</span>
-                          </div>
-                          {renderCategoryBadges(c)}
-                          <div className="text-xs text-slate-500">{c.email}</div>
-                          <div className="text-xs text-slate-500">{c.phone}</div>
-                        </div>
-                      </div>
-                      <div className="flex gap-1 sm:gap-2 items-center">
-                        <button onClick={() => toggleFavourite(c.contact_id)}>
-                          <Star size={16} className={isFav ? "text-yellow-400 fill-yellow-400" : "text-slate-400"} />
-                        </button>
-                        <button onClick={() => handleEditContact(c)} className="p-1.5 sm:p-2 rounded-full bg-blue-50 dark:bg-indigo-800/70 text-blue-600 dark:text-indigo-100 hover:bg-blue-100 dark:hover:bg-indigo-700">
-                          <Edit2 size={14} />
-                        </button>
-                        <button onClick={() => handleDeleteContact(c.contact_id)} className="p-1.5 sm:p-2 w-8 h-18 rounded-full bg-red-50 dark:bg-red-800/40 text-red-600 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-800">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div>
+                <h3 className="text-lg font-bold">{c.name}</h3>
+                {renderCategoryBadges(c)}
               </div>
-            )}
+            </div>
+            <button onClick={() => toggleFavourite(c.contact_id)}>
+              <Star size={18} className={isFav ? "text-yellow-400 fill-yellow-400" : "text-slate-400"} />
+            </button>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-gray-400">
+            <Mail size={14} /> {c.email}
+          </div>
+          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-gray-400">
+            <Phone size={14} /> {c.phone}
+          </div>
+          <div className="flex gap-2 pt-2">
+            <button onClick={() => handleEditContact(c)} className="p-2 bg-blue-50 dark:bg-indigo-600/50 text-blue-600 dark:text-indigo-200 rounded-lg hover:bg-blue-100">
+              <Edit2 size={14} />
+            </button>
+            <button onClick={() => handleDeleteContact(c.contact_id)} className="p-2 bg-red-50 dark:bg-red-600/50 text-red-600 rounded-lg dark:text-red-200 hover:bg-red-100">
+              <Trash2 size={14} />
+            </button>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+) : (
+  // LIST VIEW - updated for dark mode and matching styling
+  <div className="bg-white dark:bg-[#161b22] border dark:border-[#30363d] rounded-lg shadow overflow-hidden">
+    {filteredContacts.map((c) => {
+      const isFav = favourites.includes(c.contact_id);
+      return (
+        <div key={c.contact_id} className="flex items-center justify-between px-4 py-4 hover:bg-blue-50 dark:hover:bg-gray-800/40 even:bg-slate-50 dark:even:bg-[#30363d]/10">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-indigo-500 flex items-center justify-center font-bold overflow-hidden">
+              {c.photo_url ? <img src={c.photo_url} alt={c.name} className="w-full h-full object-cover" /> : safeString(c.name).charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div className="text-lg font-bold text-slate-900 dark:text-slate-200">{c.name}</div>
+              {renderCategoryBadges(c)}
+              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-gray-400 pt-1">
+                <Mail size={14} /> {c.email}
+              </div>
+              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-gray-400">
+                <Phone size={14} /> {c.phone}
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-1 sm:gap-2 items-center">
+            <button onClick={() => toggleFavourite(c.contact_id)}>
+              <Star size={16} className={isFav ? "text-yellow-400 fill-yellow-400" : "text-slate-400"} />
+            </button>
+            <button onClick={() => handleEditContact(c)} className="p-1.5 sm:p-2 rounded-full bg-blue-50 dark:bg-indigo-800/70 text-blue-600 dark:text-indigo-100 hover:bg-blue-100 dark:hover:bg-indigo-700">
+              <Edit2 size={14} />
+            </button>
+            <button onClick={() => handleDeleteContact(c.contact_id)} className="p-1.5 sm:p-2 w-8 h-18 rounded-full bg-red-50 dark:bg-red-800/40 text-red-600 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-800">
+              <Trash2 size={14} />
+            </button>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+)}
 
 
             {/* Modals */}
@@ -532,7 +539,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
           <div className="relative">
             <button
               onClick={() => setShowAddContactDropdown((prev) => !prev)}
-              className="flex w-[70px] h-[70px] items-center px-5 py-3 rounded-full shadow-lg bg-blue-600 text-white font-bold hover:bg-blue-700 dark:bg-indigo-600/70 dark:hover:bg-indigo-600 scale-100 hover:scale-110 transition-transform duration-200"
+              className="flex w-[70px] h-[70px] items-center px-5 py-3 rounded-full shadow-lg bg-gradient-to-r from-blue-700 to-blue-400 text-white font-bold hover:bg-blue-700 dark:from-indigo-800 dark:to-indigo-500 scale-100 hover:scale-110 transition-transform duration-200"
             >
               <Plus size={30}/>
             </button>
