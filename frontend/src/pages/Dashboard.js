@@ -5,6 +5,7 @@ import {
   Users, BookOpen, Settings, LogOut, CheckSquare,MessageSquare
 } from 'lucide-react';
 import ChatPanel from '../components/chat/ChatPanel';
+import { supabase } from '../supabaseClient';
 
 import ContactForm from '../components/dashboard/ContactForm';
 import BirthdayReminder from '../components/dashboard/BirthdayReminder';
@@ -13,6 +14,7 @@ import SettingsTab from '../components/dashboard/SettingsTab';
 import DocumentsPanel from '../components/dashboard/DocumentsPanel';
 import CategoriesPanel from '../components/dashboard/CategoriesPanel';
 import ImportModal from '../components/dashboard/ImportModal';
+import GroupPanel from '../components/groups/GroupPanel';
 
 // Import services
 import { getContacts, deleteContact } from '../services/contactService';
@@ -192,6 +194,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     { id: 'contacts', label: 'Contacts', icon: Users },
     { id: 'categories', label: 'Categories', icon: BookOpen },
     { id: 'documents', label: 'Documents', icon: BookOpen },
+    { id: 'groups', label: 'Groups', icon: Users },
     { id: 'settings', label: 'Settings', icon: Settings },
     { id: 'task', label: 'Task', icon: CheckSquare },
     { id: 'chat', label: 'Chat', icon: MessageSquare },
@@ -208,112 +211,32 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   // Card border color from 2nd code
   const cardBorderClass = "bg-white border border-blue-100 p-6 rounded-2xl transition hover:shadow-md hover:-translate-y-1";
 
-  const handleImportCSV = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('user_id', userId);   // Attach the logged-in user's id
-
-  try {
-    const resp = await fetch(`${API_BASE_URL}/contacts/import`, {
-      method: 'POST',
-      body: formData,
-    });
-    if (resp.ok) {
-      alert('Contacts imported successfully!');
-      await fetchContacts(); // Refresh UI
-    } else {
-      const error = await resp.json();
-      alert('Import failed: ' + (error.details || error.error));
-    }
-  } catch (error) {
-    alert('Error importing contacts: ' + error.message);
-  } finally {
-    // Reset the file input so user can re-import if desired
-    e.target.value = '';
-  }
+  // Import functionality is handled by ImportModal component
+const handleImportCSV = async (e) => {
+  // This function is deprecated - import is now handled by ImportModal
+  console.log('Import handled by ImportModal component');
 };
 
+// Document handling is now done in DocumentsPanel component
 const handleUploadDocuments = async (e) => {
-  const files = Array.from(e.target.files);
-  let uploadedCount = 0;
-  for (const file of files) {
-    // 1. Upload to Supabase Storage
-    const { data: storageData, error: storageError } = await supabase.storage
-      .from('documents')
-      .upload(`public/${file.name}`, file, { upsert: true });
-    if (storageError) {
-      alert(`Failed to upload ${file.name}: ${storageError.message}`);
-      continue;
-    }
-    // 2. Get public URL
-    const { data: urlData } = supabase.storage
-      .from('documents')
-      .getPublicUrl(`public/${file.name}`);
-    // 3. Insert metadata into documents table (removed contact_id)
-    const { error: dbError } = await supabase
-      .from('documents')
-      .insert([{
-        name: file.name,
-        url: urlData.publicUrl,
-        uploaded_by: currentUser?.id,
-        uploaded_at: new Date().toISOString()
-      }]);
-    if (dbError) {
-      alert(`Failed to save ${file.name} in DB: ${dbError.message}`);
-    } else {
-      uploadedCount++;
-    }
-  }
-  fetchDocuments();
-  if (uploadedCount > 0) {
-    alert(`${uploadedCount} document${uploadedCount > 1 ? 's' : ''} uploaded successfully!`);
-  }
+  // This function is deprecated - document handling is now in DocumentsPanel
+  console.log('Document handling moved to DocumentsPanel component');
 };
 
 const handleDeleteDocument = async (doc) => {
-  if (!window.confirm(`Delete ${doc.name}?`)) return;
-  // 1. Remove from storage
-  const { error: storageError } = await supabase.storage
-    .from('documents')
-    .remove([`public/${doc.name}`]);
-  if (storageError) {
-    alert('Delete from storage failed: ' + storageError.message);
-    return;
-  }
-  // 2. Remove from DB
-  const { error: dbError } = await supabase
-    .from('documents')
-    .delete()
-    .eq('id', doc.id);
-  if (dbError) {
-    alert('Delete from DB failed: ' + dbError.message);
-    return;
-  }
-  fetchDocuments();
+  // This function is deprecated - document handling is now in DocumentsPanel
+  console.log('Document handling moved to DocumentsPanel component');
 };
 
+// Password reset functionality is handled in ResetPassword component
 const handlePasswordReset = async (email) => {
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: 'http://localhost:3000/reset-password', // Change to your frontend URL
-  });
-  if (error) {
-    alert('Error sending password reset email: ' + error.message);
-  } else {
-    alert('Password reset email sent! Check your inbox.');
-  }
+  // This function is deprecated - password reset is handled in ResetPassword component
+  console.log('Password reset handled in ResetPassword component');
 };
 
 const handleNewPassword = async (newPassword) => {
-  const { error } = await supabase.auth.updateUser({ password: newPassword });
-  if (error) {
-    alert('Error resetting password: ' + error.message);
-  } else {
-    alert('Password has been reset!');
-    // Optionally redirect to login
-  }
+  // This function is deprecated - password reset is handled in ResetPassword component
+  console.log('Password reset handled in ResetPassword component');
 };
 
   return (
@@ -580,6 +503,13 @@ const handleNewPassword = async (newPassword) => {
             userId={userId}
             onCategoriesChange={fetchCategories}
           />
+        )}
+
+        {/* Groups Tab */}
+        {activeTab === 'groups' && (
+          <div className="max-w-6xl mx-auto">
+            <GroupPanel currentUser={currentUser} />
+          </div>
         )}
 
         {/* Settings Tab */}

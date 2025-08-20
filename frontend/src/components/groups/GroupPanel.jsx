@@ -9,6 +9,10 @@ import {
   createGroupTask,
   deleteTask,
   leaveGroup,
+  deleteGroup,
+  addContactToGroup,
+  getUserContactsWhoAreUsers,
+  debugGroupAccess,
 } from '../../services/groupService';
 import { supabase } from '../../supabaseClient';
 
@@ -18,11 +22,13 @@ const GroupPanel = ({ currentUser }) => {
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [members, setMembers] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [contactsWhoAreUsers, setContactsWhoAreUsers] = useState([]);
 
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDesc, setNewGroupDesc] = useState('');
 
   const [inviteEmail, setInviteEmail] = useState('');
+  const [selectedContactId, setSelectedContactId] = useState('');
 
   const [taskText, setTaskText] = useState('');
   const [taskDeadline, setTaskDeadline] = useState('');
@@ -30,10 +36,32 @@ const GroupPanel = ({ currentUser }) => {
   const selectedGroup = useMemo(() => groups.find((g) => g.id === selectedGroupId) || null, [groups, selectedGroupId]);
 
   useEffect(() => {
+    if (!currentUserId) {
+      console.log('No currentUserId, skipping group fetch');
+      return;
+    }
+    
+    console.log('Fetching groups for user:', currentUserId);
+    (async () => {
+      // Debug call to see what's happening
+      await debugGroupAccess(currentUserId);
+      
+      const res = await getUserGroups(currentUserId);
+      console.log('getUserGroups result:', res);
+      if (res.success) {
+        setGroups(res.data);
+      } else {
+        console.error('Failed to fetch groups:', res.error);
+        setGroups([]);
+      }
+    })();
+  }, [currentUserId]);
+
+  useEffect(() => {
     if (!currentUserId) return;
     (async () => {
-      const res = await getUserGroups(currentUserId);
-      if (res.success) setGroups(res.data);
+      const res = await getUserContactsWhoAreUsers(currentUserId);
+      if (res.success) setContactsWhoAreUsers(res.data);
     })();
   }, [currentUserId]);
 
@@ -61,6 +89,18 @@ const GroupPanel = ({ currentUser }) => {
     }
   };
 
+  const handleDeleteGroup = async (groupId) => {
+    if (!window.confirm('Are you sure you want to delete this group? This action cannot be undone.')) return;
+    
+    const res = await deleteGroup({ groupId, userId: currentUserId });
+    if (res.success) {
+      setGroups((prev) => prev.filter((g) => g.id !== groupId));
+      if (selectedGroupId === groupId) setSelectedGroupId(null);
+    } else {
+      alert(res.error || 'Failed to delete group');
+    }
+  };
+
   const handleInvite = async () => {
     if (!selectedGroupId || !inviteEmail.trim()) return;
     const res = await addMemberByEmail({ groupId: selectedGroupId, email: inviteEmail.trim() });
@@ -71,6 +111,19 @@ const GroupPanel = ({ currentUser }) => {
       setInviteEmail('');
     } else {
       alert(res.error || 'Failed to add member');
+    }
+  };
+
+  const handleAddContact = async () => {
+    if (!selectedGroupId || !selectedContactId) return;
+    const res = await addContactToGroup({ groupId: selectedGroupId, contactId: selectedContactId, userId: currentUserId });
+    if (res.success) {
+      // Refresh members
+      const mRes = await getGroupMembers(selectedGroupId);
+      if (mRes.success) setMembers(mRes.data);
+      setSelectedContactId('');
+    } else {
+      alert(res.error || 'Failed to add contact');
     }
   };
 
@@ -132,9 +185,24 @@ const GroupPanel = ({ currentUser }) => {
               {g.description && (
                 <div className="text-xs text-slate-500 mt-1 line-clamp-2">{g.description}</div>
               )}
-              {!isProtectedRole(g.role) && (
-                <button className="text-xs text-red-600 mt-2" onClick={(e) => { e.stopPropagation(); handleLeaveGroup(g.id); }}>Leave</button>
-              )}
+              <div className="flex gap-2 mt-2">
+                {!isProtectedRole(g.role) && (
+                  <button 
+                    className="text-xs text-red-600 hover:text-red-800" 
+                    onClick={(e) => { e.stopPropagation(); handleLeaveGroup(g.id); }}
+                  >
+                    Leave
+                  </button>
+                )}
+                {isProtectedRole(g.role) && (
+                  <button 
+                    className="text-xs text-red-600 hover:text-red-800" 
+                    onClick={(e) => { e.stopPropagation(); handleDeleteGroup(g.id); }}
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -168,6 +236,32 @@ const GroupPanel = ({ currentUser }) => {
                   <button className="bg-slate-800 text-white rounded-md px-3 text-sm" onClick={handleInvite}>Invite</button>
                 </div>
               </div>
+
+              {/* Add from contacts */}
+              {contactsWhoAreUsers.length > 0 && (
+                <div className="flex gap-2 mb-3">
+                  <select
+                    className="flex-1 border rounded-md p-2 text-sm"
+                    value={selectedContactId}
+                    onChange={(e) => setSelectedContactId(e.target.value)}
+                  >
+                    <option value="">Add from contacts...</option>
+                    {contactsWhoAreUsers.map((contact) => (
+                      <option key={contact.contact_id} value={contact.contact_id}>
+                        {contact.name} ({contact.email})
+                      </option>
+                    ))}
+                  </select>
+                  <button 
+                    className="bg-green-600 text-white rounded-md px-3 text-sm" 
+                    onClick={handleAddContact}
+                    disabled={!selectedContactId}
+                  >
+                    Add
+                  </button>
+                </div>
+              )}
+
               <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {members.map((m) => (
                   <li key={m.u_id} className="border border-slate-200 rounded-lg p-3">
