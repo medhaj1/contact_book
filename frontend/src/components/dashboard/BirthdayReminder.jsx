@@ -1,11 +1,6 @@
 import React from "react";
-import { useBlockedContacts } from "./BlockedContactsContext";
 
 const BirthdayReminder = ({ contacts }) => {
-  const { blockedContacts } = useBlockedContacts();
-
-  const filteredContacts = contacts.filter(c => !blockedContacts.includes(c.contact_id));
-
   function isBirthdayToday(birthday) {
     if (!birthday) return false;
     const today = new Date();
@@ -33,8 +28,8 @@ const BirthdayReminder = ({ contacts }) => {
     }
   }
 
-  const todaysBirthdays = filteredContacts.filter(c => isBirthdayToday(c.birthday));
-  const upcomingBirthdays = filteredContacts.filter(c => isBirthdayInNext7DaysExcludingToday(c.birthday));
+  const todaysBirthdays = contacts.filter(c => isBirthdayToday(c.birthday));
+  const upcomingBirthdays = contacts.filter(c => isBirthdayInNext7DaysExcludingToday(c.birthday));
 
   function prettyDate(dateStr) {
     try {
@@ -99,3 +94,4 @@ const BirthdayReminder = ({ contacts }) => {
 };
 
 export default BirthdayReminder;
+
