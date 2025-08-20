@@ -299,11 +299,11 @@ function SettingsTab({ currentUser }) {
               Change Theme
             </h3>
             {/* Inner block for toggle and image */}
-            <div className="flex flex-col w-[250px] h-[200px] items-center justify-center mt-6 space-y-4">
+            <div className="flex flex-col w-[500px] h-[200px] items-center justify-center mt-6 space-y-4">
               <img
-                src={isDark ? '/dark-preview.png' : '/light-preview.png'}
+                src={isDark ? '/LightTheme.png' : '/DarkTheme.png'}
                 alt="Theme Preview"
-                className="w-[220px] h-[150px] dark:text-white rounded-md shadow-lg"
+                className="w-[400px] dark:text-white rounded-md shadow-lg"
               />
               <button
                 onClick={toggleTheme}
