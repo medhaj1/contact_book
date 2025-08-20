@@ -17,8 +17,9 @@ const UserProfile = ({ currentUser, onLogout }) => {
     phone: currentUser?.user_metadata?.contact || currentUser?.phone || "Not provided",
     photo: currentUser?.user_metadata?.avatar_url || null,
     password: "dummy123",
-
+    newPhotoFile: null,
   });
+  const [tempPhoto, setTempPhoto] = useState(userData.photo);
 
   const [passwords, setPasswords] = useState({
     current: "",
@@ -42,6 +43,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
               phone: userProfile.phone || currentUser?.user_metadata?.contact || "Not provided",
               photo: userProfile.avatar_url || currentUser?.user_metadata?.image || null,
               password: "dummy123",
+              newPhotoFile: null,
             });
           } else {
             console.warn("Failed to fetch user profile:", result.error);
@@ -52,6 +54,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
               phone: currentUser?.user_metadata?.contact || currentUser?.phone || "Not provided",
               photo: currentUser?.user_metadata?.image || null,
               password: "dummy123",
+              newPhotoFile: null,
             });
           }
         } catch (error) {
@@ -63,6 +66,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
             phone: currentUser?.user_metadata?.contact || currentUser?.phone || "Not provided",
             photo: currentUser?.user_metadata?.image || null,
             password: "dummy123",
+            newPhotoFile: null,
           });
         }
       }
@@ -71,23 +75,25 @@ const UserProfile = ({ currentUser, onLogout }) => {
     fetchUserProfile();
   }, [currentUser]);
 
-  const handlePhotoChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file || !currentUser) return;
-
-    try {
-      const result = await uploadUserAvatar(currentUser.id, file);
-      
-      if (result.success) {
-        setUserData((prev) => ({ ...prev, photo: result.avatarUrl }));
-        alert("Profile picture updated!");
-      } else {
-        alert("Error updating profile picture: " + result.error);
-      }
-    } catch (error) {
-      console.error("Image upload error:", error.message);
-      alert("Error updating profile picture.");
+  // Keep tempPhoto in sync with userData.photo when editing or photo changes
+  useEffect(() => {
+    if (isEditing) {
+      setTempPhoto(userData.photo);
     }
+  }, [isEditing, userData.photo]);
+
+  // In edit mode, just set preview (tempPhoto) and store file to userData.newPhotoFile.
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setTempPhoto(URL.createObjectURL(file));
+    setUserData((prev) => ({ ...prev, newPhotoFile: file }));
+  };
+
+  // Remove photo: only update local state, do not update Supabase until save
+  const handleRemovePhoto = () => {
+    setUserData((prev) => ({ ...prev, photo: null, newPhotoFile: null }));
+    setTempPhoto(null);
   };
 
 
@@ -101,10 +107,22 @@ const UserProfile = ({ currentUser, onLogout }) => {
 
   const handleSaveProfile = async () => {
     try {
+      let avatarUrl = userData.photo;
+      // If a new photo file is selected, upload it first
+      if (userData.newPhotoFile && currentUser) {
+        const result = await uploadUserAvatar(currentUser.id, userData.newPhotoFile);
+        if (result.success) {
+          avatarUrl = result.avatarUrl;
+        } else {
+          alert("Error uploading profile picture: " + result.error);
+          return;
+        }
+      }
       const result = await updateUserProfile(currentUser.id, {
         name: userData.name,
         email: userData.email,
-        phone: userData.phone
+        phone: userData.phone,
+        avatar_url: avatarUrl,
       });
 
       if (result.success) {
@@ -113,7 +131,9 @@ const UserProfile = ({ currentUser, onLogout }) => {
           data: {
             name: userData.name,
             contact: userData.phone,
-            email: userData.email
+            email: userData.email,
+            avatar_url: avatarUrl,
+            image: avatarUrl,
           }
         });
 
@@ -121,6 +141,12 @@ const UserProfile = ({ currentUser, onLogout }) => {
           console.warn("Failed to update auth metadata:", authError.message);
         }
 
+        setUserData((prev) => ({
+          ...prev,
+          photo: avatarUrl,
+          newPhotoFile: null,
+        }));
+        setTempPhoto(avatarUrl);
         alert("Profile updated successfully!");
       } else {
         alert("Error updating profile: " + result.error);
@@ -129,6 +155,30 @@ const UserProfile = ({ currentUser, onLogout }) => {
       console.error("Profile update error:", error.message);
       alert("Error updating profile: " + error.message);
     }
+  };
+
+  // Cancel editing and revert to saved user profile data
+  const handleCancelEdit = () => {
+    // revert userData back to saved state
+    if (currentUser) {
+      getUserProfile(currentUser.id).then(result => {
+        if (result.success) {
+          const userProfile = result.data;
+          setUserData({
+            name: userProfile.name || currentUser?.user_metadata?.name || currentUser?.email?.split('@')[0] || "User",
+            email: userProfile.email || currentUser?.email || "No email provided",
+            phone: userProfile.phone || currentUser?.user_metadata?.contact || "Not provided",
+            photo: userProfile.avatar_url || currentUser?.user_metadata?.image || null,
+            password: "dummy123",
+            newPhotoFile: null,
+          });
+          setTempPhoto(userProfile.avatar_url || currentUser?.user_metadata?.image || null);
+        }
+      });
+    }
+    setTempPhoto(userData.photo);
+    setUserData((prev) => ({ ...prev, newPhotoFile: null }));
+    setIsEditing(false);
   };
 
   const handleChange = (e) => {
@@ -207,7 +257,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
             <label htmlFor="photo-upload" className="cursor-pointer">
               <ProfileAvatar
                 name={userData.name}
-                image={userData.photo}
+                image={isEditing ? tempPhoto : userData.photo}
                 size="128px"
                 textSize="3rem"
               />
@@ -221,6 +271,14 @@ const UserProfile = ({ currentUser, onLogout }) => {
                 />
               )}
             </label>
+            {isEditing && (userData.photo || tempPhoto) && (
+              <button
+                onClick={handleRemovePhoto}
+                className="mt-2 flex items-center gap-2 px-4 py-2 border border-red-400 text-red-600 dark:hover:text-red-300 rounded-xl hover:bg-red-100 dark:hover:bg-red-900 dark:hover:bg-opacity-40 transition-transform transform hover:scale-105"
+              >
+                Remove Photo
+              </button>
+            )}
             <h2 className="text-2xl font-family font-bold mt-4 text-blue-800 dark:text-indigo-300 dark:text-opacity-80 text-center">
               {userData.name}
             </h2>
@@ -325,14 +383,20 @@ const UserProfile = ({ currentUser, onLogout }) => {
                 <FiEdit2 />
                 {isEditing ? "Save Profile" : "Edit Profile"}
               </button>
-
+              {isEditing && (
+                <button
+                  onClick={handleCancelEdit}
+                  className="flex items-center gap-2 px-4 py-2 border border-gray-400 text-gray-600 dark:text-slate-300 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-transform transform hover:scale-105"
+                >
+                  Cancel
+                </button>
+              )}
               <button
                 onClick={handleResetPasswordClick}
                 className="btn">
                 <MdLock />
                 Reset Password
               </button>
-
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 px-4 py-2 border border-red-400 text-red-600 dark:hover:text-red-300 rounded-lg hover:bg-red-100 dark:hover:bg-red-900 dark:hover:bg-opacity-40 transition-transform transform hover:scale-105"

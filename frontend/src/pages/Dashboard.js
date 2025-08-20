@@ -216,7 +216,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
 
   return (
     <div className="flex min-h-screen font-sans">
-      {/* Sidebar (deduplicated) */}
+      {/* Sidebar */}
       <div className="fixed left-0 top-0 w-60 h-screen bg-white dark:bg-[#161b22] p-6 border-r border-slate-200 dark:border-[#30363d] flex flex-col overflow-y-auto z-10 fixed-sidebar">
         <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-300 mb-8">Contact Book</h2>
         <nav className="flex-1 space-y-2">
@@ -250,7 +250,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
               className="flex items-center gap-3 px-4 py-2 rounded-xl cursor-pointer hover:bg-white dark:hover:bg-[#161b22] hover:shadow-sm transition-all duration-200"
               onClick={() => setShowUserDropdown(!showUserDropdown)}
             >
-              <div className="w-9 h-9 bg-gradient-to-r from-blue-700 to-blue-400 rounded-full flex justify-center items-center text-white font-bold overflow-hidden">
+              <div className="w-9 h-9 bg-gradient-to-r from-blue-700 to-blue-400 dark:from-indigo-700 dark:to-indigo-400 rounded-full flex justify-center items-center text-white font-bold overflow-hidden">
                 {currentUser?.user_metadata?.image && !profileImageError ? (
                   <img
                     src={currentUser.user_metadata.image}
@@ -493,7 +493,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
           <div className="relative">
             <button
               onClick={() => setShowAddContactDropdown((prev) => !prev)}
-              className="flex w-[70px] h-[70px] items-center px-5 py-3 rounded-full shadow-lg bg-blue-600 text-white font-bold hover:bg-blue-700 dark:bg-indigo-600/70 dark:hover:bg-indigo-600 scale-100 hover:scale-110 transition-transform duration-200"
+              className="flex w-[70px] h-[70px] items-center px-5 py-3 rounded-full shadow-lg bg-gradient-to-r from-blue-700 to-blue-400 text-white font-bold hover:bg-blue-700 dark:from-indigo-800 dark:to-indigo-500 scale-100 hover:scale-110 transition-transform duration-200"
             >
               <Plus size={30}/>
             </button>
