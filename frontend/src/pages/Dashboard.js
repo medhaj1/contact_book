@@ -510,17 +510,19 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
         {activeTab === "chat" && <ChatPanel currentUser={currentUser} />}
         {activeTab === "documents" && (
           <div>
-            <div className="flex items-center gap-4 mb-8">
-              <label htmlFor="docType" className="font-semibold text-lg text-blue-700">Select:</label>
-              <select
-                id="docType"
-                className="px-4 py-2 rounded-lg border text-md bg-white text-blue-700"
-                value={viewMode}
-                onChange={e => setViewMode(e.target.value)}
+            <div className="flex gap-2 mb-8">
+              <button
+                className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'my' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
+                onClick={() => setViewMode('my')}
               >
-                <option value="my">My Documents</option>
-                <option value="shared">Shared Documents</option>
-              </select>
+                My Documents
+              </button>
+              <button
+                className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'shared' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
+                onClick={() => setViewMode('shared')}
+              >
+                Shared Documents
+              </button>
             </div>
             {viewMode === "my" ? (
               <DocumentsPanel currentUser={currentUser} />
