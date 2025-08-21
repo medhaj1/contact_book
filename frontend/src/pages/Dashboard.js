@@ -6,22 +6,44 @@ import {
   Mail, Phone, Search, Star, Tags
 } from "lucide-react";
 
-import ChatPanel from "../components/chat/ChatPanel";
-import ContactForm from "../components/dashboard/ContactForm";
-import BirthdayReminder from "../components/dashboard/BirthdayReminder";
-import TaskPanel from "../components/dashboard/TaskPanel";
-import SettingsTab from "../components/dashboard/SettingsTab";
-import DocumentsPanel from "../components/dashboard/DocumentsPanel";
-import CategoriesPanel from "../components/dashboard/CategoriesPanel";
-import ImportModal from "../components/dashboard/ImportModal";
-import SharedDocumentsPanel from "../components/dashboard/SharedDocumentsPanel";
+import ChatPanel from '../components/chat/ChatPanel';
+import { supabase } from '../supabaseClient';
 
-import { supabase } from "../supabaseClient";
+import ContactForm from '../components/dashboard/ContactForm';
+import BirthdayReminder from '../components/dashboard/BirthdayReminder';
+import TaskPanel from '../components/dashboard/TaskPanel';
+import SettingsTab from '../components/dashboard/SettingsTab';
+import DocumentsPanel from '../components/dashboard/DocumentsPanel';
+import CategoriesPanel from '../components/dashboard/CategoriesPanel';
+import ImportModal from '../components/dashboard/ImportModal';
+import GroupPanel from '../components/groups/GroupPanel';
+import SharedDocumentsPanel from '../components/dashboard/SharedDocumentsPanel';
+import { getFavouritesByUser, addFavourite, removeFavourite } from "../services/favouriteService";
 import { useBlockedContacts } from "../components/dashboard/BlockedContactsContext";
 
-import { getContacts, deleteContact } from "../services/contactService";
-import { getCategories } from "../services/categoryService";
+// Import services
+import { getContacts, deleteContact } from '../services/contactService';
+import { getCategories } from '../services/categoryService';
 import { getFavouritesByUser, addFavourite, removeFavourite } from "../services/favouriteService";
+
+// Utility function to check if birthday is today
+function isBirthdayToday(birthday) {
+  if (!birthday) return false;
+  
+  try {
+    const today = new Date();
+    const bdate = new Date(birthday);
+    
+    // Check if the date is valid
+    if (isNaN(bdate.getTime())) return false;
+    
+    return bdate.getDate() === today.getDate() && bdate.getMonth() === today.getMonth();
+  } catch (error) {
+    console.error("Error parsing birthday date:", birthday, error);
+    return false;
+  }
+}
+
 
 
 // ✅ Utility: Birthday check (from Code 2)
@@ -187,12 +209,15 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
 
   // ---------- SIDEBAR (from Code 1) ----------
   const sidebarItems = [
-    { id: "contacts", label: "Contacts", icon: Users },
-    { id: "chat", label: "Chat", icon: MessageSquare },
-    { id: "categories", label: "Categories", icon: Tags },
-    { id: "documents", label: "Documents", icon: BookOpen },
-    { id: "task", label: "Task", icon: CheckSquare },
-    { id: "settings", label: "Settings", icon: Settings },
+
+    { id: 'contacts', label: 'Contacts', icon: Users },
+    { id: 'chat', label: 'Chat', icon: MessageSquare },
+    { id: 'categories', label: 'Categories', icon: Tags },
+    { id: 'documents', label: 'Documents', icon: BookOpen },
+    { id: 'groups', label: 'Groups', icon: Users },
+    { id: 'task', label: 'Task', icon: CheckSquare },
+    { id: 'settings', label: 'Settings', icon: Settings },
+
   ];
 
   const renderCategoryBadges = (contact) => {
@@ -211,6 +236,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
       </div>
     );
   };
+
 
   // ---------- RENDER ----------
   return (
@@ -274,6 +300,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                   userName.charAt(0).toUpperCase()
                 )}
               </div>
+
               <span className="text-sm text-slate-600 dark:text-[#c9d1d9] font-medium">
                 {userName}
               </span>
@@ -538,7 +565,20 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
           />
         )}
 
+
+        {/* Groups Tab */}
+        {activeTab === 'groups' && (
+          <div className="max-w-6xl mx-auto">
+            <GroupPanel currentUser={currentUser} />
+          </div>
+        )}
+
+
+
+
+
         {/* Settings */}
+
         {activeTab === "settings" && (
           <SettingsTab currentUser={currentUser} isDark={isDark} setIsDark={setIsDark} />
         )}
@@ -616,4 +656,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   );
 };
 
+
+
 export default Dashboard;
+
