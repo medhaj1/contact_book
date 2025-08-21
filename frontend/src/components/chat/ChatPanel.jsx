@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../supabaseClient';
-import { sendInviteEmail } from '../../services/inviteService';
 
 function isOnline(lastSeen) {
   if (!lastSeen) return false;
@@ -12,12 +11,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
   const [selectMode, setSelectMode] = useState(false);
   const [selectedMessages, setSelectedMessages] = useState([]);
   const [openMenuId, setOpenMenuId] = useState(null);
-  // Selection logic
-  const toggleSelectMessage = (id) => {
-    setSelectedMessages((prev) =>
-      prev.includes(id) ? prev.filter((mid) => mid !== id) : [...prev, id]
-    );
-  };
+
   
   // Delete selected messages
   const handleDeleteSelected = async () => {
@@ -50,7 +44,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
         setInviteContacts([]);
         return;
       }
-      const emails = contacts.map(c => c.email);
+
       const { data: profiles } = await supabase
         .from('user_profile')
         .select('email');
@@ -61,14 +55,6 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
     fetchInviteContacts();
   }, [currentUserId]);
 
-  const handleInvite = async (email) => {
-    try {
-      await sendInviteEmail(email);
-      alert(`Invite sent to ${email}`);
-    } catch (error) {
-      alert(`Failed to send invite: ${error.message}`);
-    }
-  };
 
   const [contacts, setContacts] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
@@ -240,7 +226,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
     const file = e.target.files[0];
     if (!file || !selectedContact) return;
     const filePath = `chat/${currentUserId}/${Date.now()}_${file.name}`;
-    const { data, error } = await supabase.storage.from('chat').upload(filePath, file);
+    const { error } = await supabase.storage.from('chat').upload(filePath, file);
     if (error) {
       alert('File upload failed: ' + error.message);
       return;
