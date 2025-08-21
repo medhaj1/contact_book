@@ -9,6 +9,8 @@ import LandingPage from './LandingPage';
 import UserProfile from './UserProfile';
 
 import { supabase } from '../supabaseClient';
+
+import ResetPassword from './ResetPassword';
 import { BlockedContactsProvider } from '../components/dashboard/BlockedContactsContext';
 
 function App() {
@@ -76,6 +78,7 @@ function App() {
           path="/profile"
           element={isLoggedIn ? <UserProfile currentUser={currentUser} onLogout={handleLogout} /> : <Navigate to="/signin" />}
         />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
