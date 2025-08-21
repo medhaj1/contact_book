@@ -21,8 +21,8 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
   const [selectedFile, setSelectedFile] = useState(null);
 
   // ✅ Blocked Contacts Context
-  const { blockedContacts, setBlockedContacts } = useBlockedContacts();
-  const isBlocked = contact && blockedContacts.some(c => c.contact_id === contact.contact_id);
+  const { blockedContacts, block, unblock } = useBlockedContacts();
+  const isBlocked = contact && blockedContacts.some(blockedContact => blockedContact.contact_id === contact.contact_id);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -102,7 +102,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
   };
 
   // ✅ Block/unblock handler
-  const handleBlockContact = () => {
+  const handleBlockContact = async () => {
     if (!contact) {
       alert("You can only block saved contacts.");
       return;
@@ -110,18 +110,20 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
 
     if (isBlocked) {
       if (window.confirm(`Are you sure you want to unblock ${contact.name}?`)) {
-        setBlockedContacts((prev) => prev.filter(c => c.contact_id !== contact.contact_id));
-        alert(`${contact.name} has been unblocked.`);
+        const result = await unblock(contact.contact_id);
+        if (result.success) {
+          alert(`${contact.name} has been unblocked.`);
+        } else {
+          alert(`Failed to unblock ${contact.name}: ${result.error}`);
+        }
       }
     } else {
-      setBlockedContacts((prev) => {
-        if (prev.some(c => c.contact_id === contact.contact_id)) {
-          alert("This contact is already blocked.");
-          return prev;
-        }
-        return [...prev, contact];
-      });
-      alert(`${contact.name} has been blocked.`);
+      const result = await block(contact.contact_id);
+      if (result.success) {
+        alert(`${contact.name} has been blocked.`);
+      } else {
+        alert(`Failed to block ${contact.name}: ${result.error}`);
+      }
     }
   };
 
