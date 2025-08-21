@@ -44,6 +44,7 @@ const SignIn = ({ onLogin }) => {
       >
 
         <button
+          type="button"
           className="top-4 left-4 flex scale-100 hover:scale-110 transition transition-transform items-center"
           onClick={() => navigate('/')}
         >

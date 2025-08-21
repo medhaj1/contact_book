@@ -73,6 +73,7 @@ const SignUp = () => {
         className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md"
       >
         <button
+          type="button"
           className="top-4 left-4 flex scale-100 hover:scale-110 transition transition-transform items-center"
             onClick={() => navigate('/')}
           >
