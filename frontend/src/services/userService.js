@@ -35,20 +35,21 @@ export const getUserProfile = async (userId) => {
  */
 export const updateUserProfile = async (userId, profileData) => {
   try {
-    const { name, email, phone, bio } = profileData;
+    const { name, email, phone, bio, image } = profileData;
     
     const updateFields = {};
     if (name !== undefined) updateFields.name = sanitizeString(name);
     if (email !== undefined) updateFields.email = sanitizeString(email);
     if (phone !== undefined) updateFields.phone = sanitizeString(phone);
     if (bio !== undefined) updateFields.bio = sanitizeString(bio);
+    if (image !== undefined) updateFields.image = image;
 
     const { data: updatedData, error: updateError } = await supabase
       .from("user_profile")
       .update(updateFields)
       .eq("u_id", userId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       throw new Error(`Failed to update user profile: ${updateError.message}`);
@@ -96,6 +97,8 @@ export const createUserProfile = async (userId, profileData) => {
  */
 export const uploadUserAvatar = async (userId, avatarFile) => {
   try {
+    console.debug("uploadUserAvatar called with userId:", userId);
+
     if (!avatarFile) {
       throw new Error("No avatar file provided");
     }
@@ -105,7 +108,7 @@ export const uploadUserAvatar = async (userId, avatarFile) => {
       .from("user_profile")
       .select("name")
       .eq("u_id", userId)
-      .single();
+      .maybeSingle();
 
     if (userError) {
       throw new Error(`Failed to fetch user data: ${userError.message}`);
@@ -144,12 +147,14 @@ export const uploadUserAvatar = async (userId, avatarFile) => {
       .getPublicUrl(filePath);
 
     // Update user profile with avatar URL
+    console.debug("Updating profile for userId:", userId, "with image:", publicData.publicUrl);
+
     const { data: updatedData, error: updateError } = await supabase
       .from("user_profile")
-      .update({ avatar_url: publicData.publicUrl })
+      .update({ image: publicData.publicUrl })
       .eq("u_id", userId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       throw new Error(`Failed to update profile with avatar: ${updateError.message}`);
@@ -167,10 +172,12 @@ export const uploadUserAvatar = async (userId, avatarFile) => {
  */
 export const deleteUserAvatar = async (userId) => {
   try {
+    console.debug("deleteUserAvatar called with userId:", userId);
+
     // Get user profile to get the name for folder structure
     const { data: userData, error: userError } = await supabase
       .from("user_profile")
-      .select("name, avatar_url")
+      .select("name, image")
       .eq("u_id", userId)
       .single();
 
@@ -178,11 +185,9 @@ export const deleteUserAvatar = async (userId) => {
       throw new Error(`Failed to fetch user data: ${userError.message}`);
     }
 
-    const userName = userData.name;
-
     // Delete avatar from storage
-    if (userData.avatar_url) {
-      const fullPath = new URL(userData.avatar_url).pathname;
+    if (userData.image) {
+      const fullPath = new URL(userData.image).pathname;
       const pathToDelete = decodeURIComponent(
         fullPath.replace("/storage/v1/object/public/contact-images/", "")
       );
@@ -201,10 +206,10 @@ export const deleteUserAvatar = async (userId) => {
     // Update user profile to remove avatar URL
     const { data: updatedData, error: updateError } = await supabase
       .from("user_profile")
-      .update({ avatar_url: null })
+      .update({ image: null })
       .eq("u_id", userId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       throw new Error(`Failed to update profile: ${updateError.message}`);

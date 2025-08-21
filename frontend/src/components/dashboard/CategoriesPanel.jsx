@@ -42,7 +42,7 @@ const CategoriesPanel = ({
       <div className="flex mb-8">
         <button
           onClick={() => setShowAddCategory(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-700 to-blue-400 text-white rounded-xl text-md scale-100 hover:from-blue-800 hover:to-blue-500 hover:scale-105 transform transition-transform duration-200 transition-colors"
+          className="btn"
         >
           <Plus size={16} />
           Add Category
@@ -54,18 +54,18 @@ const CategoriesPanel = ({
         {categories.map(category => (
           <div 
             key={category.category_id} 
-            className="bg-white dark:bg-slate-600 border border-blue-100 dark:border-slate-500 p-6 rounded-2xl flex justify-between items-center"
+            className="bg-white dark:bg-[#161b22] border border-blue-100 dark:border-slate-700 p-6 rounded-2xl flex justify-between items-center"
           >
             <div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-300">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-200">
                 {category.name}
               </h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              <p className="text-sm text-slate-500 dark:text-slate-300 mt-1">
                 {contacts.filter(c => String(c.category_id) === String(category.category_id)).length} contacts
               </p>
             </div>
             <button
-              className="p-2 bg-red-50 text-red-600 rounded-md hover:bg-red-100 ml-4"
+              className="p-2 bg-red-50 dark:bg-red-800/30 text-red-600 dark:text-red-300 rounded-md hover:bg-red-100 dark:hover:bg-red-700/50 ml-4"
               onClick={() => handleDeleteCategory(category.category_id)}
               title="Delete Category"
             >
