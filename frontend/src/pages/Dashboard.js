@@ -503,16 +503,10 @@ const handleNewPassword = async (newPassword) => {
             userId={userId}
             onCategoriesChange={fetchCategories}
           />
-        )}
+  )}
+ 
 
-        {/* Groups Tab */}
-        {activeTab === 'groups' && (
-          <div className="max-w-6xl mx-auto">
-            <GroupPanel currentUser={currentUser} />
-          </div>
-        )}
-
-        {/* Settings Tab */}
+  {/* Settings Tab */}
         {activeTab === 'settings' && (
           <SettingsTab currentUser={currentUser} isDark={isDark} setIsDark={setIsDark}/>
         )}
@@ -526,6 +520,10 @@ const handleNewPassword = async (newPassword) => {
 
         {activeTab === 'chat' && (
   <ChatPanel currentUser={currentUser} />
+)}
+
+{activeTab === 'groups' && (
+  <GroupPanel currentUser={currentUser} />
 )}
 
   </div>
