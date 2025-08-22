@@ -25,7 +25,13 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "docker:dev": "docker-compose -f docker-compose.dev.yml up --build",
+    "docker:dev:down": "docker-compose -f docker-compose.dev.yml down",
+    "docker:dev:logs": "docker-compose -f docker-compose.dev.yml logs -f",
+    "docker:dev:restart": "docker-compose -f docker-compose.dev.yml down && docker-compose -f docker-compose.dev.yml up --build",
+    "docker:prod": "docker build -t contact-book-prod .",
+    "docker:run:prod": "docker run -p 3000:80 contact-book-prod"
   },
   "eslintConfig": {
     "extends": [

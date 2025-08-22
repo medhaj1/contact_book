@@ -9,7 +9,9 @@ import LandingPage from './LandingPage';
 import UserProfile from './UserProfile';
 
 import { supabase } from '../supabaseClient';
+
 import ResetPassword from './ResetPassword';
+import { BlockedContactsProvider } from '../components/dashboard/BlockedContactsContext';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -66,7 +68,11 @@ function App() {
         <Route path="/signup" element={<SignUp />} />
         <Route
           path="/dashboard"
-          element={isLoggedIn ? <Dashboard currentUser={currentUser} onLogout={handleLogout} /> : <Navigate to="/signin" />}
+          element={isLoggedIn ? (
+            <BlockedContactsProvider currentUser={currentUser}>
+              <Dashboard currentUser={currentUser} onLogout={handleLogout} />
+            </BlockedContactsProvider>
+          ) : <Navigate to="/signin" />}
         />
         <Route
           path="/profile"

@@ -9,16 +9,21 @@ const DocumentsPanel = ({ currentUser }) => {
   // Fetch documents from Supabase
   const fetchDocuments = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch uploaded documents only
+      const { data: uploadedDocs, error: uploadedError } = await supabase
         .from('documents')
         .select('*')
+        .eq('uploaded_by', currentUser?.id)
         .order('uploaded_at', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching documents:', error.message);
+
+      if (uploadedError) {
+        console.error('Error fetching documents:', uploadedError?.message);
         setDocuments([]);
       } else {
-        setDocuments(data || []);
+        setDocuments((uploadedDocs || []).map(doc => ({
+          ...doc,
+          isShared: false
+        })));
       }
     } catch (error) {
       console.error('Error fetching documents:', error);
@@ -28,7 +33,7 @@ const DocumentsPanel = ({ currentUser }) => {
 
   useEffect(() => {
     fetchDocuments();
-  }, []);
+  }, [currentUser?.id]);
 
   const handleUploadDocuments = async (e) => {
     const files = Array.from(e.target.files);
@@ -162,9 +167,9 @@ const DocumentsPanel = ({ currentUser }) => {
   return (
     <div className="space-y-8">
       {/* Upload Section */}
-      <div className="bg-white dark:bg-slate-600 border border-blue-100 dark:border-slate-500 p-6 rounded-2xl">
+      <div className="bg-white dark:bg-[#161b22] border border-blue-100 dark:border-slate-700 p-6 rounded-2xl">
         <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-300 mb-4">Upload Documents</h3>
-        <div className="relative border-2 border-dashed border-blue-200 dark:border-slate-400 rounded-xl p-8 text-center hover:border-blue-300 dark:hover:border-slate-300 transition-colors">
+        <div className="relative border-2 border-dashed border-blue-200 dark:border-slate-600 rounded-xl p-8 text-center hover:border-blue-300 dark:hover:border-slate-300 transition-colors">
           <div className="flex flex-col items-center gap-4">
             <div className="w-16 h-16 bg-blue-100 dark:bg-slate-700 rounded-full flex items-center justify-center">
               <svg className="w-8 h-8 text-blue-600 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -203,7 +208,7 @@ const DocumentsPanel = ({ currentUser }) => {
         </h3>
         {documents.length === 0 ? (
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
               <BookOpen size={32} className="text-slate-400 dark:text-slate-500" />
             </div>
             <p className="text-slate-400 dark:text-slate-500 text-lg mb-2">No documents uploaded yet</p>
@@ -215,7 +220,7 @@ const DocumentsPanel = ({ currentUser }) => {
               <div key={doc.id} className={cardBorderClass}>
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 bg-blue-100 dark:bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="w-10 h-10 text-gray-700 bg-blue-100 dark:bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0">
                       {getFileIcon(doc.name)}
                     </div>
                     <div className="min-w-0 flex-1">
