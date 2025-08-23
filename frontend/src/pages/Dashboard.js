@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 
 import ChatPanel from '../components/chat/ChatPanel';
-import { supabase } from '../supabaseClient';
 
 import ContactForm from '../components/dashboard/ContactForm';
 import BirthdayReminder from '../components/dashboard/BirthdayReminder';
@@ -24,7 +23,6 @@ import { useBlockedContacts } from "../components/dashboard/BlockedContactsConte
 // Import services
 import { getContacts, deleteContact } from '../services/contactService';
 import { getCategories } from '../services/categoryService';
-import { getFavouritesByUser, addFavourite, removeFavourite } from "../services/favouriteService";
 
 // Utility function to check if birthday is today
 function isBirthdayToday(birthday) {
@@ -45,20 +43,6 @@ function isBirthdayToday(birthday) {
 }
 
 
-
-// ✅ Utility: Birthday check (from Code 2)
-function isBirthdayToday(birthday) {
-  if (!birthday) return false;
-  try {
-    const today = new Date();
-    const bdate = new Date(birthday);
-    if (isNaN(bdate.getTime())) return false;
-    return bdate.getDate() === today.getDate() && bdate.getMonth() === today.getMonth();
-  } catch {
-    return false;
-  }
-}
-
 const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const { blockedContacts } = useBlockedContacts();
   const navigate = useNavigate();
@@ -74,7 +58,10 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [contactViewFilter, setContactViewFilter] = useState("all");
-  const [viewMode, setViewMode] = useState("card");
+  const [viewMode, setViewMode] = useState(() => {
+    const activeTab = localStorage.getItem("dashboardActiveTab") || "contacts";
+    return activeTab === "documents" ? "my" : "card";
+  });
 
   const [showAddContact, setShowAddContact] = useState(false);
   const [editingContact, setEditingContact] = useState(null);
@@ -135,6 +122,10 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
 
   useEffect(() => {
     localStorage.setItem("dashboardActiveTab", activeTab);
+    // When switching to documents tab, default to 'my' view
+    if (activeTab === "documents") {
+      setViewMode("my");
+    }
   }, [activeTab]);
 
   // Dropdown close on outside click
