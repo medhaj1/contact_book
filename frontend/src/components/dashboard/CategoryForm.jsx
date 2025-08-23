@@ -1,10 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { addCategory } from '../../services/categoryService';
 
 const CategoryForm = ({ onSave, onCancel, existingCategories = [], userId }) => {
-  const [categoryName, setCategoryName] = useState('');
+  const [categoryName, setCategoryName] = useState(() => {
+    return localStorage.getItem('categoryFormCategoryName') || '';
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  // Persist category name
+  useEffect(() => {
+    localStorage.setItem('categoryFormCategoryName', categoryName);
+  }, [categoryName]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,6 +51,7 @@ const CategoryForm = ({ onSave, onCancel, existingCategories = [], userId }) => 
       const result = await addCategory(trimmedName);
       
       if (result.success) {
+        localStorage.removeItem('categoryFormCategoryName');
         onSave(result.data);
       } else {
         setError(result.error);

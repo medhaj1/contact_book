@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BookOpen, Trash2 } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 
@@ -7,7 +7,7 @@ const DocumentsPanel = ({ currentUser }) => {
   const [isUploading, setIsUploading] = useState(false);
 
   // Fetch documents from Supabase
-  const fetchDocuments = async () => {
+  const fetchDocuments = useCallback(async () => {
     try {
       // Fetch uploaded documents only
       const { data: uploadedDocs, error: uploadedError } = await supabase
@@ -29,11 +29,11 @@ const DocumentsPanel = ({ currentUser }) => {
       console.error('Error fetching documents:', error);
       setDocuments([]);
     }
-  };
+  }, [currentUser?.id]);
 
   useEffect(() => {
     fetchDocuments();
-  }, [currentUser?.id]);
+  }, [currentUser?.id, fetchDocuments]);
 
   const handleUploadDocuments = async (e) => {
     const files = Array.from(e.target.files);
@@ -68,8 +68,7 @@ const DocumentsPanel = ({ currentUser }) => {
             name: file.name,
             url: urlData.publicUrl,
             uploaded_by: currentUser?.id,
-            uploaded_at: new Date().toISOString(),
-            contact_id: null // or set if linking to a contact
+            uploaded_at: new Date().toISOString()
           }]);
 
         if (dbError) {

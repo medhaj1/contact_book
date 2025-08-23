@@ -1,41 +1,63 @@
 // src/services/favouriteService.js
 import { supabase } from '../supabaseClient'; //  Make sure supabaseClient.js is inside src/
 
-// Get all favourites for a user
+// Get all favourites for a user (now returns contact objects with is_favourite = true)
 export async function getFavouritesByUser(userId) {
-  const { data, error } = await supabase
-    .from('favourites')
-    .select('contact_id')
-    .eq('user_id', userId);
+  try {
+    const { data, error } = await supabase
+      .from('contact')
+      .select('contact_id')
+      .eq('user_id', userId)
+      .eq('is_favourite', true);
 
-  if (error) {
+    if (error) {
+      console.error('Error fetching favourites:', error);
+      return { success: false, data: [] };
+    }
+    return { success: true, data: data.map(contact => contact.contact_id) };
+  } catch (error) {
     console.error('Error fetching favourites:', error);
-    return [];
+    return { success: false, data: [] };
   }
-  return data.map(fav => fav.contact_id);
 }
 
-// Add a favourite
+// Add a favourite (update is_favourite to true)
 export async function addFavourite(userId, contactId) {
-  const { error } = await supabase
-    .from('favourites')
-    .insert([{ user_id: userId, contact_id: contactId }]);
+  try {
+    const { error } = await supabase
+      .from('contact')
+      .update({ is_favourite: true })
+      .eq('contact_id', contactId)
+      .eq('user_id', userId);
 
-  if (error) {
+    if (error) {
+      console.error('Error adding favourite:', error);
+      return { success: false };
+    }
+    return { success: true };
+  } catch (error) {
     console.error('Error adding favourite:', error);
+    return { success: false };
   }
 }
 
-// Remove a favourite
+// Remove a favourite (update is_favourite to false)
 export async function removeFavourite(userId, contactId) {
-  const { error } = await supabase
-    .from('favourites')
-    .delete()
-    .eq('user_id', userId)
-    .eq('contact_id', contactId);
+  try {
+    const { error } = await supabase
+      .from('contact')
+      .update({ is_favourite: false })
+      .eq('contact_id', contactId)
+      .eq('user_id', userId);
 
-  if (error) {
+    if (error) {
+      console.error('Error removing favourite:', error);
+      return { success: false };
+    }
+    return { success: true };
+  } catch (error) {
     console.error('Error removing favourite:', error);
+    return { success: false };
   }
 } 
 

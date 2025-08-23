@@ -1,15 +1,12 @@
 // src/pages/App.jsx
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-
 import SignUp from '../components/signup/SignUp';
 import SignIn from '../components/signin/SignIn';
 import Dashboard from './Dashboard';
 import LandingPage from './LandingPage';
 import UserProfile from './UserProfile';
-
 import { supabase } from '../supabaseClient';
-
 import ResetPassword from './ResetPassword';
 import { BlockedContactsProvider } from '../components/dashboard/BlockedContactsContext';
 
@@ -37,6 +34,40 @@ function App() {
     };
   }, []);
 
+  const clearPersistenceData = () => {
+    // Clear all application persistence data
+    const keysToRemove = [
+      // Dashboard states
+      'dashboardSearchTerm',
+      'dashboardSelectedCategory', 
+      'dashboardContactViewFilter',
+      'dashboardViewMode',
+      'dashboardShowAddContact',
+      'dashboardEditingContact',
+      'dashboardShowImportModal',
+      // Settings states
+      'settingsActiveSubPage',
+      // Contact form data
+      'contactFormData',
+      // Task panel data
+      'taskPanelNewTask',
+      'taskPanelDeadline',
+      // Categories panel data
+      'categoriesPanelShowAddCategory',
+      'categoryFormCategoryName',
+      // User profile states
+      'userProfileIsEditing',
+      'userProfileIsResettingPassword',
+      // Chat states
+      'chatPanelSelectedContact',
+      'chatPanelNewMessage'
+    ];
+    
+    keysToRemove.forEach(key => {
+      localStorage.removeItem(key);
+    });
+  };
+
   const handleLogout = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -44,6 +75,8 @@ function App() {
         console.error('Logout error:', error);
         alert('Error logging out. Please try again.');
       } else {
+        // Clear all persistence data on logout
+        clearPersistenceData();
         setIsLoggedIn(false);
         setCurrentUser(null);
       }

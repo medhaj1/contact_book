@@ -57,9 +57,14 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
 
 
   const [contacts, setContacts] = useState([]);
-  const [selectedContact, setSelectedContact] = useState(null);
+  const [selectedContact, setSelectedContact] = useState(() => {
+    const saved = localStorage.getItem('chatPanelSelectedContact');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [messages, setMessages] = useState(initialMessages);
-  const [newMessage, setNewMessage] = useState('');
+  const [newMessage, setNewMessage] = useState(() => {
+    return localStorage.getItem('chatPanelNewMessage') || '';
+  });
   const [realtimeSub, setRealtimeSub] = useState(null);
   const [imageErrors, setImageErrors] = useState(new Set());
   const chatEndRef = useRef();
@@ -100,6 +105,45 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
     };
     fetchContacts();
   }, [currentUserId]);
+
+  // Persist selected contact and new message input
+  useEffect(() => {
+    if (selectedContact) {
+      localStorage.setItem('chatPanelSelectedContact', JSON.stringify(selectedContact));
+    } else {
+      localStorage.removeItem('chatPanelSelectedContact');
+    }
+  }, [selectedContact]);
+
+  useEffect(() => {
+    localStorage.setItem('chatPanelNewMessage', newMessage);
+  }, [newMessage]);
+
+  // Restore selected contact from contacts list after contacts are loaded
+  useEffect(() => {
+    if (contacts.length > 0 && !selectedContact) {
+      const savedContact = localStorage.getItem('chatPanelSelectedContact');
+      if (savedContact) {
+        try {
+          const parsedContact = JSON.parse(savedContact);
+          // Find the contact in the current contacts list to ensure it's still valid
+          const foundContact = contacts.find(c => 
+            c.contact_user_id === parsedContact.contact_user_id || 
+            c.contact_id === parsedContact.contact_id
+          );
+          if (foundContact) {
+            setSelectedContact(foundContact);
+          } else {
+            // Contact no longer exists, clear the saved state
+            localStorage.removeItem('chatPanelSelectedContact');
+          }
+        } catch (error) {
+          console.error('Error parsing saved contact:', error);
+          localStorage.removeItem('chatPanelSelectedContact');
+        }
+      }
+    }
+  }, [contacts, selectedContact]);
 
   // Fetch message history and mark received messages as seen
   useEffect(() => {
@@ -210,6 +254,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
       // Use backend-generated message (with valid id)
       setMessages(prev => [...prev, data[0]]);
       setNewMessage('');
+      localStorage.removeItem('chatPanelNewMessage');
     } else {
       console.error("Failed to send message:", error?.message);
     }

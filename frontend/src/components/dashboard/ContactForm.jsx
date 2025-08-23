@@ -1,21 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Camera, X } from 'lucide-react';
 import { NoSymbolIcon } from '@heroicons/react/24/solid';
 import { useBlockedContacts } from './BlockedContactsContext';
 import { addContact, updateContact } from '../../services/contactService';
 
 const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => {
-  const [formData, setFormData] = useState({
-    name: contact?.name != null ? String(contact.name) : '',
-    email: contact?.email != null ? String(contact.email) : '',
-    phone: contact?.phone != null ? String(contact.phone) : '',
-    birthday: contact?.birthday || '',
-    category_ids:
-      contact?.category_ids != null
-        ? contact.category_ids.map(String)
-        : [], // ✅ multiple categories
-    image: contact?.photo_url || contact?.image || null
-  });
+  // Initialize form data with persistence
+  const getInitialFormData = () => {
+    if (contact) {
+      // If editing existing contact, use contact data
+      return {
+        name: contact?.name != null ? String(contact.name) : '',
+        email: contact?.email != null ? String(contact.email) : '',
+        phone: contact?.phone != null ? String(contact.phone) : '',
+        birthday: contact?.birthday || '',
+        category_ids:
+          contact?.category_ids != null
+            ? contact.category_ids.map(String)
+            : [],
+        image: contact?.photo_url || contact?.image || null
+      };
+    } else {
+      // If adding new contact, try to restore from localStorage
+      const saved = localStorage.getItem('contactFormData');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          // If parsing fails, return default
+        }
+      }
+      return {
+        name: '',
+        email: '',
+        phone: '',
+        birthday: '',
+        category_ids: [],
+        image: null
+      };
+    }
+  };
+
+  const [formData, setFormData] = useState(getInitialFormData);
+
+  // Persist form data when adding new contact (not when editing)
+  useEffect(() => {
+    if (!contact && (formData.name || formData.email || formData.phone)) {
+      localStorage.setItem('contactFormData', JSON.stringify(formData));
+    }
+  }, [formData, contact]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -56,6 +89,8 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
       }
 
       if (result.success) {
+        // Clear persisted form data on successful submission
+        localStorage.removeItem('contactFormData');
         onSave();
       } else {
         alert(`Failed to ${contact ? 'update' : 'add'} contact: ${result.error}`);

@@ -9,8 +9,12 @@ import { getUserProfile, updateUserProfile, uploadUserAvatar } from "../services
 
 const UserProfile = ({ currentUser, onLogout }) => {
   const navigate = useNavigate();
-  const [isEditing, setIsEditing] = useState(false);
-  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [isEditing, setIsEditing] = useState(() => {
+    return localStorage.getItem('userProfileIsEditing') === 'true';
+  });
+  const [isResettingPassword, setIsResettingPassword] = useState(() => {
+    return localStorage.getItem('userProfileIsResettingPassword') === 'true';
+  });
   const [userData, setUserData] = useState({
     name: currentUser?.name,
     email: currentUser?.email || "No email provided",
@@ -82,6 +86,15 @@ const UserProfile = ({ currentUser, onLogout }) => {
     }
   }, [isEditing, userData.photo]);
 
+  // Persist editing states
+  useEffect(() => {
+    localStorage.setItem('userProfileIsEditing', isEditing.toString());
+  }, [isEditing]);
+
+  useEffect(() => {
+    localStorage.setItem('userProfileIsResettingPassword', isResettingPassword.toString());
+  }, [isResettingPassword]);
+
   // In edit mode, just set preview (tempPhoto) and store file to userData.newPhotoFile.
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
@@ -147,6 +160,8 @@ const UserProfile = ({ currentUser, onLogout }) => {
           newPhotoFile: null,
         }));
         setTempPhoto(avatarUrl);
+        setIsEditing(false);
+        localStorage.removeItem('userProfileIsEditing');
         alert("Profile updated successfully!");
       } else {
         alert("Error updating profile: " + result.error);
@@ -179,6 +194,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
     setTempPhoto(userData.photo);
     setUserData((prev) => ({ ...prev, newPhotoFile: null }));
     setIsEditing(false);
+    localStorage.removeItem('userProfileIsEditing');
   };
 
   const handleChange = (e) => {
@@ -209,6 +225,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
   const handleCancelResetPassword = () => {
     setPasswords({ current: "", new: "", confirmNew: "" });
     setIsResettingPassword(false);
+    localStorage.removeItem('userProfileIsResettingPassword');
   };
 
   const handleSaveNewPassword = () => {
@@ -226,6 +243,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
     alert("Password changed successfully!");
     setPasswords({ current: "", new: "", confirmNew: "" });
     setIsResettingPassword(false);
+    localStorage.removeItem('userProfileIsResettingPassword');
   };
 
   const handleLogout = () => {
