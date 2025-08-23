@@ -10,7 +10,6 @@ import UserProfile from './UserProfile';
 
 import { supabase } from '../supabaseClient';
 
-import ResetPassword from './ResetPassword';
 import { BlockedContactsProvider } from '../components/dashboard/BlockedContactsContext';
 
 const AuthListener = ({ setIsLoggedIn, setCurrentUser }) => {
