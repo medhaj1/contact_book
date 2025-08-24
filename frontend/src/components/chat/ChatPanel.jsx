@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../supabaseClient';
 import { sendInviteEmail } from '../../services/inviteService';
+import { FiPaperclip } from "react-icons/fi";
 
 function isOnline(lastSeen) {
   if (!lastSeen) return false;
@@ -78,6 +79,26 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
   const [imageErrors, setImageErrors] = useState(new Set());
   const chatEndRef = useRef();
   const fileInputRef = useRef(null);
+
+  // Preferences from localStorage
+  const isFirstLast = (localStorage.getItem("nameFormat") || "first_last") === "first_last";
+  const isDayMonthYear = (localStorage.getItem("dateFormat") || "dd_mm_yyyy") === "dd_mm_yyyy";
+
+  const formatName = (name) => {
+    if (!name) return "";
+    if (isFirstLast) return name;
+    const parts = name.split(" ");
+    return parts.length > 1 ? `${parts.pop()}, ${parts.join(" ")}` : name;
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return isDayMonthYear ? `${day}/${month}/${year}` : `${month}/${day}/${year}`;
+  };
 
   // Fetch contacts
   useEffect(() => {
@@ -286,16 +307,15 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
   };
 
   return (
-    <div className="flex w-full h-[500px] bg-white rounded-lg shadow-lg overflow-hidden min-h-[440px]">
+    <div className="flex w-full h-[650px] bg-white dark:bg-[#161b22] border dark:border-[#30363d] rounded-lg shadow-lg overflow-hidden">
       {/* Contact List */}
-      <div className="w-96 bg-blue-50 border-r border-blue-200 p-4 overflow-y-auto">
-        <h3 className="font-semibold text-lg mb-3 text-blue-800">Chats</h3>
+      <div className="w-96 bg-blue-50 dark:bg-[#141820] border-r border-gray-200 dark:border-[#30363d] p-4 overflow-y-auto">
         <ul>
           {contacts.map((c) => (
             <li
               key={c.contact_user_id}
-              className={`flex gap-4 items-center p-2 rounded-lg mb-1 cursor-pointer hover:bg-blue-100 ${
-                selectedContact?.contact_user_id === c.contact_user_id ? 'bg-blue-200' : ''
+              className={`flex gap-4 items-center p-2 rounded-xl mb-1 cursor-pointer hover:bg-blue-100 dark:hover:bg-[#1f2937] ${
+                selectedContact?.contact_user_id === c.contact_user_id ? 'bg-blue-200 dark:bg-slate-800' : ''
               }`}
               onClick={() => setSelectedContact(c)}
             >
@@ -316,10 +336,10 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
                 )}
               </div>
               <div className="flex-1">
-                <div className="font-medium text-blue-900 truncate">
-                  {c.user_profile?.name || c.name}
+                <div className="font-medium text-blue-900 dark:text-gray-300 truncate">
+                  {formatName(c.user_profile?.name || c.name)}
                 </div>
-                <div className="text-xs text-slate-500 truncate">
+                <div className="text-xs text-slate-500 dark:text-gray-400  truncate">
                   {c.user_profile?.email}
                 </div>
               </div>
@@ -334,7 +354,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
         </ul>
         {/* Invite Users Section - Chat List Style */}
         <div className="mt-8">
-          <h4 className="font-semibold text-md mb-2 text-blue-800">Invite Users</h4>
+          <h4 className="font-semibold text-md mb-2 text-blue-900 dark:text-indigo-500">Invite Users</h4>
           {inviteContacts.length === 0 ? (
             <div className="text-slate-400 text-sm">No users to invite.</div>
           ) : (
@@ -342,20 +362,20 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
               {inviteContacts.map((c) => (
                 <li
                   key={c.contact_id}
-                  className="flex items-center p-2 rounded-lg mb-1 cursor-pointer hover:bg-blue-100"
+                  className="flex items-center p-2 rounded-lg mb-1 cursor-pointer hover:bg-blue-100 dark:hover:bg-[#1f2937] transition-colors"
                 >
                   <div className="relative mr-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-200 border border-sky-200 flex items-center justify-center">
-                      <span className="text-blue-600 font-semibold text-sm">
+                    <div className="w-10 h-10 rounded-full bg-blue-200 dark:bg-indigo-300 flex items-center justify-center">
+                      <span className="text-blue-700 dark:text-indigo-700 font-semibold text-sm">
                         {(c.name || c.email || 'U').charAt(0).toUpperCase()}
                       </span>
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-blue-900 truncate w-full">{c.name}</div>
+                    <div className="font-medium text-blue-950 dark:text-indigo-200 truncate w-full">{formatName(c.name)}</div>
                     <a
                       href={`mailto:${c.email}`}
-                      className="text-xs text-blue-600 underline truncate w-full hover:text-blue-800"
+                      className="text-sm text-blue-800 dark:text-slate-400/80 underline truncate w-full hover:text-blue-900"
                       title={`Send email to ${c.email}`}
                     >
                       {c.email}
@@ -364,7 +384,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
                   <div className="flex-shrink-0 flex items-center justify-end" style={{ minWidth: '80px' }}>
                     <a
                       href={`mailto:${c.email}?subject=Contact%20Book%20Invite&body=Hi,%0A%0AI'd%20like%20to%20invite%20you%20to%20join%20the%20Contact%20Book%20app.%20Please%20sign%20up%20to%20connect%20with%20me!%0A%0AThanks!`}
-                      className="w-[70px] px-0 py-1 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 shadow text-center flex items-center justify-center"
+                      className="w-[70px] px-0 py-1 rounded-lg bg-gradient-to-r from-blue-700 to-blue-400 dark:from-indigo-950 dark:via-indigo-900 dark:to-indigo-700 text-white text-xs font-semibold hover:from-blue-800 hover:to-blue-500 dark:hover:from-indigo-900 dark:hover:via-indigo-700 dark:hover:to-indigo-500 shadow text-center flex items-center justify-center"
                       title={`Send invite via email to ${c.email}`}
                     >
                       Invite
@@ -378,11 +398,11 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
       </div>
       
       {/* Chat Area */}
-      <div className="flex-[2] flex flex-col h-full min-w-0">
+      <div className="flex-[2] flex flex-col h-full min-w-0 ">
         {selectedContact ? (
           <>
             {/* Chat Header */}
-            <div className="flex gap-3 items-center border-b p-4 bg-blue-100 min-h-[70px]">
+            <div className="flex gap-3 items-center border-b dark:border-[#202733] p-4 bg-blue-50 dark:bg-[#161b22] min-h-[70px]">
               <div className="relative">
                 {!imageErrors.has(selectedContact.contact_user_id) ? (
                   <img
@@ -392,7 +412,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
                     onError={(e) => handleImageError(selectedContact.contact_user_id, e)}
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-blue-200 border border-sky-300 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full bg-blue-200 border border-blue-300 dark:border-[#1a1f2c] flex items-center justify-center">
                     <span className="text-blue-600 font-semibold text-lg">
                       {(selectedContact.user_profile?.name || selectedContact.name || 'U').charAt(0).toUpperCase()}
                     </span>
@@ -400,10 +420,10 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
                 )}
               </div>
               <div>
-                <div className="text-blue-900 font-bold">
-                  {selectedContact.user_profile?.name || selectedContact.name}
+                <div className="text-blue-900 dark:text-gray-100 font-semibold text-lg">
+                  {formatName(selectedContact.user_profile?.name || selectedContact.name)}
                 </div>
-                <div className="text-xs text-slate-500">{selectedContact.user_profile?.email}</div>
+                <div className="text-xs text-slate-500 dark:text-gray-400">{selectedContact.user_profile?.email}</div>
                 <div className="text-xs">
                   <span className={isOnline(selectedContact.user_profile?.last_seen) ? "text-green-500" : "text-slate-500"}>
                     {isOnline(selectedContact.user_profile?.last_seen) ? "Online" : "Offline"}
@@ -413,11 +433,11 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 bg-slate-50">
+            <div className="flex-1 overflow-y-auto p-4 bg-slate-50 dark:bg-[#161b22]">
               {/* Selection controls */}
               <div className="mb-2 flex gap-2">
                 <button
-                  className={`px-3 py-1 rounded ${selectMode ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'}`}
+                  className={`px-3 py-1 rounded-xl ${selectMode ? 'btn hover:scale-100' : 'bg-slate-200 dark:bg-gray-700 dark:text-gray-400 text-slate-700'}`}
                   onClick={() => {
                     setSelectMode((m) => !m);
                     setSelectedMessages([]);
@@ -427,7 +447,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
                 </button>
                 {selectMode && (
                   <button
-                    className="px-3 py-1 rounded bg-red-500 text-white"
+                    className="px-3 py-1 rounded-xl bg-red-100 dark:bg-red-950/50 dark:border-red-950 border border-red-300 text-red-600 dark:text-red-300 dark:hover:bg-red-950 dark:hover:border-red-900 hover:bg-red-200"
                     onClick={handleDeleteSelected}
                     disabled={selectedMessages.length === 0}
                   >
@@ -455,78 +475,83 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
                       alert('Failed to delete message: ' + error.message);
                     }
                   };
+                  
                   return (
                     <div
                       key={messageKey}
                       className={`flex ${m.sender_id === currentUserId ? 'justify-end' : 'justify-start'} mb-1`}
                     >
-                      <div
-                        className={`rounded-xl px-4 py-2 max-w-[72%] text-sm whitespace-pre-line relative ${
-                          m.sender_id === currentUserId
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-white border border-slate-200'
-                        }`}
-                      >
-                        {isFile ? (
-                          <a
-                            href={fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-500 underline break-all"
-                            download={fileName}
-                          >
-                            📎 {fileName}
-                          </a>
-                        ) : (
-                          m.content
-                        )}
-                        {/* Three-dot menu for sent messages */}
-                        {m.sender_id === currentUserId && (
-                          <div className="absolute top-2 right-2">
-                            <button
-                              type="button"
-                              className="text-white bg-transparent hover:text-slate-300 text-lg px-1"
-                              onClick={() => setOpenMenuId(openMenuId === m.id ? null : m.id)}
-                              aria-label="Message options"
+                      <div className="relative group flex">
+                        <div
+                          className={`rounded-2xl px-4 py-2 mr-3 text-sm whitespace-pre-line shadow-sm transition-all ${
+                            m.sender_id === currentUserId
+                              ? 'bg-blue-600 text-white hover:bg-blue-700'
+                              : 'bg-gray-100 dark:bg-[#1f2937] dark:text-gray-200 border border-slate-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-[#2d3748]'
+                          }`}
+                        >
+                          {isFile ? (
+                            <a
+                              href={fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-500 underline break-all"
+                              download={fileName}
                             >
-                              &#8942;
-                            </button>
-                            {openMenuId === m.id && (
-                              <div className="absolute right-0 mt-2 bg-white border rounded shadow-lg z-10">
-                                <button
-                                  className="block px-4 py-2 text-red-600 hover:bg-red-100 w-full text-left"
-                                  onClick={() => { handleDeleteMessage(m.id); setOpenMenuId(null); }}
-                                >
-                                  Delete
-                                </button>
-                              </div>
+                              📎 {fileName}
+                            </a>
+                          ) : (
+                            m.content
+                          )}
+                          {/* Three-dot menu for sent messages - WhatsApp-like */}
+                          {m.sender_id === currentUserId && (
+                            <>
+                              <button
+                                type="button"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-200 dark:text-gray-400 dark:hover:text-gray-200 absolute right-1 top-1 text-lg px-2 mr-1 py-1 rounded-full"
+                                onClick={() => setOpenMenuId(openMenuId === m.id ? null : m.id)}
+                                aria-label="Message options"
+                              >
+                                &#8942;
+                              </button>
+                              {openMenuId === m.id && (
+                                <div className="absolute right-1 top-8 z-30 min-w-[110px] bg-gray-50 dark:bg-[#232d36] border border-gray-200 dark:border-gray-700 rounded-xl shadow-md py-1 px-0.5">
+                                  <button
+                                    className="block w-full px-4 py-2 text-left text-red-600 dark:text-red-400 hover:bg-gray-200 dark:hover:bg-[#29343a] rounded-lg text-sm transition-colors"
+                                    onClick={() => { handleDeleteMessage(m.id); setOpenMenuId(null); }}
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          )}
+                          <div className="flex items-center justify-end gap-1 text-xs text-right text-slate-300 mt-1">
+                            <span>
+                              {new Date(m.timestamp).toLocaleTimeString(undefined, {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })} | {formatDate(m.timestamp)}
+                            </span>
+                            {m.sender_id === currentUserId && (
+                              <span title={m.seen ? 'Seen' : 'Sent'} className="ml-1 flex items-center">
+                                {m.seen ? (
+                                  <span className="flex items-center">
+                                    {/* Double tick SVG */}
+                                    <svg width="15" height="15" viewBox="0 0 18 18" fill="none">
+                                      <path d="M5 9.5L8 12.5L13 7.5" stroke="#e3f706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                    <svg width="15" height="15" viewBox="0 0 18 18" fill="none" style={{marginLeft: '-4px'}}>
+                                      <path d="M9 9.5L12 12.5L17 7.5" stroke="#e3f706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                  </span>
+                                ) : (
+                                  <svg width="15" height="15" viewBox="0 0 18 18" fill="none">
+                                    <path d="M5 9.5L8 12.5L13 7.5" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                )}
+                              </span>
                             )}
                           </div>
-                        )}
-                        <div className="flex items-center justify-end gap-1 text-xs text-right text-slate-300 mt-1">
-                          <span>{new Date(m.timestamp).toLocaleTimeString(undefined, {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}</span>
-                          {m.sender_id === currentUserId && (
-                            <span title={m.seen ? 'Seen' : 'Sent'} className="ml-1 flex items-center">
-                              {m.seen ? (
-                                <span className="flex items-center">
-                                  {/* Double tick SVG */}
-                                  <svg width="15" height="15" viewBox="0 0 18 18" fill="none">
-                                    <path d="M5 9.5L8 12.5L13 7.5" stroke="#e3f706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                  </svg>
-                                  <svg width="15" height="15" viewBox="0 0 18 18" fill="none" style={{marginLeft: '-4px'}}>
-                                    <path d="M9 9.5L12 12.5L17 7.5" stroke="#e3f706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                  </svg>
-                                </span>
-                              ) : (
-                                <svg width="15" height="15" viewBox="0 0 18 18" fill="none">
-                                  <path d="M5 9.5L8 12.5L13 7.5" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                              )}
-                            </span>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -537,9 +562,9 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
             </div>
 
             {/* New message input and file upload */}
-            <form className="flex gap-2 border-t p-3 bg-blue-100" onSubmit={sendMessage}>
+            <form className="flex gap-2 border-t border-none p-4 bg-blue-50 dark:bg-[#161b22] dark:border-[#202733]" onSubmit={sendMessage}>
               <input
-                className="flex-1 rounded-lg px-4 py-2 border border-blue-300 outline-none text-blue-800"
+                className="flex-1 rounded-2xl px-4 py-2 border border-gray-200 dark:border-[#30363d] dark:bg-[#1a1f2c] dark:text-gray-300 outline-none"
                 type="text"
                 placeholder="Type a message..."
                 value={newMessage}
@@ -554,15 +579,15 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
               />
               <button
                 type="button"
-                className="bg-blue-600 text-white px-2 py-1 rounded-lg hover:bg-blue-700"
+                className="btn text-white px-5 py-1 rounded-2xl hover:bg-blue-700"
                 onClick={() => fileInputRef.current?.click()}
                 title="Upload file"
               >
-                📎
+                <FiPaperclip />
               </button>
               <button
                 type="submit"
-                className="bg-blue-600 text-white px-4 py-1 rounded-lg hover:bg-blue-700 font-semibold"
+                className="btn text-white px-6 py-1 rounded-2xl hover:bg-blue-700 font-semibold"
               >
                 Send
               </button>

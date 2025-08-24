@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Camera, X } from 'lucide-react';
 import { NoSymbolIcon } from '@heroicons/react/24/solid';
 import { useBlockedContacts } from './BlockedContactsContext';
 import { addContact, updateContact } from '../../services/contactService';
 
 const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => {
+  const dateFormat = localStorage.getItem("dateFormat") || "dd_mm_yyyy";
+
   const [formData, setFormData] = useState({
     name: contact?.name != null ? String(contact.name) : '',
     email: contact?.email != null ? String(contact.email) : '',
@@ -13,26 +15,20 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
     category_ids:
       contact?.category_ids != null
         ? contact.category_ids.map(String)
-        : [], // ✅ multiple categories
+        : [],
     image: contact?.photo_url || contact?.image || null
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
 
-  // ✅ Blocked Contacts Context
-  const { blockedContacts, setBlockedContacts } = useBlockedContacts();
-  const isBlocked = contact && blockedContacts.some(c => c.contact_id === contact.contact_id);
+  const { blockedContacts, block, unblock } = useBlockedContacts();
+  const isBlocked = contact && blockedContacts.some(blockedContact => blockedContact.contact_id === contact.contact_id);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // String-safe validation
-    if (
-      !String(formData.name || '').trim() ||
-      !String(formData.email || '').trim() ||
-      !String(formData.phone || '').trim()
-    ) {
+    if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim()) {
       alert('Name, email, and phone are required');
       return;
     }
@@ -41,11 +37,11 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
 
     try {
       const contactData = {
-        name: String(formData.name).trim(),
-        email: String(formData.email).trim(),
-        phone: String(formData.phone).trim(),
+        name: formData.name.trim(), // always store as First Last
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
         birthday: formData.birthday,
-        category_ids: formData.category_ids // ✅ multi-category
+        category_ids: formData.category_ids
       };
 
       let result;
@@ -84,7 +80,6 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
     setSelectedFile(null);
   };
 
-  // ✅ Category tag handling
   const addCategory = (id) => {
     if (!formData.category_ids.includes(id)) {
       setFormData({
@@ -101,8 +96,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
     });
   };
 
-  // ✅ Block/unblock handler
-  const handleBlockContact = () => {
+  const handleBlockContact = async () => {
     if (!contact) {
       alert("You can only block saved contacts.");
       return;
@@ -110,20 +104,24 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
 
     if (isBlocked) {
       if (window.confirm(`Are you sure you want to unblock ${contact.name}?`)) {
-        setBlockedContacts((prev) => prev.filter(c => c.contact_id !== contact.contact_id));
-        alert(`${contact.name} has been unblocked.`);
+        const result = await unblock(contact.contact_id);
+        if (result.success) {
+          alert(`${contact.name} has been unblocked.`);
+        } else {
+          alert(`Failed to unblock ${contact.name}: ${result.error}`);
+        }
       }
     } else {
-      setBlockedContacts((prev) => {
-        if (prev.some(c => c.contact_id === contact.contact_id)) {
-          alert("This contact is already blocked.");
-          return prev;
-        }
-        return [...prev, contact];
-      });
-      alert(`${contact.name} has been blocked.`);
+      const result = await block(contact.contact_id);
+      if (result.success) {
+        alert(`${contact.name} has been blocked.`);
+      } else {
+        alert(`Failed to block ${contact.name}: ${result.error}`);
+      }
     }
   };
+
+  const birthdayPlaceholder = dateFormat === "dd_mm_yyyy" ? "DD/MM/YYYY" : "MM/DD/YYYY";
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-[1000]">
@@ -201,7 +199,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
           <div className="mb-4">
             <input
               type="date"
-              placeholder="Birthday"
+              placeholder={birthdayPlaceholder}
               value={formData.birthday}
               onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
               className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 transform transition duration-200"
@@ -239,7 +237,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
               }}
               className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 bg-white text-slate-600 transform transition duration-200"
             >
-              <option value="">+ Add more</option>
+              <option value=""> + Add Category</option>
               {categories.map((category) => (
                 <option key={category.category_id} value={category.category_id}>
                   {category.category_name || category.name}
