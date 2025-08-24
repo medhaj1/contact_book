@@ -445,27 +445,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 bg-slate-50">
-              {/* Selection controls */}
-              <div className="mb-2 flex gap-2">
-                <button
-                  className={`px-3 py-1 rounded ${selectMode ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'}`}
-                  onClick={() => {
-                    setSelectMode((m) => !m);
-                    setSelectedMessages([]);
-                  }}
-                >
-                  {selectMode ? 'Cancel Selection' : 'Select Messages'}
-                </button>
-                {selectMode && (
-                  <button
-                    className="px-3 py-1 rounded bg-red-500 text-white"
-                    onClick={handleDeleteSelected}
-                    disabled={selectedMessages.length === 0}
-                  >
-                    Delete Selected
-                  </button>
-                )}
-              </div>
+              {/* Removed selection controls (Cancel Selection and Delete Selected buttons) */}
               {messages.length === 0 ? (
                 <div className="text-slate-500 py-24 text-center">No messages yet.</div>
               ) : (

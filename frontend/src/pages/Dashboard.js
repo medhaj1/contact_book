@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import ChatPanel from '../components/chat/ChatPanel';
+
 import ContactForm from '../components/dashboard/ContactForm';
 import BirthdayReminder from '../components/dashboard/BirthdayReminder';
 import TaskPanel from '../components/dashboard/TaskPanel';
@@ -15,7 +16,6 @@ import ContactsControlBar from '../components/dashboard/ContactsControlBar';
 import ContactsGrid from '../components/dashboard/ContactsGrid';
 import ContactsList from '../components/dashboard/ContactsList';
 import FloatingActionButton from '../components/dashboard/FloatingActionButton';
-import TodaysBirthdaysCard from '../components/dashboard/TodaysBirthdaysCard';
 import { addFavourite, removeFavourite } from "../services/favouriteService";
 import { exportContactsCSV, exportContactsVCF } from '../services/importExportService';
 
@@ -23,20 +23,6 @@ import { exportContactsCSV, exportContactsVCF } from '../services/importExportSe
 // Import services
 import { getContacts, deleteContact } from '../services/contactService';
 import { getCategories } from '../services/categoryService';
-
-
-// ✅ Utility: Birthday check (from Code 2)
-function isBirthdayToday(birthday) {
-  if (!birthday) return false;
-  try {
-    const today = new Date();
-    const bdate = new Date(birthday);
-    if (isNaN(bdate.getTime())) return false;
-    return bdate.getDate() === today.getDate() && bdate.getMonth() === today.getMonth();
-  } catch {
-    return false;
-  }
-}
 
 const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const navigate = useNavigate();
@@ -156,6 +142,10 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
 
   useEffect(() => {
     localStorage.setItem("dashboardActiveTab", activeTab);
+    // When switching to documents tab, default to 'my' view
+    if (activeTab === "documents") {
+      setViewMode("my");
+    }
   }, [activeTab]);
 
   // Persist search and filter states
@@ -281,8 +271,6 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     safeString(a.name).localeCompare(safeString(b.name))
   );
 
-  // 🎂 todays birthdays (from Code 2)
-  const todaysBirthdays = contacts.filter(c => isBirthdayToday(c.birthday));
 
   const renderCategoryBadges = (contact) => {
     if (!Array.isArray(contact.category_ids) || contact.category_ids.length === 0) return null;
@@ -342,11 +330,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
               userId={userId}
               onCategoriesChange={fetchCategories}
             />
-
-            {/* Today's Birthdays */}
-            <TodaysBirthdaysCard todaysBirthdays={todaysBirthdays} />
-
-            {/* Upcoming Birthday Reminder */}
+            {/* Birthdays */}
             <BirthdayReminder contacts={contacts} />
 
             {/* Contact display */}
@@ -425,19 +409,19 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
         {/* Documents */}
         {activeTab === "documents" && (
           <div>
-            <div className="flex items-center gap-4 mb-8">
-              <label htmlFor="docType" className="font-semibold text-lg text-blue-700">
-                Select:
-              </label>
-              <select
-                id="docType"
-                className="px-4 py-2 rounded-lg border text-md bg-white text-blue-700"
-                value={viewMode}
-                onChange={(e) => setViewMode(e.target.value)}
+            <div className="flex gap-2 mb-8">
+              <button
+                className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'my' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
+                onClick={() => setViewMode('my')}
               >
-                <option value="my">My Documents</option>
-                <option value="shared">Shared Documents</option>
-              </select>
+                My Documents
+              </button>
+              <button
+                className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'shared' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
+                onClick={() => setViewMode('shared')}
+              >
+                Shared Documents
+              </button>
             </div>
             {viewMode === "my" ? (
               <DocumentsPanel currentUser={currentUser} />
