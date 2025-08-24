@@ -49,7 +49,16 @@ const SharedDocumentsPanel = ({ currentUser }) => {
         console.error('Error fetching shared documents:', error.message);
         setSharedDocs([]);
       } else {
-        setSharedDocs(data || []);
+        // Deduplicate by file_name
+        const uniqueDocs = [];
+        const seen = new Set();
+        for (const doc of data || []) {
+          if (!seen.has(doc.file_name)) {
+            uniqueDocs.push(doc);
+            seen.add(doc.file_name);
+          }
+        }
+        setSharedDocs(uniqueDocs);
       }
     };
     fetchSharedDocs();

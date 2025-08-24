@@ -1,46 +1,11 @@
 import React from "react";
+import { isBirthdayToday, isBirthdayInNext7DaysExcludingToday, prettyDate } from "../../utils/birthdayUtils";
 
 const BirthdayReminder = ({ contacts }) => {
-  function isBirthdayToday(birthday) {
-    if (!birthday) return false;
-    const today = new Date();
-    const bday = new Date(birthday);
-    if (isNaN(bday.getTime())) return false;
-    return bday.getDate() === today.getDate() && bday.getMonth() === today.getMonth();
-  }
-
-  function isBirthdayInNext7DaysExcludingToday(birthday) {
-    if (!birthday) return false;
-    try {
-      const today = new Date();
-      const tomorrow = new Date(today);
-      tomorrow.setDate(today.getDate() + 1); // start from tomorrow
-      const nextWeek = new Date(today);
-      nextWeek.setDate(today.getDate() + 7);
-
-      const bday = new Date(birthday);
-      if (isNaN(bday.getTime())) return false;
-      bday.setFullYear(today.getFullYear());
-
-      return bday >= tomorrow && bday <= nextWeek;
-    } catch {
-      return false;
-    }
-  }
-
   const todaysBirthdays = contacts.filter(c => isBirthdayToday(c.birthday));
   const upcomingBirthdays = contacts.filter(c => isBirthdayInNext7DaysExcludingToday(c.birthday));
-
-  function prettyDate(dateStr) {
-    try {
-      const date = new Date(dateStr);
-      return isNaN(date.getTime())
-        ? dateStr
-        : date.toLocaleDateString(undefined, { day: "numeric", month: "long" });
-    } catch {
-      return dateStr;
-    }
-  }
+  console.log('All contacts with birthdays:', contacts.filter(c => c.birthday));
+console.log('Upcoming birthdays:', upcomingBirthdays);
 
   const BirthdaySection = ({ title, people }) => (
     people.length > 0 && (
