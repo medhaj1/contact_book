@@ -7,6 +7,7 @@ import SignIn from '../components/signin/SignIn';
 import Dashboard from './Dashboard';
 import LandingPage from './LandingPage';
 import UserProfile from './UserProfile';
+import SettingsPage from './SettingsPage';
 
 import { supabase } from '../supabaseClient';
 import { BlockedContactsProvider } from '../components/dashboard/BlockedContactsContext';
@@ -75,6 +76,10 @@ function App() {
         <Route
           path="/profile"
           element={isLoggedIn ? <UserProfile currentUser={currentUser} onLogout={handleLogout} /> : <Navigate to="/signin" />}
+        />
+        <Route
+          path="/settings"
+          element={isLoggedIn ? <SettingsPage currentUser={currentUser} /> : <Navigate to="/signin" />}
         />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

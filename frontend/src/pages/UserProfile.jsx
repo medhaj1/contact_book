@@ -254,23 +254,30 @@ const UserProfile = ({ currentUser, onLogout }) => {
         <div className="flex flex-col md:flex-row items-start gap-12">
           {/* Left: Avatar & Info */}
           <div className="flex flex-col items-center w-full md:w-1/3">
-            <label htmlFor="photo-upload" className="cursor-pointer">
-              <ProfileAvatar
-                name={userData.name}
-                image={isEditing ? tempPhoto : userData.photo}
-                size="128px"
-                textSize="3rem"
-              />
-              {isEditing && (
-                <input
-                  type="file"
-                  id="photo-upload"
-                  accept="image/*"
-                  onChange={handlePhotoChange}
-                  className="hidden"
+            <div className="relative">
+              <label htmlFor="photo-upload">
+                <ProfileAvatar
+                  name={userData.name}
+                  image={isEditing ? tempPhoto : userData.photo}
+                  size="128px"
+                  textSize="3rem"
                 />
-              )}
-            </label>
+                {isEditing && (
+                  <>
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 rounded-full hover:cursor-pointer">
+                      <FiEdit2 className="text-white text-3xl" />
+                    </div>
+                    <input
+                      type="file"
+                      id="photo-upload"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      className="hidden"
+                    />
+                  </>
+                )}
+              </label>
+            </div>
             {isEditing && (userData.photo || tempPhoto) && (
               <button
                 onClick={handleRemovePhoto}

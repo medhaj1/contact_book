@@ -21,17 +21,28 @@ function sanitizeString(str) {
 }
 
 /**
+ * Normalize category input to always be an array
+ */
+function normalizeCategoryIds(categoryIds) {
+  if (!categoryIds) return [];
+  if (Array.isArray(categoryIds)) {
+    return categoryIds.map(id => String(id).trim());
+  }
+  return [String(categoryIds).trim()];
+}
+
+/**
  * Add Contact with Optional Photo Upload
  */
 export const addContact = async (contactData, photoFile = null, userId) => {
   try {
-    const { name, email, phone, birthday, category_id } = contactData;
+    const { name, email, phone, birthday, category_ids } = contactData;
 
     // Sanitize inputs
     const cleanName = sanitizeString(name);
     const cleanEmail = sanitizeString(email);
     const cleanPhone = cleanPhoneNumber(phone);
-    const cleanCategoryId = category_id ? sanitizeString(category_id) : null;
+    const cleanCategoryIds = normalizeCategoryIds(category_ids);
 
     // Validate and format birthday
     let formattedBirthday = null;
@@ -94,7 +105,7 @@ export const addContact = async (contactData, photoFile = null, userId) => {
         photo_url: photoUrl,
         user_id: userId,
         birthday: formattedBirthday,
-        category_id: cleanCategoryId ? String(cleanCategoryId) : null
+        category_ids: cleanCategoryIds.length > 0 ? cleanCategoryIds : null
       }])
       .select()
       .single();
@@ -137,13 +148,13 @@ export const getContacts = async (userId) => {
  */
 export const updateContact = async (contactId, contactData, photoFile = null, userId) => {
   try {
-    const { name, email, phone, birthday, category_id } = contactData;
+    const { name, email, phone, birthday, category_ids } = contactData;
 
     // Sanitize inputs
     const cleanName = sanitizeString(name);
     const cleanEmail = sanitizeString(email);
     const cleanPhone = cleanPhoneNumber(phone);
-    const cleanCategoryId = category_id ? sanitizeString(category_id) : null;
+    const cleanCategoryIds = normalizeCategoryIds(category_ids);
 
     // Validate and format birthday
     let formattedBirthday = null;
@@ -234,7 +245,7 @@ export const updateContact = async (contactId, contactData, photoFile = null, us
       name: cleanName,
       email: cleanEmail,
       phone: cleanPhone,
-      category_id: cleanCategoryId ? String(cleanCategoryId) : null,
+      category_ids: cleanCategoryIds.length > 0 ? cleanCategoryIds : null,
     };
 
     // Handle birthday separately
@@ -315,3 +326,4 @@ export const deleteContact = async (contactId) => {
     return { success: false, error: error.message };
   }
 };
+

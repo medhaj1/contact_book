@@ -1,12 +1,13 @@
 // src/services/favouriteService.js
-import { supabase } from '../supabaseClient'; // ✅ Make sure supabaseClient.js is inside src/
+import { supabase } from '../supabaseClient'; //  Make sure supabaseClient.js is inside src/
 
 // Get all favourites for a user
 export async function getFavouritesByUser(userId) {
   const { data, error } = await supabase
-    .from('favourites')
+    .from('contact')
     .select('contact_id')
-    .eq('user_id', userId);
+    .eq('contact_user_id', userId)
+    .eq('is_favourite', true);
 
   if (error) {
     console.error('Error fetching favourites:', error);
@@ -17,10 +18,13 @@ export async function getFavouritesByUser(userId) {
 
 // Add a favourite
 export async function addFavourite(userId, contactId) {
-  const { error } = await supabase
-    .from('favourites')
-    .insert([{ user_id: userId, contact_id: contactId }]);
-
+  const { data, error } = await supabase
+    .from('contact')
+    .update({ is_favourite: true })
+    .eq('contact_user_id', userId)
+    .eq('contact_id', contactId)
+    .select();
+  console.log("Updated favourites (add):", data);
   if (error) {
     console.error('Error adding favourite:', error);
   }
@@ -28,16 +32,14 @@ export async function addFavourite(userId, contactId) {
 
 // Remove a favourite
 export async function removeFavourite(userId, contactId) {
-  const { error } = await supabase
-    .from('favourites')
-    .delete()
-    .eq('user_id', userId)
-    .eq('contact_id', contactId);
-
+  const { data, error } = await supabase
+    .from('contact')
+    .update({ is_favourite: false })
+    .eq('contact_user_id', userId)
+    .eq('contact_id', contactId)
+    .select();
+  console.log("Updated favourites (remove):", data);
   if (error) {
     console.error('Error removing favourite:', error);
   }
 }
-
-
-

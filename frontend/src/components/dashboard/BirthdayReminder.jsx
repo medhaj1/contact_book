@@ -1,10 +1,8 @@
 import React from "react";
-import { useBlockedContacts } from "./BlockedContactsContext";
 
 const BirthdayReminder = ({ contacts }) => {
-  const { blockedContacts } = useBlockedContacts();
-
-  const filteredContacts = contacts.filter(c => !blockedContacts.includes(c.contact_id));
+  const isFirstLast = (localStorage.getItem("nameFormat") || "first_last") === "first_last";
+  const isDayMonthYear = (localStorage.getItem("dateFormat") || "dd_mm_yyyy") === "dd_mm_yyyy";
 
   function isBirthdayToday(birthday) {
     if (!birthday) return false;
@@ -33,19 +31,23 @@ const BirthdayReminder = ({ contacts }) => {
     }
   }
 
-  const todaysBirthdays = filteredContacts.filter(c => isBirthdayToday(c.birthday));
-  const upcomingBirthdays = filteredContacts.filter(c => isBirthdayInNext7DaysExcludingToday(c.birthday));
-
-  function prettyDate(dateStr) {
-    try {
-      const date = new Date(dateStr);
-      return isNaN(date.getTime())
-        ? dateStr
-        : date.toLocaleDateString(undefined, { day: "numeric", month: "long" });
-    } catch {
-      return dateStr;
-    }
+  function formatName(contact) {
+    if (!contact) return "";
+    const parts = (contact.name || "").split(" ");
+    const first = parts[0] || "";
+    const last = parts[1] || "";
+    return isFirstLast ? `${first} ${last}`.trim() : `${last}, ${first}`.trim();
   }
+
+  function formatDate(dateStr) {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    return isDayMonthYear ? date.toLocaleDateString("en-GB") : date.toLocaleDateString("en-US");
+  }
+
+  const todaysBirthdays = contacts.filter(c => isBirthdayToday(c.birthday));
+  const upcomingBirthdays = contacts.filter(c => isBirthdayInNext7DaysExcludingToday(c.birthday));
 
   const BirthdaySection = ({ title, people }) => (
     people.length > 0 && (
@@ -65,9 +67,9 @@ const BirthdayReminder = ({ contacts }) => {
                   : c.name.charAt(0).toUpperCase()}
               </div>
               <div>
-                <div className="font-semibold text-white text-lg">{c.name}</div>
+                <div className="font-semibold text-white text-lg">{formatName(c)}</div>
                 <div className="text-sm text-white/90">{c.email}</div>
-                <div className="text-xs text-yellow-200">🎂 {prettyDate(c.birthday)}</div>
+                <div className="text-xs text-yellow-200">🎂 {formatDate(c.birthday)}</div>
               </div>
             </div>
           ))}

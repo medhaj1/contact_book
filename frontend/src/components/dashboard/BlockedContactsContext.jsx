@@ -10,20 +10,33 @@ export const BlockedContactsProvider = ({ children, currentUser }) => {
     useEffect(() => {
       async function fetchBlocked() {
         if (!currentUser?.id) return; // wait for user
-        const ids = await getBlockedContacts();
-        setBlockedContacts(ids);
+        const result = await getBlockedContacts(currentUser.id);
+        if (result.success) {
+          setBlockedContacts(result.data);
+        } else {
+          console.error('Failed to fetch blocked contacts:', result.error);
+          setBlockedContacts([]); // fallback to empty array
+        }
       }
       fetchBlocked();
     }, [currentUser]); // re-fetch whenever user changes
   
     const block = async (id) => {
-      await blockContact(id);
-      setBlockedContacts(prev => [...prev, id]);
+      const result = await blockContact(id, currentUser.id);
+      if (result.success) {
+        // For new blocks, we might not have the contact details immediately
+        // The list will be refreshed on next load or we could fetch the contact details
+        setBlockedContacts(prev => [...prev, { contact_id: id, name: 'Loading...', email: '' }]);
+      }
+      return result;
     };
   
     const unblock = async (id) => {
-      await unblockContact(id);
-      setBlockedContacts(prev => prev.filter(cid => cid !== id));
+      const result = await unblockContact(id, currentUser.id);
+      if (result.success) {
+        setBlockedContacts(prev => prev.filter(contact => contact.contact_id !== id));
+      }
+      return result;
     };
   
     return (
