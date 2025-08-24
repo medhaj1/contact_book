@@ -19,15 +19,14 @@ import FloatingActionButton from '../components/dashboard/FloatingActionButton';
 import { addFavourite, removeFavourite } from "../services/favouriteService";
 import { exportContactsCSV, exportContactsVCF } from '../services/importExportService';
 
-
-// Import services
 import { getContacts, deleteContact } from '../services/contactService';
 import { getCategories } from '../services/categoryService';
+
+import { supabase } from '../supabaseClient';
 
 const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const navigate = useNavigate();
 
-  // Navigation handlers
   const onNavigateToProfile = () => {
     navigate('/profile');
   };
@@ -39,62 +38,45 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const [searchTerm, setSearchTerm] = useState(
-    () => localStorage.getItem("dashboardSearchTerm") || ""
-  );
-  const [selectedCategory, setSelectedCategory] = useState(
-    () => localStorage.getItem("dashboardSelectedCategory") || ""
-  );
-  const [viewMode, setViewMode] = useState(
-    () => localStorage.getItem("dashboardViewMode") || "card"
-  );
+  const [searchTerm, setSearchTerm] = useState(() => localStorage.getItem("dashboardSearchTerm") || "");
+  const [selectedCategory, setSelectedCategory] = useState(() => localStorage.getItem("dashboardSelectedCategory") || "");
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem("dashboardViewMode") || "card");
 
-  const [showAddContact, setShowAddContact] = useState(
-    () => localStorage.getItem("dashboardShowAddContact") === "true"
-  );
+  const [showAddContact, setShowAddContact] = useState(() => localStorage.getItem("dashboardShowAddContact") === "true");
   const [editingContact, setEditingContact] = useState(() => {
     const saved = localStorage.getItem("dashboardEditingContact");
     return saved ? JSON.parse(saved) : null;
   });
-  const [activeTab, setActiveTab] = useState(
-    () => localStorage.getItem("dashboardActiveTab") || "contacts"
-  );
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem("dashboardActiveTab") || "contacts");
 
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showAddContactDropdown, setShowAddContactDropdown] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(
-    () => localStorage.getItem("dashboardShowImportModal") === "true"
-  );
+  const [showImportModal, setShowImportModal] = useState(() => localStorage.getItem("dashboardShowImportModal") === "true");
   const [profileImageError, setProfileImageError] = useState(false);
 
-  const [isDark, setIsDark] = useState(
-    () => localStorage.getItem("theme") === "dark"
-  );
+  const [isDark, setIsDark] = useState(() => localStorage.getItem("theme") === "dark");
 
-  //export functions
+  // Chat integration states
+  const [selectedContact, setSelectedContact] = useState(null);
+
   const handleExport = async (format) => {
     try {
-      const userId = currentUser?.id;
       if (!userId) {
         alert('User not found');
         return;
       }
-
-      // Use the current selected category for filtering
       const filters = {
-        category: selectedCategory, // Pass the selected category as-is, including 'favourites'
+        category: selectedCategory,
         filename: '',
         search: '',
         hasBirthday: ''
       };
-
       let result;
       if (format === 'csv') {
         result = await exportContactsCSV(userId, filters);
       } else {
         result = await exportContactsVCF(userId, filters);
       }
-
       if (result.success) {
         alert(`${format.toUpperCase()} exported successfully!`);
       } else {
@@ -105,14 +87,11 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     }
   };
 
-
-  // ---------- THEME HANDLING ----------
   useEffect(() => {
     document.documentElement.classList.toggle("dark", isDark);
     localStorage.setItem("theme", isDark ? "dark" : "light");
   }, [isDark]);
 
-  // ---------- FETCH CONTACTS (with multi-category) ----------
   const fetchContacts = useCallback(async () => {
     try {
       setLoading(true);
@@ -126,7 +105,6 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const fetchCategories = useCallback(async () => {
     try {
       const result = await getCategories();
-      console.log(result);
       setCategories(result.success ? result.data : []);
     } catch {
       setCategories([]);
@@ -142,13 +120,11 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
 
   useEffect(() => {
     localStorage.setItem("dashboardActiveTab", activeTab);
-    // When switching to documents tab, default to 'my' view
     if (activeTab === "documents") {
       setViewMode("my");
     }
   }, [activeTab]);
 
-  // Persist search and filter states
   useEffect(() => {
     localStorage.setItem("dashboardSearchTerm", searchTerm);
   }, [searchTerm]);
@@ -161,7 +137,6 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     localStorage.setItem("dashboardViewMode", viewMode);
   }, [viewMode]);
 
-  // Persist modal states
   useEffect(() => {
     localStorage.setItem("dashboardShowAddContact", showAddContact.toString());
   }, [showAddContact]);
@@ -174,25 +149,19 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     localStorage.setItem("dashboardShowImportModal", showImportModal.toString());
   }, [showImportModal]);
 
-  // Dropdown close on outside click
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showUserDropdown && !event.target.closest(".relative"))
-        setShowUserDropdown(false);
-      if (showAddContactDropdown && !event.target.closest(".relative"))
-        setShowAddContactDropdown(false);
+      if (showUserDropdown && !event.target.closest(".relative")) setShowUserDropdown(false);
+      if (showAddContactDropdown && !event.target.closest(".relative")) setShowAddContactDropdown(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () =>
-      document.removeEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showUserDropdown, showAddContactDropdown]);
 
-  // ---------- CONTACT CRUD ----------
   const handleContactSave = async () => {
     await fetchContacts();
     setShowAddContact(false);
     setEditingContact(null);
-    // Clear persistence when closing modals
     localStorage.removeItem("dashboardShowAddContact");
     localStorage.removeItem("dashboardEditingContact");
   };
@@ -205,7 +174,6 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const handleCancelContactForm = () => {
     setShowAddContact(false);
     setEditingContact(null);
-    // Clear persistence when canceling
     localStorage.removeItem("dashboardShowAddContact");
     localStorage.removeItem("dashboardEditingContact");
   };
@@ -223,60 +191,42 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   };
 
   const toggleFavourite = async (contactId) => {
-    // Find the contact to check current favorite status
     const contact = contacts.find(c => c.contact_id === contactId);
     const isFav = contact?.is_favourite || false;
-    
     if (isFav) {
       const result = await removeFavourite(userId, contactId);
       if (result.success) {
-        // Update local state
-        setContacts(prev => prev.map(c => 
-          c.contact_id === contactId ? { ...c, is_favourite: false } : c
-        ));
+        setContacts(prev => prev.map(c => c.contact_id === contactId ? { ...c, is_favourite: false } : c));
       }
     } else {
       const result = await addFavourite(userId, contactId);
       if (result.success) {
-        // Update local state
-        setContacts(prev => prev.map(c => 
-          c.contact_id === contactId ? { ...c, is_favourite: true } : c
-        ));
+        setContacts(prev => prev.map(c => c.contact_id === contactId ? { ...c, is_favourite: true } : c));
       }
     }
   };
 
-  // ---------- FILTERS ----------
   const safeString = (val) => (val ? String(val) : "");
-  let filteredContacts = contacts.filter((contact) => {
+  let filteredContacts = contacts.filter(contact => {
     const matchesSearch =
       safeString(contact.name).toLowerCase().includes(searchTerm.toLowerCase()) ||
       safeString(contact.email).toLowerCase().includes(searchTerm.toLowerCase()) ||
       safeString(contact.phone).includes(searchTerm);
-    
-    // Handle category filtering including favourites
     let matchesCategory = true;
     if (selectedCategory === 'favourites') {
       matchesCategory = contact.is_favourite === true;
     } else if (selectedCategory && selectedCategory !== '') {
       matchesCategory = Array.isArray(contact.category_ids) &&
-        contact.category_ids.some((id) => String(id) === String(selectedCategory));
+        contact.category_ids.some(id => String(id) === String(selectedCategory));
     }
-    
     return matchesSearch && matchesCategory;
-  });
-
-  // Sort contacts alphabetically
-  filteredContacts = filteredContacts.sort((a, b) =>
-    safeString(a.name).localeCompare(safeString(b.name))
-  );
-
+  }).sort((a, b) => safeString(a.name).localeCompare(safeString(b.name)));
 
   const renderCategoryBadges = (contact) => {
     if (!Array.isArray(contact.category_ids) || contact.category_ids.length === 0) return null;
     return (
       <div className="flex flex-wrap gap-1 mt-1">
-        {contact.category_ids.map((id) => {
+        {contact.category_ids.map(id => {
           const cat = categories.find(c => String(c.category_id ?? c.id) === String(id));
           const name = cat?.category_name || cat?.name || "Unknown";
           return (
@@ -289,14 +239,50 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     );
   };
 
-  // ---------- RENDER ----------
+  const sendWishMessage = async (contact) => {
+    if (!contact) return;
+  
+    try {
+      const senderId = currentUser?.id;
+      const receiverId = contact.contact_user_id || contact.contact_id;
+  
+      if (!senderId || !receiverId) {
+        console.error('Invalid sender or receiver ID');
+        return;
+      }
+  
+      const birthdayMessage = `Happy Birthday, ${contact.name}! 🎉`;
+      const msg = {
+        sender_id: senderId,
+        receiver_id: receiverId,
+        content: birthdayMessage,
+        timestamp: new Date().toISOString(),
+      };
+  
+      console.log('Sending birthday wish message:', msg);
+  
+      const { data, error } = await supabase.from('messages').insert(msg).select();
+  
+      if (error) {
+        console.error('Failed to send birthday wish:', error.message);
+        return;
+      }
+  
+      if (data && data.length > 0) {
+        console.log('Birthday wish message sent successfully:', data[0]);
+        // Update chat messages state here if available to show message immediately
+        // Example: setMessages(prev => [...prev, data[0]]) if you manage messages state here
+      }
+    } catch (err) {
+      console.error('Error sending birthday wish:', err);
+    }
+  };
+  
+
   return (
     <div className="flex min-h-screen font-sans">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-
-      {/* Main area */}
       <div className="flex-1 p-8 bg-blue-50 dark:bg-[#0d1117] ml-16">
-        {/* Header */}
         <div className="sticky top-0 z-40 bg-blue-50 dark:bg-[#0d1117] px-8 py-4 border-b border-slate-200 dark:border-[#30363d]">
           <HeaderSection
             activeTab={activeTab}
@@ -311,132 +297,127 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
             onExport={handleExport}
           />
         </div>
-
-        {/* Scrollable Content */}
         <div className="flex-1 p-8 overflow-y-auto">
-        {/* Contacts Tab */}
-        {activeTab === "contacts" && (
-          <>
-            {/* Controls */}
-            <ContactsControlBar
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              selectedCategory={selectedCategory}
-              setSelectedCategory={setSelectedCategory}
-              viewMode={viewMode}
-              setViewMode={setViewMode}
-              categories={categories}
-              contacts={contacts}
-              userId={userId}
-              onCategoriesChange={fetchCategories}
-            />
-            {/* Birthdays */}
-            <BirthdayReminder contacts={contacts} />
 
-            {/* Contact display */}
-            {loading ? (
-              <div className="text-center py-12 text-slate-400">Loading contacts...</div>
-            ) : filteredContacts.length === 0 ? (
-              <div className="text-center py-12 text-slate-400">
-                {contacts.length === 0 ? "No contacts yet." : "No matches found."}
-              </div>
-            ) : viewMode === "card" ? (
-              <ContactsGrid
-                contacts={filteredContacts}
-                renderCategoryBadges={renderCategoryBadges}
-                toggleFavourite={toggleFavourite}
-                handleEditContact={handleEditContact}
-                handleDeleteContact={handleDeleteContact}
-                safeString={safeString}
-              />
-            ) : (
-              <ContactsList
-                contacts={filteredContacts}
-                renderCategoryBadges={renderCategoryBadges}
-                onToggleFavourite={toggleFavourite}
-                onEditContact={handleEditContact}
-                onDeleteContact={handleDeleteContact}
-                safeString={safeString}
-              />
-            )}
-
-            {/* Modals */}
-            {showAddContact && (
-              <ContactForm
+          {activeTab === "contacts" && (
+            <>
+              <ContactsControlBar
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                selectedCategory={selectedCategory}
+                setSelectedCategory={setSelectedCategory}
+                viewMode={viewMode}
+                setViewMode={setViewMode}
                 categories={categories}
+                contacts={contacts}
                 userId={userId}
-                onSave={handleContactSave}
-                onCancel={handleCancelContactForm}
+                onCategoriesChange={fetchCategories}
               />
-            )}
-            {editingContact && (
-              <ContactForm
-                contact={editingContact}
-                categories={categories}
-                userId={userId}
-                onSave={handleContactSave}
-                onCancel={handleCancelContactForm}
+              <BirthdayReminder
+                contacts={contacts}
+                setSelectedContact={setSelectedContact}
+                sendWishMessage={sendWishMessage}
+                setActiveTab={setActiveTab}
               />
-            )}
-            {showImportModal && (
-              <ImportModal
-                userId={userId}
-                onImportComplete={fetchContacts}
-                onClose={handleImportModalClose}
-              />
-            )}
-          </>
-        )}
+              {loading ? (
+                <div className="text-center py-12 text-slate-400">Loading contacts...</div>
+              ) : filteredContacts.length === 0 ? (
+                <div className="text-center py-12 text-slate-400">
+                  {contacts.length === 0 ? "No contacts yet." : "No matches found."}
+                </div>
+              ) : viewMode === "card" ? (
+                <ContactsGrid
+                  contacts={filteredContacts}
+                  renderCategoryBadges={renderCategoryBadges}
+                  toggleFavourite={toggleFavourite}
+                  handleEditContact={handleEditContact}
+                  handleDeleteContact={handleDeleteContact}
+                  safeString={safeString}
+                />
+              ) : (
+                <ContactsList
+                  contacts={filteredContacts}
+                  renderCategoryBadges={renderCategoryBadges}
+                  onToggleFavourite={toggleFavourite}
+                  onEditContact={handleEditContact}
+                  onDeleteContact={handleDeleteContact}
+                  safeString={safeString}
+                />
+              )}
+              {showAddContact && (
+                <ContactForm
+                  categories={categories}
+                  userId={userId}
+                  onSave={handleContactSave}
+                  onCancel={handleCancelContactForm}
+                />
+              )}
+              {editingContact && (
+                <ContactForm
+                  contact={editingContact}
+                  categories={categories}
+                  userId={userId}
+                  onSave={handleContactSave}
+                  onCancel={handleCancelContactForm}
+                />
+              )}
+              {showImportModal && (
+                <ImportModal
+                  userId={userId}
+                  onImportComplete={fetchContacts}
+                  onClose={handleImportModalClose}
+                />
+              )}
+            </>
+          )}
 
-        {/* Groups Tab */}
-        {activeTab === 'groups' && (
-          <div className="max-w-6xl mx-auto">
-            <GroupPanel currentUser={currentUser} />
-          </div>
-        )}
-
-        {/* Settings */}
-        {activeTab === "settings" && (
-          <SettingsTab currentUser={currentUser} isDark={isDark} setIsDark={setIsDark} />
-        )}
-
-        {/* Tasks */}
-        {activeTab === "task" && <TaskPanel />}
-
-        {/* Chat */}
-        {activeTab === "chat" && <ChatPanel currentUser={currentUser} />}
-
-        {/* Documents */}
-        {activeTab === "documents" && (
-          <div>
-            <div className="flex gap-2 mb-8">
-              <button
-                className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'my' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
-                onClick={() => setViewMode('my')}
-              >
-                My Documents
-              </button>
-              <button
-                className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'shared' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
-                onClick={() => setViewMode('shared')}
-              >
-                Shared Documents
-              </button>
+          {activeTab === 'groups' && (
+            <div className="max-w-6xl mx-auto">
+              <GroupPanel currentUser={currentUser} />
             </div>
-            {viewMode === "my" ? (
-              <DocumentsPanel currentUser={currentUser} />
-            ) : (
-              <div className="mt-4">
-                <SharedDocumentsPanel currentUser={currentUser} />
-              </div>
-            )}
-          </div>
-        )}
-        </div>
-      
-      </div>
+          )}
 
-      {/* Floating Add Contact Button (FAB) - Only show on contacts page */}
+          {activeTab === "settings" && (
+            <SettingsTab currentUser={currentUser} isDark={isDark} setIsDark={setIsDark} />
+          )}
+
+          {activeTab === "task" && <TaskPanel />}
+
+          {activeTab === "chat" && (
+            <ChatPanel
+              currentUser={currentUser}
+              selectedContact={selectedContact}
+              setSelectedContact={setSelectedContact}
+            />
+          )}
+
+          {activeTab === "documents" && (
+            <div>
+              <div className="flex gap-2 mb-8">
+                <button
+                  className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'my' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
+                  onClick={() => setViewMode('my')}
+                >
+                  My Documents
+                </button>
+                <button
+                  className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'shared' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
+                  onClick={() => setViewMode('shared')}
+                >
+                  Shared Documents
+                </button>
+              </div>
+              {viewMode === "my" ? (
+                <DocumentsPanel currentUser={currentUser} />
+              ) : (
+                <div className="mt-4">
+                  <SharedDocumentsPanel currentUser={currentUser} />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
       {activeTab === "contacts" && (
         <FloatingActionButton
           show={true}
