@@ -12,8 +12,10 @@ const TaskPanel = () => {
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
     const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return dateStr;
-    return isDayMonthYear ? date.toLocaleDateString("en-GB") : date.toLocaleDateString("en-US");
+    if (isNaN(date.getTime())) return "";
+    return isDayMonthYear
+      ? date.toLocaleDateString("en-GB")
+      : date.toLocaleDateString("en-US");
   };
 
   const getTaskStatus = (deadline) => {

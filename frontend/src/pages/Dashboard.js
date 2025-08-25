@@ -692,7 +692,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
               </span>
             </button>
             {showAddContactDropdown && (
-              <div className="absolute bottom-16 right-0 w-48 bg-white dark:bg-[#161b22] border border-slate-200 dark:border-[#30363d] rounded-lg shadow-lg z-50">
+              <div className="absolute bottom-16 right-0 w-48 bg-white dark:bg-[#161b22] dark:text-gray-300 border border-slate-200 dark:border-[#30363d] rounded-lg shadow-lg z-50">
                 <div
                   className="px-4 py-3 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                   onClick={() => {
