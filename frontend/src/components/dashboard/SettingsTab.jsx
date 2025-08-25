@@ -60,13 +60,26 @@ function SettingsTab({ currentUser }) {
    * FORMAT HANDLING (Code 1 style UI)
    ---------------------------*/
   const [showFormatPanel, setShowFormatPanel] = useState(false);
-  const [isFirstLast, setIsFirstLast] = useState(true);
-  const [isDayMonthYear, setIsDayMonthYear] = useState(true);
+  const [isFirstLast, setIsFirstLast] = useState(() => {
+    return (localStorage.getItem("nameFormat") || "first_last") === "first_last";
+  });
+  const [isDayMonthYear, setIsDayMonthYear] = useState(() => {
+    return (localStorage.getItem("dateFormat") || "dd_mm_yyyy") === "dd_mm_yyyy";
+  });
   const [showNameToggle, setShowNameToggle] = useState(false);
   const [showDateToggle, setShowDateToggle] = useState(false);
 
-  const toggleNameFormat = () => setIsFirstLast(!isFirstLast);
-  const toggleDateFormat = () => setIsDayMonthYear(!isDayMonthYear);
+  const toggleNameFormat = () => {
+    const newFormat = !isFirstLast;
+    setIsFirstLast(newFormat);
+    localStorage.setItem("nameFormat", newFormat ? "first_last" : "last_first");
+  };
+  
+  const toggleDateFormat = () => {
+    const newFormat = !isDayMonthYear;
+    setIsDayMonthYear(newFormat);
+    localStorage.setItem("dateFormat", newFormat ? "dd_mm_yyyy" : "mm_dd_yyyy");
+  };
 
   /** --------------------------
    * THEME PANEL handling
