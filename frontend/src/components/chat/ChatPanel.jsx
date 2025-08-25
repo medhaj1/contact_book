@@ -234,10 +234,31 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
     return () => clearInterval(interval);
   }, [currentUserId]);
 
+
+  
   // Scroll to bottom on new message
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, selectedContact]);
+
+   // Auto-refresh messages every 2 seconds when a contact is selected
+    useEffect(() => {
+      if (!selectedContact || !currentUserId) return;
+      const fetchMessages = async () => {
+        const { data } = await supabase
+          .from('messages')
+          .select('*')
+          .or(
+            `and(sender_id.eq.${currentUserId},receiver_id.eq.${selectedContact.contact_user_id}),and(sender_id.eq.${selectedContact.contact_user_id},receiver_id.eq.${currentUserId})`
+          )
+          .order('timestamp', { ascending: true });
+        setMessages(data || []);
+      };
+      fetchMessages();
+      const interval = setInterval(fetchMessages, 2000);
+      return () => clearInterval(interval);
+    }, [selectedContact, currentUserId]);
+
 
   const sendMessage = async (e) => {
     e.preventDefault();
