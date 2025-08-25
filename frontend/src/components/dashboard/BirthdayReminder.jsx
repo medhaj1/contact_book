@@ -1,23 +1,12 @@
 import React, { useState } from "react";
 import { isBirthdayToday, isBirthdayInNext7DaysExcludingToday, prettyDate } from "../../utils/birthdayUtils";
 
-const BirthdayReminder = ({ contacts, setSelectedContact, sendWishMessage, setActiveTab }) => {
+const BirthdayReminder = ({ contacts, onBirthdayWish }) => {
   const todaysBirthdays = contacts.filter(c => isBirthdayToday(c.birthday));
   const upcomingBirthdays = contacts.filter(c => isBirthdayInNext7DaysExcludingToday(c.birthday));
 
-  const [wishedIds, setWishedIds] = useState(new Set());
 
-  const handleWish = async (contact) => {
-    if (wishedIds.has(contact.contact_id)) return;
-    try {
-      setSelectedContact(contact);
-      setActiveTab("chat");
-      await sendWishMessage(contact);
-      setWishedIds(new Set(wishedIds).add(contact.contact_id));
-    } catch (error) {
-      console.error("Failed to send birthday wish:", error);
-    }
-  };
+
 
   const BirthdaySection = ({ title, people, gradient, showWish }) => (
     people.length > 0 && (
@@ -33,7 +22,8 @@ const BirthdayReminder = ({ contacts, setSelectedContact, sendWishMessage, setAc
           style={{ alignItems: "center", paddingBottom: 4 }}
         >
           {people.map(c => {
-            const isWished = wishedIds.has(c.contact_id);
+            // Assume user is registered if c.user_id exists (adjust if your property is different)
+            const isRegistered = !!c.user_id;
             return (
               <div
                 key={c.contact_id}
@@ -64,19 +54,20 @@ const BirthdayReminder = ({ contacts, setSelectedContact, sendWishMessage, setAc
                     🎂 {prettyDate(c.birthday)}
                   </div>
                 </div>
-                {showWish && (
-                  <button
-                    onClick={() => handleWish(c)}
-                    disabled={isWished}
-                    className={`text-xs px-2 py-1 rounded transition-colors font-semibold flex-shrink-0 ${
-                      isWished ? "bg-gray-400 text-gray-300 cursor-not-allowed" : "bg-yellow-500 hover:bg-yellow-600 text-white"
-                    }`}
-                    title={isWished ? "Wish sent" : `Send birthday wish to ${c.name}`}
-                    aria-label={`Send birthday wish to ${c.name}`}
-                  >
-                    {isWished ? "Wished" : "Wish"}
-                  </button>
-                )}
+                  {showWish && isRegistered ? (
+                    <button
+                      onClick={async () => {
+                        if (onBirthdayWish) {
+                          await onBirthdayWish(c);
+                        }
+                      }}
+                      className="text-xs px-2 py-1 rounded transition-colors font-semibold flex-shrink-0 bg-green-500 hover:bg-green-600 text-white"
+                      title={`Send Happy Birthday to ${c.name}`}
+                      aria-label={`Send Happy Birthday to ${c.name}`}
+                    >
+                      Happy Birthday
+                    </button>
+                  ) : null}
               </div>
             );
           })}

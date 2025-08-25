@@ -6,7 +6,7 @@ function isOnline(lastSeen) {
   return (new Date() - new Date(lastSeen)) < 30 * 1000;
 }
 
-function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSendDocument }) {
+function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSendDocument, chatRefreshKey }) {
   // Multi-select state for sent messages
   const [selectMode, setSelectMode] = useState(false);
   const [selectedMessages, setSelectedMessages] = useState([]);
@@ -175,7 +175,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
       }
     };
     fetchMessages();
-  }, [selectedContact, currentUserId]);
+  }, [selectedContact, currentUserId, chatRefreshKey]);
 
   // Reliable real-time subscription for chat
   useEffect(() => {
