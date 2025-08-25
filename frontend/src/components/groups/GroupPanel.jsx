@@ -32,6 +32,9 @@ const GroupPanel = ({ currentUser }) => {
 
   const [taskText, setTaskText] = useState('');
   const [taskDeadline, setTaskDeadline] = useState('');
+  const [memberTaskText, setMemberTaskText] = useState('');
+  const [memberTaskDeadline, setMemberTaskDeadline] = useState('');
+  const [selectedMemberId, setSelectedMemberId] = useState('');
 
   const selectedGroup = useMemo(() => groups.find((g) => g.id === selectedGroupId) || null, [groups, selectedGroupId]);
 
@@ -166,6 +169,34 @@ const GroupPanel = ({ currentUser }) => {
 
   const isProtectedRole = (role) => ['admin'].includes(String(role || '').toLowerCase());
 
+  const handleCompletionChange = async (taskId, percent, forceComplete = false) => {
+    const completed = forceComplete || percent === 100;
+    const { error } = await supabase
+      .from('task')
+      .update({ completion_percent: percent, completed })
+      .eq('id', taskId);
+    if (!error) {
+      setTasks(prev =>
+        prev.map(t =>
+          t.id === taskId ? { ...t, completion_percent: percent, completed } : t
+        )
+      );
+    }
+  };
+
+  const sortedTasks = [...tasks]
+    .sort((a, b) => {
+      // Completed tasks go last
+      if (!!a.completed !== !!b.completed) return a.completed ? 1 : -1;
+      // Sort by deadline (earliest first)
+      if (a.deadline && b.deadline) {
+        return new Date(a.deadline) - new Date(b.deadline);
+      }
+      if (a.deadline) return -1;
+      if (b.deadline) return 1;
+      return 0;
+    });
+
   return (
     <div className="flex gap-6 w-full">
       {/* Groups list */}
@@ -276,6 +307,57 @@ const GroupPanel = ({ currentUser }) => {
                 ))}
               </ul>
             </div>
+            {/* Assign task to member - new section */}
+            <div className="mt-4 mb-3">
+              <h4 className="font-semibold mb-2">Assign Task to Member</h4>
+              <div className="flex gap-2">
+                <select
+                  className="border rounded-md p-2 text-sm"
+                  value={selectedMemberId}
+                  onChange={e => setSelectedMemberId(e.target.value)}
+                >
+                  <option value="">Select member...</option>
+                  {members.map(m => (
+                    <option key={m.u_id} value={m.u_id}>
+                      {m.name || m.email}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  className="flex-1 border rounded-md p-2 text-sm"
+                  placeholder="Task description"
+                  value={memberTaskText}
+                  onChange={e => setMemberTaskText(e.target.value)}
+                />
+                <input
+                  type="date"
+                  className="border rounded-md p-2 text-sm"
+                  value={memberTaskDeadline}
+                  onChange={e => setMemberTaskDeadline(e.target.value)}
+                />
+                <button
+                  className="bg-blue-600 text-white rounded-md px-3 text-sm"
+                  onClick={async () => {
+                    if (!selectedGroupId || !selectedMemberId || !memberTaskText.trim()) return;
+                    const res = await createGroupTask({
+                      groupId: selectedGroupId,
+                      text: memberTaskText,
+                      deadline: memberTaskDeadline,
+                      userId: selectedMemberId
+                    });
+                    if (res.success) {
+                      setTasks((prev) => [...prev, res.data]);
+                      setMemberTaskText('');
+                      setMemberTaskDeadline('');
+                    } else {
+                      alert(res.error || 'Failed to assign task');
+                    }
+                  }}
+                >
+                  Assign
+                </button>
+              </div>
+            </div>
 
             {/* Tasks */}
             <div>
@@ -289,18 +371,59 @@ const GroupPanel = ({ currentUser }) => {
                 <div className="text-slate-500 text-sm">No tasks yet.</div>
               ) : (
                 <ul className="space-y-2">
-                  {tasks.map((t) => (
-                    <li key={t.id} className="border border-slate-200 rounded-lg p-3 flex items-center justify-between">
-                      <div>
-                        <div className="font-medium text-sm">{t.text}</div>
-                        {t.deadline && <div className="text-xs text-slate-500">Due: {new Date(t.deadline).toLocaleDateString()}</div>}
+                  {sortedTasks.map((t) => (
+                    <li
+                      key={t.id}
+                      className={`border rounded-lg p-3 flex flex-col gap-2 ${
+                        t.completed
+                          ? 'bg-green-50 border-green-300 opacity-70'
+                          : 'bg-white border-slate-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium text-sm">{t.text}</div>
+                          {t.deadline && <div className="text-xs text-slate-500">Due: {new Date(t.deadline).toLocaleDateString()}</div>}
+                          {t.user_id && (
+                            <div className="text-xs text-blue-600">
+                              Assigned to: {members.find(m => m.u_id === t.user_id)?.name || members.find(m => m.u_id === t.user_id)?.email || 'Member'}
+                            </div>
+                          )}
+                        </div>
+                        <button className="text-red-600 text-sm" onClick={() => handleDeleteTask(t.id)}>Delete</button>
                       </div>
-                      <button className="text-red-600 text-sm" onClick={() => handleDeleteTask(t.id)}>Delete</button>
+                      {/* Completion slider */}
+                      <div className="flex items-center gap-3 mt-2">
+                        <label className="text-xs text-slate-500">Progress:</label>
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          value={t.completion_percent || 0}
+                          onChange={e => handleCompletionChange(t.id, Number(e.target.value))}
+                          className="w-32 h-2 accent-blue-600"
+                          style={{ accentColor: "#2563eb" }} // Tailwind blue-600
+                        />
+                        <span className="text-xs font-semibold w-8 text-center">{t.completion_percent || 0}%</span>
+                        <label className="flex items-center gap-1 text-xs">
+                          <input
+                            type="checkbox"
+                            checked={!!t.completed}
+                            onChange={e => handleCompletionChange(t.id, e.target.checked ? 100 : t.completion_percent || 0, e.target.checked)}
+                            className="accent-blue-600"
+                            style={{ accentColor: "#2563eb" }}
+                          />
+                          Completed
+                        </label>
+                      </div>
                     </li>
                   ))}
                 </ul>
               )}
             </div>
+
+            
+            
           </div>
         )}
       </div>
@@ -308,4 +431,4 @@ const GroupPanel = ({ currentUser }) => {
   );
 };
 
-export default GroupPanel; 
+export default GroupPanel;

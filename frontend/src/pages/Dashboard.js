@@ -23,6 +23,7 @@ import { exportContactsCSV, exportContactsVCF } from '../services/importExportSe
 // Import services
 import { getContacts, deleteContact } from '../services/contactService';
 import { getCategories } from '../services/categoryService';
+import { leaveGroup, deleteGroup } from '../services/groupService';
 
 const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const navigate = useNavigate();
@@ -38,6 +39,8 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const [contacts, setContacts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [groups, setGroups] = useState([]);
+  const [selectedGroupId, setSelectedGroupId] = useState('');
 
   const [searchTerm, setSearchTerm] = useState(
     () => localStorage.getItem("dashboardSearchTerm") || ""
@@ -70,6 +73,8 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const [isDark, setIsDark] = useState(
     () => localStorage.getItem("theme") === "dark"
   );
+
+  const [taskTab, setTaskTab] = useState('personal');
 
   //export functions
   const handleExport = async (format) => {
@@ -246,6 +251,33 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     }
   };
 
+  // ---------- GROUPS ----------
+  const handleLeaveGroup = async (groupId) => {
+    if (!groupId || !userId) return;
+    // Make sure leaveGroup is imported from your groupService
+    const res = await leaveGroup({ groupId, userId });
+    if (res.success) {
+      setGroups(groups.filter(g => g.id !== groupId));
+      setSelectedGroupId('');
+      alert('You have left the group.');
+    } else {
+      alert(res.error || 'Failed to leave group');
+    }
+  };
+
+  const handleDeleteGroup = async (groupId) => {
+    if (!groupId || !userId) return;
+    // Make sure deleteGroup is imported from your groupService
+    const res = await deleteGroup({ groupId, userId });
+    if (res.success) {
+      setGroups(groups.filter(g => g.id !== groupId));
+      setSelectedGroupId('');
+      alert('Group deleted.');
+    } else {
+      alert(res.error || 'Failed to delete group');
+    }
+  };
+
   // ---------- FILTERS ----------
   const safeString = (val) => (val ? String(val) : "");
   let filteredContacts = contacts.filter((contact) => {
@@ -388,20 +420,41 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
           </>
         )}
 
-        {/* Groups Tab */}
-        {activeTab === 'groups' && (
-          <div className="max-w-6xl mx-auto">
-            <GroupPanel currentUser={currentUser} />
-          </div>
-        )}
+     
 
-        {/* Settings */}
         {activeTab === "settings" && (
           <SettingsTab currentUser={currentUser} isDark={isDark} setIsDark={setIsDark} />
         )}
 
         {/* Tasks */}
-        {activeTab === "task" && <TaskPanel />}
+        {activeTab === "task" && (
+          <div className="max-w-5xl mx-auto">
+            <div className="flex gap-2 mb-6">
+              <button
+                className={taskTab === 'personal' ? 'tab-active' : 'tab'}
+                onClick={() => setTaskTab('personal')}
+              >
+                Personal Tasks
+              </button>
+              <button
+                className={taskTab === 'group' ? 'tab-active' : 'tab'}
+                onClick={() => setTaskTab('group')}
+              >
+                Group Tasks
+              </button>
+            </div>
+
+            {/* Personal Tasks */}
+            {taskTab === 'personal' && (
+              <TaskPanel currentUser={currentUser} />
+            )}
+
+            {/* Group Tasks (embed GroupPanel logic here) */}
+            {taskTab === 'group' && (
+              <GroupPanel currentUser={currentUser} />
+            )}
+          </div>
+        )}
 
         {/* Chat */}
         {activeTab === "chat" && <ChatPanel currentUser={currentUser} />}

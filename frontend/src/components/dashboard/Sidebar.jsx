@@ -13,7 +13,7 @@ const Sidebar = ({
     { id: "contacts", label: "Contacts", icon: Users },
     { id: "chat", label: "Chat", icon: MessageSquare },
     { id: "documents", label: "Documents", icon: BookOpen },
-    { id: "groups", label: "Groups", icon: Users },
+   // { //id: "groups", label: "Groups", icon: Users },
     { id: "task", label: "Task", icon: CheckSquare },
     { id: "settings", label: "Settings", icon: Settings },
   ];

@@ -367,22 +367,28 @@ export async function getGroupTasks(groupId) {
       .eq('group_id', groupId)
       .order('deadline', { ascending: true });
     if (error) throw error;
-    return { success: true, data: data || [] };
+    return { success: true, data };
   } catch (error) {
     console.error('getGroupTasks error', error);
     return { success: false, error: error.message };
   }
 }
-
-export async function createGroupTask({ groupId, text, deadline, creatorUserId }) {
+export async function createGroupTask({ groupId, text, deadline, userId, creatorUserId }) {
   try {
     if (!groupId) throw new Error('Missing groupId');
+    if (!userId) throw new Error('Missing userId');
     if (!creatorUserId) throw new Error('Missing creatorUserId');
     if (!text || !text.trim()) throw new Error('Task text is required');
 
     const { data, error } = await supabase
       .from('task')
-      .insert([{ group_id: groupId, user_id: creatorUserId, text: text.trim(), deadline }])
+      .insert([{
+        group_id: groupId,
+        user_id: userId, // assign to selected member
+        text: text.trim(),
+        deadline,
+        //creator_user_id: creatorUserId
+      }])
       .select();
 
     if (error) throw error;
@@ -406,36 +412,9 @@ export async function deleteTask(taskId) {
     console.error('deleteTask error', error);
     return { success: false, error: error.message };
   }
-} 
+}
 
-// Debug function to test group access
-export async function debugGroupAccess(userId) {
-  try {
-    console.log('=== DEBUG GROUP ACCESS ===');
-    console.log('User ID:', userId);
-
-    // Test 1: Get all groups (should be empty due to RLS)
-    const { data: allGroups, error: allGroupsErr } = await supabase
-      .from('groups')
-      .select('*');
-    console.log('All groups (should be empty):', allGroups, allGroupsErr);
-
-    // Test 2: Get user's memberships
-    const { data: memberships, error: membershipsErr } = await supabase
-      .from('group_members')
-      .select('*')
-      .eq('user_id', userId);
-    console.log('User memberships:', memberships, membershipsErr);
-
-    // Test 3: Get groups where user is member
-    const { data: userGroups, error: userGroupsErr } = await supabase
-      .from('groups')
-      .select('*')
-      .in('id', memberships?.map(m => m.group_id) || []);
-    console.log('User groups:', userGroups, userGroupsErr);
-
-    console.log('=== END DEBUG ===');
-  } catch (error) {
-    console.error('Debug error:', error);
-  }
-} 
+export function debugGroupAccess() {
+  // Stub for debugging
+  console.log('debugGroupAccess called');
+}

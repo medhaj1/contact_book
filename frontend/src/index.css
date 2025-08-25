@@ -116,3 +116,18 @@ code {
   background: #16a34a !important;
 }
 
+.tab {
+  padding: 0.5rem 1rem;
+  background: #f3f4f6;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  border: none;
+}
+.tab-active {
+  padding: 0.5rem 1rem;
+  background: #2563eb;
+  color: white;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  border: none;
+}
