@@ -83,9 +83,6 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
       // Use the current selected category for filtering
       const filters = {
         category: selectedCategory, // Pass the selected category as-is, including 'favourites'
-        filename: '',
-        search: '',
-        hasBirthday: ''
       };
 
       let result;
@@ -126,7 +123,6 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const fetchCategories = useCallback(async () => {
     try {
       const result = await getCategories();
-      console.log(result);
       setCategories(result.success ? result.data : []);
     } catch {
       setCategories([]);

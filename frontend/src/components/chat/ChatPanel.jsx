@@ -8,25 +8,7 @@ function isOnline(lastSeen) {
 
 function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSendDocument }) {
   // Multi-select state for sent messages
-  const [selectMode, setSelectMode] = useState(false);
-  const [selectedMessages, setSelectedMessages] = useState([]);
   const [openMenuId, setOpenMenuId] = useState(null);
-
-  
-  // Delete selected messages
-  const handleDeleteSelected = async () => {
-    // Only keep valid string IDs
-    const validIds = selectedMessages.filter(id => typeof id === 'string' && id && id !== 'undefined');
-    if (validIds.length === 0) return;
-    const { error } = await supabase.from('messages').delete().in('id', validIds);
-    if (!error) {
-      setMessages((prev) => prev.filter((m) => !validIds.includes(m.id)));
-      setSelectedMessages([]);
-      setSelectMode(false);
-    } else {
-      alert('Failed to delete messages: ' + error.message);
-    }
-  };
 
   const currentUserId = currentUser?.id;
 

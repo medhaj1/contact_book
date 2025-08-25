@@ -4,8 +4,6 @@ import { isBirthdayToday, isBirthdayInNext7DaysExcludingToday, prettyDate } from
 const BirthdayReminder = ({ contacts }) => {
   const todaysBirthdays = contacts.filter(c => isBirthdayToday(c.birthday));
   const upcomingBirthdays = contacts.filter(c => isBirthdayInNext7DaysExcludingToday(c.birthday));
-  console.log('All contacts with birthdays:', contacts.filter(c => c.birthday));
-console.log('Upcoming birthdays:', upcomingBirthdays);
 
   const BirthdaySection = ({ title, people }) => (
     people.length > 0 && (
