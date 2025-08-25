@@ -65,7 +65,6 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
   const [newMessage, setNewMessage] = useState(() => {
     return localStorage.getItem('chatPanelNewMessage') || '';
   });
-  const [realtimeSub, setRealtimeSub] = useState(null);
   const [imageErrors, setImageErrors] = useState(new Set());
   const chatEndRef = useRef();
   const fileInputRef = useRef(null);
@@ -178,25 +177,32 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
     fetchMessages();
   }, [selectedContact, currentUserId]);
 
-  // Subscribe to new incoming messages
+  // Reliable real-time subscription for chat
   useEffect(() => {
-    if (!currentUserId || realtimeSub) return;
+    if (!currentUserId || !selectedContact) return;
+    // Unique channel name per chat
+    const channelName = `chat_${currentUserId}_${selectedContact.contact_user_id}`;
     const sub = supabase
-      .channel('chat')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          filter: `receiver_id=eq.${currentUserId}`,
         },
         async (payload) => {
           const message = payload.new;
-          if (selectedContact?.contact_user_id === message.sender_id) {
-            setMessages(prev => [...prev, message]);
+          const isRelevant =
+            (message.sender_id === currentUserId && message.receiver_id === selectedContact.contact_user_id) ||
+            (message.sender_id === selectedContact.contact_user_id && message.receiver_id === currentUserId);
+          if (isRelevant) {
+            setMessages(prev => {
+              if (prev.some(m => m.id === message.id)) return prev;
+              return [...prev, message];
+            });
           }
-          if (message.content.startsWith('[file]')) {
+          if (isRelevant && message.content.startsWith('[file]')) {
             const [, rest] = message.content.split('[file]');
             const [fileName, fileUrl] = rest.split('|');
             await supabase.from('shared_documents').insert({
@@ -213,12 +219,12 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
       )
       .subscribe();
 
-    setRealtimeSub(sub);
 
+    // Cleanup previous subscription when contact changes
     return () => {
       if (sub) supabase.removeChannel(sub);
     };
-  }, [currentUserId, selectedContact, realtimeSub]);
+  }, [currentUserId, selectedContact]);
 
   // Update online status every 2 seconds
   useEffect(() => {
