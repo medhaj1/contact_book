@@ -191,17 +191,12 @@ export const exportContactsCSV = async (userId, filters = {}) => {
   try {
     const { search = '', category, hasBirthday, filename } = filters;
 
-    // Base query: user's contacts
-    let query = supabase
+    // Fetch all user's contacts first (no category filtering at DB level)
+    const { data: contacts, error } = await supabase
       .from("contact")
       .select("*")
       .eq("user_id", userId);
 
-    if (category) {
-      query = query.eq("category_id", category);
-    }
-
-    const { data: contacts, error } = await query;
     if (error) {
       throw new Error(`Failed to fetch contacts: ${error.message}`);
     }
@@ -210,8 +205,26 @@ export const exportContactsCSV = async (userId, filters = {}) => {
       throw new Error("No contacts found");
     }
 
-    // In-memory filters
+    // Apply filters in JavaScript
     let filtered = contacts;
+    
+    // Category filter (handle array-based category_ids and favourites)
+    if (category && category !== '') {
+      if (category === 'favourites') {
+        // Filter for favourite contacts
+        filtered = filtered.filter(c => c.is_favourite === true);
+      } else {
+        // Filter for specific category
+        filtered = filtered.filter(c => {
+          if (Array.isArray(c.category_ids)) {
+            return c.category_ids.some(id => String(id) === String(category));
+          }
+          return false;
+        });
+      }
+    }
+    
+    // Search filter
     if (search) {
       const s = search.toLowerCase();
       filtered = filtered.filter(c =>
@@ -220,16 +233,29 @@ export const exportContactsCSV = async (userId, filters = {}) => {
         (c.phone?.includes(s))
       );
     }
+    
+    // Birthday filter
     if (hasBirthday === '1') {
       filtered = filtered.filter(c => !!c.birthday);
     }
 
     // Define CSV fields
-    const fields = ["name", "phone", "email", "birthday", "category_id", "photo_url"];
+    const fields = ["name", "phone", "email", "birthday", "category_ids", "photo_url"];
     const lines = [fields.join(',')];
+    
+    console.log('CSV Export - Final filtered contacts count:', filtered.length);
+    console.log('CSV Export - Filtered contacts:', filtered.map(c => ({ name: c.name, category_ids: c.category_ids })));
+    
     filtered.forEach(c => {
       lines.push(
-        fields.map(f => `"${(c[f] ?? '').toString().replace(/"/g, '""')}"`).join(',')
+        fields.map(f => {
+          let value = c[f] ?? '';
+          // Handle array fields (like category_ids)
+          if (Array.isArray(value)) {
+            value = value.join(';');
+          }
+          return `"${value.toString().replace(/"/g, '""')}"`;
+        }).join(',')
       );
     });
     const csv = lines.join('\n');
@@ -264,17 +290,12 @@ export const exportContactsVCF = async (userId, filters = {}) => {
   try {
     const { search = '', category, hasBirthday, filename } = filters;
 
-    // Base query
-    let query = supabase
+    // Fetch all user's contacts first (no category filtering at DB level)
+    const { data: contacts, error } = await supabase
       .from("contact")
       .select("*")
       .eq("user_id", userId);
-    
-    if (category) {
-      query = query.eq("category_id", category);
-    }
-
-    const { data: contacts, error } = await query;
+      
     if (error) {
       throw new Error(`Failed to fetch contacts: ${error.message}`);
     }
@@ -283,8 +304,26 @@ export const exportContactsVCF = async (userId, filters = {}) => {
       throw new Error("No contacts found");
     }
 
-    // In-memory filters
+    // Apply filters in JavaScript
     let filtered = contacts;
+    
+    // Category filter (handle array-based category_ids and favourites)
+    if (category && category !== '') {
+      if (category === 'favourites') {
+        // Filter for favourite contacts
+        filtered = filtered.filter(c => c.is_favourite === true);
+      } else {
+        // Filter for specific category
+        filtered = filtered.filter(c => {
+          if (Array.isArray(c.category_ids)) {
+            return c.category_ids.some(id => String(id) === String(category));
+          }
+          return false;
+        });
+      }
+    }
+    
+    // Search filter
     if (search) {
       const s = search.toLowerCase();
       filtered = filtered.filter(c =>
@@ -293,6 +332,8 @@ export const exportContactsVCF = async (userId, filters = {}) => {
         (c.phone?.includes(s))
       );
     }
+    
+    // Birthday filter
     if (hasBirthday === '1') {
       filtered = filtered.filter(c => !!c.birthday);
     }

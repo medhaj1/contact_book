@@ -27,41 +27,44 @@ const SignUp = () => {
     }
 
     try {
-      const {
-        data: { user },
-        error: signUpError,
-      } = await supabase.auth.signUp({
+      const signUpResponse = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: { name, contact },
         },
       });
+      const { data: { user }, error: signUpError } = signUpResponse;
 
-      if (signUpError) {
-        alert(signUpError.message);
+      console.log('Full signup response:', signUpResponse);
+      console.log('User after signup:', user);
+
+      if (signUpError || !user) {
+        alert(`Signup failed: ${signUpError?.message || 'No user returned. Please check your email and password.'}`);
         return;
       }
 
-      // Insert into user_profile
-      const { error: profileError } = await supabase.from('user_profile').insert({
-        u_id: user.id,
-        name,
-        email,
-        phone: contact,
-        image: null,
-      });
+      // Insert into user_profile (array format)
+      const { error: profileError } = await supabase.from('user_profile').insert([
+        {
+          u_id: user?.id,
+          name,
+          email,
+          phone: contact,
+          image: null,
+        }
+      ]);
 
       if (profileError) {
         console.error('Profile creation failed:', profileError);
-        alert('Account created but failed to create profile. Please contact support.');
+        alert(`Database error: ${profileError.message}`);
       } else {
         alert('Sign-up successful! Please check your email to confirm your account.');
         navigate('/signin');
       }
     } catch (err) {
       console.error('Signup error:', err);
-      alert('Something went wrong. Please try again.');
+      alert(`Signup error: ${err.message}`);
     }
   };
 
@@ -73,6 +76,7 @@ const SignUp = () => {
         className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md"
       >
         <button
+          type="button"
           className="top-4 left-4 flex scale-100 hover:scale-110 transition transition-transform items-center"
             onClick={() => navigate('/')}
           >

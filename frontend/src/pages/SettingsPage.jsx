@@ -16,6 +16,7 @@ import BlockedContacts from '../components/settings/BlockedContacts';
 import { getCategories } from '../services/categoryService';
 import { exportContactsCSV, exportContactsVCF } from '../services/importExportService';
 import { BlockedContactsProvider } from '../components/dashboard/BlockedContactsContext';
+import { useFormat } from '../components/settings/FormatContext';
 
 function SettingsPage({ currentUser }) {
   const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') === 'dark');
@@ -76,27 +77,13 @@ function SettingsPage({ currentUser }) {
   };
 
   /** --------------------------
-   * FORMAT HANDLING (using PreferenceContext)
+   * FORMAT HANDLING (using FormatContext)
    ---------------------------*/
   const [showFormatPanel, setShowFormatPanel] = useState(false);
   const [showNameToggle, setShowNameToggle] = useState(false);
   const [showDateToggle, setShowDateToggle] = useState(false);
 
-  // Remove PreferenceContext. Use local state for nameFormat and dateFormat, sync to localStorage
-  const [nameFormat, setNameFormat] = useState(() => {
-    return localStorage.getItem('nameFormat') || 'first_last';
-  });
-  const [dateFormat, setDateFormat] = useState(() => {
-    return localStorage.getItem('dateFormat') || 'dd_mm_yyyy';
-  });
-
-  useEffect(() => {
-    localStorage.setItem('nameFormat', nameFormat);
-  }, [nameFormat]);
-
-  useEffect(() => {
-    localStorage.setItem('dateFormat', dateFormat);
-  }, [dateFormat]);
+  const { nameFormat, setNameFormat, dateFormat, setDateFormat } = useFormat();
 
   const handleToggleNameFormat = () => {
     setNameFormat((prev) => (prev === 'first_last' ? 'last_first' : 'first_last'));

@@ -1,81 +1,88 @@
-import React from "react";
+import React, { useState } from "react";
+import { isBirthdayToday, isBirthdayInNext7DaysExcludingToday, prettyDate } from "../../utils/birthdayUtils";
 
-const BirthdayReminder = ({ contacts }) => {
-  const isFirstLast = (localStorage.getItem("nameFormat") || "first_last") === "first_last";
-  const isDayMonthYear = (localStorage.getItem("dateFormat") || "dd_mm_yyyy") === "dd_mm_yyyy";
-
-  function isBirthdayToday(birthday) {
-    if (!birthday) return false;
-    const today = new Date();
-    const bday = new Date(birthday);
-    if (isNaN(bday.getTime())) return false;
-    return bday.getDate() === today.getDate() && bday.getMonth() === today.getMonth();
-  }
-
-  function isBirthdayInNext7DaysExcludingToday(birthday) {
-    if (!birthday) return false;
-    try {
-      const today = new Date();
-      const tomorrow = new Date(today);
-      tomorrow.setDate(today.getDate() + 1); // start from tomorrow
-      const nextWeek = new Date(today);
-      nextWeek.setDate(today.getDate() + 7);
-
-      const bday = new Date(birthday);
-      if (isNaN(bday.getTime())) return false;
-      bday.setFullYear(today.getFullYear());
-
-      return bday >= tomorrow && bday <= nextWeek;
-    } catch {
-      return false;
-    }
-  }
-
-  function formatName(contact) {
-    if (!contact) return "";
-    const parts = (contact.name || "").split(" ");
-    const first = parts[0] || "";
-    const last = parts[1] || "";
-    return isFirstLast ? `${first} ${last}`.trim() : `${last}, ${first}`.trim();
-  }
-
-  function formatDate(dateStr) {
-    if (!dateStr) return "";
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return dateStr;
-    return isDayMonthYear ? date.toLocaleDateString("en-GB") : date.toLocaleDateString("en-US");
-  }
-
+const BirthdayReminder = ({ contacts, setSelectedContact, sendWishMessage, setActiveTab }) => {
   const todaysBirthdays = contacts.filter(c => isBirthdayToday(c.birthday));
   const upcomingBirthdays = contacts.filter(c => isBirthdayInNext7DaysExcludingToday(c.birthday));
 
-  const BirthdaySection = ({ title, people }) => (
+  const [wishedIds, setWishedIds] = useState(new Set());
+
+  const handleWish = async (contact) => {
+    if (wishedIds.has(contact.contact_id)) return;
+    try {
+      setSelectedContact(contact);
+      setActiveTab("chat");
+      await sendWishMessage(contact);
+      setWishedIds(new Set(wishedIds).add(contact.contact_id));
+    } catch (error) {
+      console.error("Failed to send birthday wish:", error);
+    }
+  };
+
+  const BirthdaySection = ({ title, people, gradient, showWish }) => (
     people.length > 0 && (
-      <div className="relative mb-6 p-6 rounded-2xl shadow-lg overflow-hidden bg-gradient-to-r from-pink-300 via-purple-300 to-indigo-300 dark:from-pink-700 dark:via-purple-700 dark:to-indigo-800">
-        <h3 className="text-2xl font-extrabold text-white mb-4 flex items-center gap-2 relative z-10">
+      <div
+        className={`relative mb-4 px-6 py-3 rounded-2xl shadow-lg overflow-hidden ${gradient}`}
+        style={{ maxWidth: "100%" }}
+      >
+        <h3 className="text-lg font-extrabold text-white mb-1 flex items-center gap-3 relative z-10">
           {title}
         </h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 relative z-10">
-          {people.map(c => (
-            <div
-              key={c.contact_id}
-              className="flex items-center gap-4 bg-white/30 dark:bg-white/10 backdrop-blur-md p-4 rounded-xl shadow-md border border-white/20 hover:scale-[1.02] transition-transform"
-            >
-              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-yellow-400 to-orange-400 flex justify-center items-center font-bold text-white overflow-hidden shadow">
-                {c.photo_url
-                  ? <img src={c.photo_url} alt={c.name} className="w-full h-full object-cover" />
-                  : c.name.charAt(0).toUpperCase()}
+        <div
+          className="flex flex-wrap gap-3 relative z-10"
+          style={{ alignItems: "center", paddingBottom: 4 }}
+        >
+          {people.map(c => {
+            const isWished = wishedIds.has(c.contact_id);
+            return (
+              <div
+                key={c.contact_id}
+                className="flex items-center gap-3 bg-white/70 dark:bg-white/20 backdrop-blur-md px-3 py-2 rounded-xl shadow border border-white/30 cursor-pointer"
+                tabIndex={0}
+                role="button"
+                aria-label={`Birthday reminder for ${c.name}`}
+                style={{
+                  flex: "0 0 calc(33.333% - 16px)",
+                  maxWidth: "calc(33.333% - 16px)",
+                  height: 56,
+                  minHeight: 56,
+                }}
+              >
+                <div className="w-9 h-9 rounded-full bg-gradient-to-r from-yellow-400 to-orange-400 flex justify-center items-center font-bold text-white overflow-hidden shadow text-lg flex-shrink-0">
+                  {c.photo_url
+                    ? <img src={c.photo_url} alt={c.name} className="w-full h-full object-cover rounded-full" />
+                    : c.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex flex-col flex-1 min-w-0 px-2">
+                  <div
+                    className="font-semibold text-gray-900 dark:text-white text-md truncate select-text"
+                    title={c.name}
+                  >
+                    {c.name}
+                  </div>
+                  <div className="text-xs text-yellow-600 dark:text-yellow-400 select-text">
+                    🎂 {prettyDate(c.birthday)}
+                  </div>
+                </div>
+                {showWish && (
+                  <button
+                    onClick={() => handleWish(c)}
+                    disabled={isWished}
+                    className={`text-xs px-2 py-1 rounded transition-colors font-semibold flex-shrink-0 ${
+                      isWished ? "bg-gray-400 text-gray-300 cursor-not-allowed" : "bg-yellow-500 hover:bg-yellow-600 text-white"
+                    }`}
+                    title={isWished ? "Wish sent" : `Send birthday wish to ${c.name}`}
+                    aria-label={`Send birthday wish to ${c.name}`}
+                  >
+                    {isWished ? "Wished" : "Wish"}
+                  </button>
+                )}
               </div>
-              <div>
-                <div className="font-semibold text-white text-lg">{formatName(c)}</div>
-                <div className="text-sm text-white/90">{c.email}</div>
-                <div className="text-xs text-yellow-200">🎂 {formatDate(c.birthday)}</div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {[...Array(12)].map((_, i) => (
+          {[...Array(10)].map((_, i) => (
             <div
               key={i}
               className="absolute w-2 h-2 bg-white rounded-full opacity-70 animate-bounce"
@@ -94,10 +101,27 @@ const BirthdayReminder = ({ contacts }) => {
 
   return (
     <>
-      <BirthdaySection title="🎉 Birthdays Today" people={todaysBirthdays} />
-      <BirthdaySection title="🎂 Upcoming Birthdays" people={upcomingBirthdays} />
+      <BirthdaySection
+        title="🎉 Birthdays Today"
+        people={todaysBirthdays}
+        gradient="bg-gradient-to-r from-indigo-700 via-violet-800 to-blue-900 dark:from-blue-900 dark:via-violet-900 dark:to-black"
+        showWish={true}
+      />
+      <BirthdaySection
+        title="🎂 Upcoming Birthdays"
+        people={upcomingBirthdays}
+        gradient="bg-gradient-to-r from-indigo-200 via-violet-200 to-blue-200 dark:from-blue-400 dark:via-violet-400 dark:to-indigo-500"
+        showWish={false}
+      />
     </>
   );
 };
 
 export default BirthdayReminder;
+
+
+
+
+
+
+

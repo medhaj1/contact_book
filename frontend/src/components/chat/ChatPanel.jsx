@@ -13,12 +13,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
   const [selectMode, setSelectMode] = useState(false);
   const [selectedMessages, setSelectedMessages] = useState([]);
   const [openMenuId, setOpenMenuId] = useState(null);
-  // Selection logic
-  const toggleSelectMessage = (id) => {
-    setSelectedMessages((prev) =>
-      prev.includes(id) ? prev.filter((mid) => mid !== id) : [...prev, id]
-    );
-  };
+
   
   // Delete selected messages
   const handleDeleteSelected = async () => {
@@ -51,7 +46,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
         setInviteContacts([]);
         return;
       }
-      const emails = contacts.map(c => c.email);
+
       const { data: profiles } = await supabase
         .from('user_profile')
         .select('email');
@@ -62,19 +57,16 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
     fetchInviteContacts();
   }, [currentUserId]);
 
-  const handleInvite = async (email) => {
-    try {
-      await sendInviteEmail(email);
-      alert(`Invite sent to ${email}`);
-    } catch (error) {
-      alert(`Failed to send invite: ${error.message}`);
-    }
-  };
 
   const [contacts, setContacts] = useState([]);
-  const [selectedContact, setSelectedContact] = useState(null);
+  const [selectedContact, setSelectedContact] = useState(() => {
+    const saved = localStorage.getItem('chatPanelSelectedContact');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [messages, setMessages] = useState(initialMessages);
-  const [newMessage, setNewMessage] = useState('');
+  const [newMessage, setNewMessage] = useState(() => {
+    return localStorage.getItem('chatPanelNewMessage') || '';
+  });
   const [realtimeSub, setRealtimeSub] = useState(null);
   const [imageErrors, setImageErrors] = useState(new Set());
   const chatEndRef = useRef();
@@ -135,6 +127,45 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
     };
     fetchContacts();
   }, [currentUserId]);
+
+  // Persist selected contact and new message input
+  useEffect(() => {
+    if (selectedContact) {
+      localStorage.setItem('chatPanelSelectedContact', JSON.stringify(selectedContact));
+    } else {
+      localStorage.removeItem('chatPanelSelectedContact');
+    }
+  }, [selectedContact]);
+
+  useEffect(() => {
+    localStorage.setItem('chatPanelNewMessage', newMessage);
+  }, [newMessage]);
+
+  // Restore selected contact from contacts list after contacts are loaded
+  useEffect(() => {
+    if (contacts.length > 0 && !selectedContact) {
+      const savedContact = localStorage.getItem('chatPanelSelectedContact');
+      if (savedContact) {
+        try {
+          const parsedContact = JSON.parse(savedContact);
+          // Find the contact in the current contacts list to ensure it's still valid
+          const foundContact = contacts.find(c => 
+            c.contact_user_id === parsedContact.contact_user_id || 
+            c.contact_id === parsedContact.contact_id
+          );
+          if (foundContact) {
+            setSelectedContact(foundContact);
+          } else {
+            // Contact no longer exists, clear the saved state
+            localStorage.removeItem('chatPanelSelectedContact');
+          }
+        } catch (error) {
+          console.error('Error parsing saved contact:', error);
+          localStorage.removeItem('chatPanelSelectedContact');
+        }
+      }
+    }
+  }, [contacts, selectedContact]);
 
   // Fetch message history and mark received messages as seen
   useEffect(() => {
@@ -245,6 +276,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
       // Use backend-generated message (with valid id)
       setMessages(prev => [...prev, data[0]]);
       setNewMessage('');
+      localStorage.removeItem('chatPanelNewMessage');
     } else {
       console.error("Failed to send message:", error?.message);
     }
@@ -261,7 +293,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
     const file = e.target.files[0];
     if (!file || !selectedContact) return;
     const filePath = `chat/${currentUserId}/${Date.now()}_${file.name}`;
-    const { data, error } = await supabase.storage.from('chat').upload(filePath, file);
+    const { error } = await supabase.storage.from('chat').upload(filePath, file);
     if (error) {
       alert('File upload failed: ' + error.message);
       return;
@@ -306,8 +338,28 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
     e.target.value = '';
   };
 
+  //for birthday wish
+  const sendWishMessage = async (contact) => {
+    if (!contact) return;
+    const birthdayMessage = `Happy Birthday, ${contact.name}! 🎉`;
+    const msg = {
+      sender_id: currentUser?.id,
+      receiver_id: contact.contact_id || contact.contact_user_id,
+      content: birthdayMessage,
+      timestamp: new Date().toISOString(),
+    };
+    const { data, error } = await supabase.from('messages').insert(msg).select();
+    if (!error && data && data.length > 0) {
+      setMessages(prev => [...prev, data[0]]);
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    } else {
+      console.error('Failed to send birthday wish:', error?.message);
+    }
+  };
+  
+
   return (
-    <div className="flex w-full h-[650px] bg-white dark:bg-[#161b22] border dark:border-[#30363d] rounded-lg shadow-lg overflow-hidden">
+    <div className="flex w-full h-[600px] bg-white dark:bg-[#161b22] border dark:border-[#30363d] rounded-lg shadow-lg overflow-hidden">
       {/* Contact List */}
       <div className="w-96 bg-blue-50 dark:bg-[#141820] border-r border-gray-200 dark:border-[#30363d] p-4 overflow-y-auto">
         <ul>
@@ -433,28 +485,8 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 bg-slate-50 dark:bg-[#161b22]">
-              {/* Selection controls */}
-              <div className="mb-2 flex gap-2">
-                <button
-                  className={`px-3 py-1 rounded-xl ${selectMode ? 'btn hover:scale-100' : 'bg-slate-200 dark:bg-gray-700 dark:text-gray-400 text-slate-700'}`}
-                  onClick={() => {
-                    setSelectMode((m) => !m);
-                    setSelectedMessages([]);
-                  }}
-                >
-                  {selectMode ? 'Cancel Selection' : 'Select Messages'}
-                </button>
-                {selectMode && (
-                  <button
-                    className="px-3 py-1 rounded-xl bg-red-100 dark:bg-red-950/50 dark:border-red-950 border border-red-300 text-red-600 dark:text-red-300 dark:hover:bg-red-950 dark:hover:border-red-900 hover:bg-red-200"
-                    onClick={handleDeleteSelected}
-                    disabled={selectedMessages.length === 0}
-                  >
-                    Delete Selected
-                  </button>
-                )}
-              </div>
+            <div className="flex-1 overflow-y-auto p-4 bg-slate-50">
+              {/* Removed selection controls (Cancel Selection and Delete Selected buttons) */}
               {messages.length === 0 ? (
                 <div className="text-slate-500 py-24 text-center">No messages yet.</div>
               ) : (

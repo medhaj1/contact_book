@@ -1,38 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BookOpen, Trash2 } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
+
 
 const DocumentsPanel = ({ currentUser }) => {
   const [documents, setDocuments] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+  // Removed tab state; parent controls which panel is shown
+
 
   // Fetch documents from Supabase
-  const fetchDocuments = async () => {
+  const fetchDocuments = useCallback(async () => {
+  // Fetch only 'My Documents' from Supabase
     try {
-      // Fetch uploaded documents only
-      const { data: uploadedDocs, error: uploadedError } = await supabase
+      const { data: docs, error } = await supabase
         .from('documents')
         .select('*')
         .eq('uploaded_by', currentUser?.id)
         .order('uploaded_at', { ascending: false });
-
-      if (uploadedError) {
-        console.error('Error fetching documents:', uploadedError?.message);
+      if (error) {
+        console.error('Error fetching documents:', error?.message);
         setDocuments([]);
       } else {
-        setDocuments((uploadedDocs || []).map(doc => ({
-          ...doc,
-          isShared: false
-        })));
+        setDocuments(docs || []);
       }
     } catch (error) {
       console.error('Error fetching documents:', error);
       setDocuments([]);
     }
-  };
+  }, [currentUser?.id]);
 
   useEffect(() => {
     fetchDocuments();
+    // eslint-disable-next-line
   }, [currentUser?.id]);
 
   const handleUploadDocuments = async (e) => {
@@ -68,8 +68,7 @@ const DocumentsPanel = ({ currentUser }) => {
             name: file.name,
             url: urlData.publicUrl,
             uploaded_by: currentUser?.id,
-            uploaded_at: new Date().toISOString(),
-            contact_id: null // or set if linking to a contact
+            uploaded_at: new Date().toISOString()
           }]);
 
         if (dbError) {
@@ -201,17 +200,19 @@ const DocumentsPanel = ({ currentUser }) => {
         </div>
       </div>
 
+  {/* Removed tabs UI; parent controls which panel is shown */}
+
       {/* Documents List */}
       <div>
         <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-300 mb-4">
-          Uploaded Documents ({documents.length})
+          My Documents ({documents.length})
         </h3>
         {documents.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
               <BookOpen size={32} className="text-slate-400 dark:text-slate-500" />
             </div>
-            <p className="text-slate-400 dark:text-slate-500 text-lg mb-2">No documents uploaded yet</p>
+            <p className="text-slate-400 dark:text-slate-500 text-lg mb-2">No documents found</p>
             <p className="text-slate-500 dark:text-slate-400 text-sm">Upload your first document to get started</p>
           </div>
         ) : (
