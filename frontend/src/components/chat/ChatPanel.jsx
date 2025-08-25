@@ -240,10 +240,31 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
     return () => clearInterval(interval);
   }, [currentUserId]);
 
+
+  
   // Scroll to bottom on new message
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, selectedContact]);
+
+   // Auto-refresh messages every 2 seconds when a contact is selected
+    useEffect(() => {
+      if (!selectedContact || !currentUserId) return;
+      const fetchMessages = async () => {
+        const { data } = await supabase
+          .from('messages')
+          .select('*')
+          .or(
+            `and(sender_id.eq.${currentUserId},receiver_id.eq.${selectedContact.contact_user_id}),and(sender_id.eq.${selectedContact.contact_user_id},receiver_id.eq.${currentUserId})`
+          )
+          .order('timestamp', { ascending: true });
+        setMessages(data || []);
+      };
+      fetchMessages();
+      const interval = setInterval(fetchMessages, 2000);
+      return () => clearInterval(interval);
+    }, [selectedContact, currentUserId]);
+
 
   const sendMessage = async (e) => {
     e.preventDefault();
@@ -321,6 +342,26 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
     }
     e.target.value = '';
   };
+
+  //for birthday wish
+  const sendWishMessage = async (contact) => {
+    if (!contact) return;
+    const birthdayMessage = `Happy Birthday, ${contact.name}! 🎉`;
+    const msg = {
+      sender_id: currentUser?.id,
+      receiver_id: contact.contact_id || contact.contact_user_id,
+      content: birthdayMessage,
+      timestamp: new Date().toISOString(),
+    };
+    const { data, error } = await supabase.from('messages').insert(msg).select();
+    if (!error && data && data.length > 0) {
+      setMessages(prev => [...prev, data[0]]);
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    } else {
+      console.error('Failed to send birthday wish:', error?.message);
+    }
+  };
+  
 
   return (
     <div className="flex w-full h-[500px] bg-white rounded-lg shadow-lg overflow-hidden min-h-[440px]">
