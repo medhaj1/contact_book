@@ -3,48 +3,15 @@ import { supabase } from '../../supabaseClient';
 
 const SharedDocumentsPanel = ({ currentUser }) => {
   const [sharedDocs, setSharedDocs] = useState([]);
-    const handleDeleteSharedDoc = async (doc) => {
-      if (!window.confirm(`Delete ${doc.file_name}?`)) return;
-      try {
-        // Remove from storage
-        const { error: storageError } = await supabase.storage
-          .from('shared_documents')
-          .remove([`public/${doc.file_name}`]);
-        if (storageError) {
-          console.error('Delete from storage failed:', storageError.message);
-          alert('Failed to delete file from storage: ' + storageError.message);
-          return;
-        }
-        // Remove from DB
-        const { error: dbError } = await supabase
-          .from('shared_documents')
-          .delete()
-          .eq('id', doc.id);
-        if (dbError) {
-          console.error('Delete from DB failed:', dbError.message);
-          alert('Failed to delete document metadata: ' + dbError.message);
-          return;
-        }
-        // Refresh list
-        setSharedDocs(prev => prev.filter(d => d.id !== doc.id));
-      } catch (error) {
-        console.error('Error deleting shared document:', error);
-        alert('Error deleting document: ' + error.message);
-      }
-    };
 
   useEffect(() => {
-    console.log('Current user id:', currentUser?.id); // <-- Add this line
     const fetchSharedDocs = async () => {
       if (!currentUser?.id) return;
       const { data, error } = await supabase
         .from('shared_documents')
         .select('*')
-        .eq('receiver_id', currentUser.id)
+        .eq('sender_id', currentUser.id)
         .order('uploaded_at', { ascending: false });
-
-      console.log('Shared documents fetched:', data, error); // <-- Already present
-
       if (error) {
         console.error('Error fetching shared documents:', error.message);
         setSharedDocs([]);
@@ -75,7 +42,7 @@ const SharedDocumentsPanel = ({ currentUser }) => {
             <span role="img" aria-label="book">📖</span>
           </div>
           <p className="text-slate-400 dark:text-slate-500 text-lg mb-2">No shared documents yet</p>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">Documents shared via chat will appear here</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">Documents you have shared with others will appear here</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -96,26 +63,20 @@ const SharedDocumentsPanel = ({ currentUser }) => {
                       year: 'numeric'
                     })}
                   </p>
+                  <p className="text-xs text-slate-400 mt-1">Shared with: {doc.receiver_email || doc.receiver_id}</p>
                 </div>
               </div>
-                <div className="flex gap-2">
-              <a
-                href={doc.file_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 dark:bg-slate-700 text-blue-600 dark:text-blue-400 rounded-lg text-sm hover:bg-blue-100 dark:hover:bg-slate-600 transition-colors"
-                download={doc.file_name}
-              >
-                📎 Download
-              </a>
-                  <button
-                    className="flex items-center gap-1 justify-center px-3 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors text-sm"
-                    onClick={() => handleDeleteSharedDoc(doc)}
-                    title="Delete Document"
-                  >
-                    🗑️ Delete
-                  </button>
-                </div>
+              <div className="flex gap-2">
+                <a
+                  href={doc.file_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 dark:bg-slate-700 text-blue-600 dark:text-blue-400 rounded-lg text-sm hover:bg-blue-100 dark:hover:bg-slate-600 transition-colors"
+                  download={doc.file_name}
+                >
+                  📎 Download
+                </a>
+              </div>
             </div>
           ))}
         </div>

@@ -9,6 +9,7 @@ import SettingsTab from '../components/dashboard/SettingsTab';
 import DocumentsPanel from '../components/dashboard/DocumentsPanel';
 import ImportModal from '../components/dashboard/ImportModal';
 import GroupPanel from '../components/groups/GroupPanel';
+import ReceivedDocumentsPanel from '../components/dashboard/ReceivedDocumentsPanel';
 import SharedDocumentsPanel from '../components/dashboard/SharedDocumentsPanel';
 import Sidebar from '../components/dashboard/Sidebar';
 import HeaderSection from '../components/dashboard/HeaderSection';
@@ -404,11 +405,21 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                   className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'shared' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
                   onClick={() => setViewMode('shared')}
                 >
+                  Received Documents
+                </button>
+                <button
+                  className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'sent' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
+                  onClick={() => setViewMode('sent')}
+                >
                   Shared Documents
                 </button>
               </div>
               {viewMode === "my" ? (
                 <DocumentsPanel currentUser={currentUser} />
+              ) : viewMode === "shared" ? (
+                <div className="mt-4">
+                  <ReceivedDocumentsPanel currentUser={currentUser} />
+                </div>
               ) : (
                 <div className="mt-4">
                   <SharedDocumentsPanel currentUser={currentUser} />
