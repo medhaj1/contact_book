@@ -298,6 +298,26 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
     e.target.value = '';
   };
 
+  //for birthday wish
+  const sendWishMessage = async (contact) => {
+    if (!contact) return;
+    const birthdayMessage = `Happy Birthday, ${contact.name}! 🎉`;
+    const msg = {
+      sender_id: currentUser?.id,
+      receiver_id: contact.contact_id || contact.contact_user_id,
+      content: birthdayMessage,
+      timestamp: new Date().toISOString(),
+    };
+    const { data, error } = await supabase.from('messages').insert(msg).select();
+    if (!error && data && data.length > 0) {
+      setMessages(prev => [...prev, data[0]]);
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    } else {
+      console.error('Failed to send birthday wish:', error?.message);
+    }
+  };
+  
+
   return (
     <div className="flex w-full h-[500px] bg-white rounded-lg shadow-lg overflow-hidden min-h-[440px]">
       {/* Contact List */}
