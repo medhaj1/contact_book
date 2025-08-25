@@ -39,8 +39,6 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
         alert('Cannot send message: user is not registered.');
         return;
       }
-      setSelectedContact(chatContact);
-      setActiveTab("chat");
       await sendWishMessage(chatContact);
       setChatRefreshKey(prev => prev + 1);
   };

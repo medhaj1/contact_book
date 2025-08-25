@@ -1,5 +1,27 @@
-import React, { useState } from "react";
+import React from "react";
 import { isBirthdayToday, isBirthdayInNext7DaysExcludingToday, prettyDate } from "../../utils/birthdayUtils";
+// Simple toast implementation
+function showToast(message) {
+  const toast = document.createElement('div');
+  toast.textContent = message;
+  toast.style.position = 'fixed';
+  toast.style.bottom = '32px';
+  toast.style.left = '50%';
+  toast.style.transform = 'translateX(-50%)';
+  toast.style.background = '#22c55e';
+  toast.style.color = 'white';
+  toast.style.padding = '12px 24px';
+  toast.style.borderRadius = '8px';
+  toast.style.fontWeight = 'bold';
+  toast.style.zIndex = '9999';
+  toast.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => document.body.removeChild(toast), 400);
+  }, 1800);
+}
+// ...existing code...
 
 const BirthdayReminder = ({ contacts, onBirthdayWish }) => {
   const todaysBirthdays = contacts.filter(c => isBirthdayToday(c.birthday));
@@ -59,6 +81,7 @@ const BirthdayReminder = ({ contacts, onBirthdayWish }) => {
                       onClick={async () => {
                         if (onBirthdayWish) {
                           await onBirthdayWish(c);
+                          showToast(`Wish has been sent to ${c.name}`);
                         }
                       }}
                       className="text-xs px-2 py-1 rounded transition-colors font-semibold flex-shrink-0 bg-green-500 hover:bg-green-600 text-white"
