@@ -15,6 +15,7 @@ import {
   debugGroupAccess,
 } from '../../services/groupService';
 import { supabase } from '../../supabaseClient';
+import { toast } from 'react-toastify';
 
 const GroupPanel = ({ currentUser }) => {
   const currentUserId = currentUser?.id;
@@ -85,7 +86,7 @@ const GroupPanel = ({ currentUser }) => {
       setNewGroupName('');
       setNewGroupDesc('');
     } else {
-      alert(res.error || 'Failed to create group');
+      toast.error(res.error || 'Failed to create group');
     }
   };
 
@@ -97,7 +98,7 @@ const GroupPanel = ({ currentUser }) => {
       setGroups((prev) => prev.filter((g) => g.id !== groupId));
       if (selectedGroupId === groupId) setSelectedGroupId(null);
     } else {
-      alert(res.error || 'Failed to delete group');
+      toast.error(res.error || 'Failed to delete group');
     }
   };
 
@@ -110,7 +111,7 @@ const GroupPanel = ({ currentUser }) => {
       if (mRes.success) setMembers(mRes.data);
       setInviteEmail('');
     } else {
-      alert(res.error || 'Failed to add member');
+      toast.error(res.error || 'Failed to add member');
     }
   };
 
@@ -123,7 +124,7 @@ const GroupPanel = ({ currentUser }) => {
       if (mRes.success) setMembers(mRes.data);
       setSelectedContactId('');
     } else {
-      alert(res.error || 'Failed to add contact');
+      toast.error(res.error || 'Failed to add contact');
     }
   };
 
@@ -135,7 +136,7 @@ const GroupPanel = ({ currentUser }) => {
       setTaskText('');
       setTaskDeadline('');
     } else {
-      alert(res.error || 'Failed to add task');
+      toast.error(res.error || 'Failed to add task');
     }
   };
 
@@ -150,7 +151,7 @@ const GroupPanel = ({ currentUser }) => {
       setGroups((prev) => prev.filter((g) => g.id !== groupId));
       if (selectedGroupId === groupId) setSelectedGroupId(null);
     } else {
-      alert(res.error || 'Failed to leave');
+      toast.error(res.error || 'Failed to leave');
     }
   };
 

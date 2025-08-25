@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../supabaseClient';
+import { toast } from 'react-toastify';
 
 function isOnline(lastSeen) {
   if (!lastSeen) return false;
@@ -24,7 +25,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
       setSelectedMessages([]);
       setSelectMode(false);
     } else {
-      alert('Failed to delete messages: ' + error.message);
+      toast.error('Failed to delete messages: ' + error.message);
     }
   };
 

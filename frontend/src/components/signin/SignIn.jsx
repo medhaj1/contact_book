@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { toast } from 'react-toastify';  
+
 
 const SignIn = ({ onLogin }) => {
   const [email, setEmail] = useState('');
@@ -30,9 +32,9 @@ const SignIn = ({ onLogin }) => {
     });
 
     if (error) {
-      alert(error.message);
+      toast.error(error.message);
     } else {
-      alert('Login successful!');
+      toast.success('Login successful!');
       if (onLogin) onLogin(data.user);
       navigate('/dashboard');
     }
@@ -42,24 +44,24 @@ const SignIn = ({ onLogin }) => {
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     if (!resetEmail) {
-      alert('Please enter your email address to reset password.');
+      toast.error('Please enter your email address to reset password.');
       return;
     }
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/reset-password`, // must be configured in Supabase Auth settings
+        redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (error) {
-        alert(error.message);
+        toast.error(error.message);
       } else {
-        alert('Password reset email sent! Check your inbox.');
-        setShowForgot(false); // switch back to login
+        toast.success('Password reset email sent! Check your inbox.');
+        setShowForgot(false);
       }
     } catch (err) {
       console.error(err);
-      alert('Something went wrong. Please try again.');
+      toast.error('Something went wrong. Please try again.');
     }
   };
 

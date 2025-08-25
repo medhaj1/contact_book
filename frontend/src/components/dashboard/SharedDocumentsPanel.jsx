@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
+import { toast } from 'react-toastify';
 
 const SharedDocumentsPanel = ({ currentUser }) => {
   const [sharedDocs, setSharedDocs] = useState([]);
@@ -12,7 +13,7 @@ const SharedDocumentsPanel = ({ currentUser }) => {
           .remove([`public/${doc.file_name}`]);
         if (storageError) {
           console.error('Delete from storage failed:', storageError.message);
-          alert('Failed to delete file from storage: ' + storageError.message);
+          toast.error('Failed to delete file from storage: ' + storageError.message);
           return;
         }
         // Remove from DB
@@ -22,14 +23,14 @@ const SharedDocumentsPanel = ({ currentUser }) => {
           .eq('id', doc.id);
         if (dbError) {
           console.error('Delete from DB failed:', dbError.message);
-          alert('Failed to delete document metadata: ' + dbError.message);
+          toast.error('Failed to delete document metadata: ' + dbError.message);
           return;
         }
         // Refresh list
         setSharedDocs(prev => prev.filter(d => d.id !== doc.id));
       } catch (error) {
         console.error('Error deleting shared document:', error);
-        alert('Error deleting document: ' + error.message);
+        toast.error('Error deleting document: ' + error.message);
       }
     };
 
