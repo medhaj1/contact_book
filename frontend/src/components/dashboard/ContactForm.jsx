@@ -6,6 +6,26 @@ import { addContact, updateContact } from '../../services/contactService';
 import { toast } from 'react-toastify';
 
 const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => {
+  // Formatting preferences from localStorage
+  const isFirstLast = (localStorage.getItem("nameFormat") || "first_last") === "first_last";
+  const isDayMonthYear = (localStorage.getItem("dateFormat") || "dd_mm_yyyy") === "dd_mm_yyyy";
+
+  // Helper functions for formatting
+  function formatName(contact) {
+    if (!contact) return "";
+    const parts = (contact.name || "").split(" ");
+    const first = parts[0] || "";
+    const last = parts[1] || "";
+    return isFirstLast ? `${first} ${last}`.trim() : `${last}, ${first}`.trim();
+  }
+
+  function formatDate(dateStr) {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    return isDayMonthYear ? date.toLocaleDateString("en-GB") : date.toLocaleDateString("en-US");
+  }
+
   // Initialize form data with persistence
   const getInitialFormData = () => {
     if (contact) {
@@ -145,20 +165,23 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
     }
 
     if (isBlocked) {
-      if (window.confirm(`Are you sure you want to unblock ${contact.name}?`)) {
+      if (window.confirm(`Are you sure you want to unblock ${formatName(contact)}?`)) {
         const result = await unblock(contact.contact_id);
         if (result.success) {
-          toast.error(`${contact.name} has been unblocked.`);
+          toast.error(`${formatName(contact)} has been unblocked.`);
         } else {
-          toast.error(`Failed to unblock ${contact.name}: ${result.error}`);
+          toast.error(`Failed to unblock ${formatName(contact)}: ${result.error}`);
+
         }
       }
     } else {
       const result = await block(contact.contact_id);
       if (result.success) {
-        toast.error(`${contact.name} has been blocked.`);
+
+        toast.error(`${formatName(contact)} has been blocked.`);
       } else {
-        toast.error(`Failed to block ${contact.name}: ${result.error}`);
+        toast.error(`Failed to block ${formatName(contact)}: ${result.error}`);
+
       }
     }
   };
@@ -167,7 +190,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
     <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-[1000]">
       <div className="bg-white dark:bg-[#161b22] p-8 rounded-[16px] border dark:border-slate-700 w-[400px] max-h-[90vh] overflow-y-auto shadow-[0_10px_40px_rgba(0,0,0,0.15)]">
         <h3 className="text-[1.4rem] font-semibold text-[#334155] dark:text-slate-300 mb-6 text-center">
-          {contact ? 'Edit Contact' : 'Add New Contact'}
+          {contact ? `Edit Contact - ${formatName(contact)}` : 'Add New Contact'}
         </h3>
         <form onSubmit={handleSubmit}>
           {/* Image Upload */}
@@ -176,7 +199,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
               <div className="w-[100px] h-[100px] mx-auto mb-4 rounded-full bg-slate-100 dark:bg-gray-800/50 flex items-center justify-center relative overflow-hidden border-2 border-dashed border-slate-300 dark:border-slate-700 cursor-pointer hover:scale-105 transform transition duration-200">
                 {formData.image ? (
                   <>
-                    <img src={formData.image} alt="Contact" className="w-full h-full object-cover" />
+                    <img src={formData.image} alt={contact ? formatName(contact) : "Contact"} className="w-full h-full object-cover" />
                     <button
                       className="absolute top-[5px] right-[5px] bg-red-600/80 text-white rounded-full w-6 h-6 flex items-center justify-center cursor-pointer text-[12px]"
                       type="button"
@@ -209,6 +232,11 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
               className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 transform transition duration-200"
               required
             />
+            {formData.name && (
+              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Display format: {formatName({ name: formData.name })}
+              </div>
+            )}
           </div>
 
           {/* Email */}
@@ -251,6 +279,11 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
     onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
     className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 transform transition duration-200"
   />
+  {formData.birthday && (
+    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+      Display format: {formatDate(formData.birthday)}
+    </div>
+  )}
 </div>
 
 

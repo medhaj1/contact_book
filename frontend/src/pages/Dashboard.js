@@ -1,32 +1,50 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import ChatPanel from '../components/chat/ChatPanel';
+  import React, { useState, useEffect, useCallback } from "react";
+  import { useNavigate } from "react-router-dom";
 import { toast } from 'react-toastify';
-
-import ContactForm from '../components/dashboard/ContactForm';
-import BirthdayReminder from '../components/dashboard/BirthdayReminder';
-import TaskPanel from '../components/dashboard/TaskPanel';
-import SettingsTab from '../components/dashboard/SettingsTab';
-import DocumentsPanel from '../components/dashboard/DocumentsPanel';
-import ImportModal from '../components/dashboard/ImportModal';
-import GroupPanel from '../components/groups/GroupPanel';
-import SharedDocumentsPanel from '../components/dashboard/SharedDocumentsPanel';
-import Sidebar from '../components/dashboard/Sidebar';
-import HeaderSection from '../components/dashboard/HeaderSection';
-import ContactsControlBar from '../components/dashboard/ContactsControlBar';
-import ContactsGrid from '../components/dashboard/ContactsGrid';
-import ContactsList from '../components/dashboard/ContactsList';
-import FloatingActionButton from '../components/dashboard/FloatingActionButton';
-import { addFavourite, removeFavourite } from "../services/favouriteService";
-import { exportContactsCSV, exportContactsVCF } from '../services/importExportService';
-
-import { getContacts, deleteContact } from '../services/contactService';
+  import ChatPanel from '../components/chat/ChatPanel';
+  import ContactForm from '../components/dashboard/ContactForm';
+  import BirthdayReminder from '../components/dashboard/BirthdayReminder';
+  import TaskPanel from '../components/dashboard/TaskPanel';
+  import SettingsTab from '../components/dashboard/SettingsTab';
+  import DocumentsPanel from '../components/dashboard/DocumentsPanel';
+  import ImportModal from '../components/dashboard/ImportModal';
+  import GroupPanel from '../components/groups/GroupPanel';
+  import ReceivedDocumentsPanel from '../components/dashboard/ReceivedDocumentsPanel';
+  import SharedDocumentsPanel from '../components/dashboard/SharedDocumentsPanel';
+  import Sidebar from '../components/dashboard/Sidebar';
+  import HeaderSection from '../components/dashboard/HeaderSection';
+  import ContactsControlBar from '../components/dashboard/ContactsControlBar';
+  import ContactsGrid from '../components/dashboard/ContactsGrid';
+  import ContactsList from '../components/dashboard/ContactsList';
+  import FloatingActionButton from '../components/dashboard/FloatingActionButton';
+  import { addFavourite, removeFavourite } from "../services/favouriteService";
+  import { exportContactsCSV, exportContactsVCF } from '../services/importExportService';
+  import { getContacts, deleteContact } from '../services/contactService';
 import { getCategories } from '../services/categoryService';
-
 import { supabase } from '../supabaseClient';
+import { useBlockedContacts } from "../components/dashboard/BlockedContactsContext";
 
 const Dashboard = ({ currentUser, onLogout = () => {} }) => {
+  // Handles birthday wish: sets contact, switches tab, sends message
+  // Used to force chat refresh
+  const [chatRefreshKey, setChatRefreshKey] = useState(0);
+
+    const handleBirthdayWish = async (contact) => {
+      // Always find the chat contact with contact_user_id
+      let chatContact = contact;
+      if (contacts && contact.email) {
+        const found = contacts.find(c => c.email === contact.email && c.contact_user_id);
+        if (found) chatContact = found;
+      }
+      if (!chatContact.contact_user_id) {
+        alert('Cannot send message: user is not registered.');
+        return;
+      }
+      await sendWishMessage(chatContact);
+      setChatRefreshKey(prev => prev + 1);
+  };
   const navigate = useNavigate();
+  const { blockedContacts } = useBlockedContacts(); // Use blocked contacts context
 
   const onNavigateToProfile = () => {
     navigate('/profile');
@@ -67,10 +85,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
         return;
       }
       const filters = {
-        category: selectedCategory,
-        filename: '',
-        search: '',
-        hasBirthday: ''
+        category: selectedCategory, // Pass the selected category as-is, including 'favourites'
       };
       let result;
       if (format === 'csv') {
@@ -97,7 +112,27 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     try {
       setLoading(true);
       const result = await getContacts(userId);
-      setContacts(result.success ? result.data : []);
+      let contacts = result.success ? result.data : [];
+      // Fetch user profiles for all contact emails
+      const emails = contacts.map(c => c.email).filter(Boolean);
+      let profiles = [];
+      if (emails.length > 0) {
+        const { data: profileData } = await supabase
+          .from('user_profile')
+          .select('*')
+          .in('email', emails);
+        profiles = profileData || [];
+      }
+      // Map contact_user_id for registered users
+      contacts = contacts.map(contact => {
+        const profile = profiles.find(p => p.email === contact.email);
+        return profile ? {
+          ...contact,
+          contact_user_id: profile.u_id,
+          user_profile: profile
+        } : contact;
+      });
+      setContacts(contacts);
     } finally {
       setLoading(false);
     }
@@ -208,20 +243,35 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   };
 
   const safeString = (val) => (val ? String(val) : "");
+  
+  // Enhanced filtering logic with blocked contacts support
   let filteredContacts = contacts.filter(contact => {
     const matchesSearch =
       safeString(contact.name).toLowerCase().includes(searchTerm.toLowerCase()) ||
       safeString(contact.email).toLowerCase().includes(searchTerm.toLowerCase()) ||
       safeString(contact.phone).includes(searchTerm);
-    let matchesCategory = true;
-    if (selectedCategory === 'favourites') {
-      matchesCategory = contact.is_favourite === true;
-    } else if (selectedCategory && selectedCategory !== '') {
-      matchesCategory = Array.isArray(contact.category_ids) &&
-        contact.category_ids.some(id => String(id) === String(selectedCategory));
-    }
-    return matchesSearch && matchesCategory;
+    
+    // Enhanced category matching with array support
+    const matchesCategory =
+      !selectedCategory ||
+      selectedCategory === '' ||
+      (selectedCategory === 'favourites' ? contact.is_favourite === true :
+        (Array.isArray(contact.category_ids) &&
+          contact.category_ids.some((id) => String(id) === String(selectedCategory))));
+    
+    // Check if contact is blocked
+    const isBlocked =
+      Array.isArray(blockedContacts) &&
+      blockedContacts.some((b) => String(b.contact_id) === String(contact.contact_id));
+    
+    return matchesSearch && matchesCategory && !isBlocked;
   }).sort((a, b) => safeString(a.name).localeCompare(safeString(b.name)));
+
+  // Filter out blocked contacts for various subcomponents/logic
+  const unblockedContacts = contacts.filter(
+    (c) =>
+      !(Array.isArray(blockedContacts) && blockedContacts.some((b) => String(b.contact_id) === String(c.contact_id)))
+  );
 
   const renderCategoryBadges = (contact) => {
     if (!Array.isArray(contact.category_ids) || contact.category_ids.length === 0) return null;
@@ -310,15 +360,16 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                 viewMode={viewMode}
                 setViewMode={setViewMode}
                 categories={categories}
-                contacts={contacts}
+                contacts={unblockedContacts}
                 userId={userId}
                 onCategoriesChange={fetchCategories}
               />
               <BirthdayReminder
-                contacts={contacts}
+                contacts={unblockedContacts}
                 setSelectedContact={setSelectedContact}
                 sendWishMessage={sendWishMessage}
                 setActiveTab={setActiveTab}
+                onBirthdayWish={handleBirthdayWish}
               />
               {loading ? (
                 <div className="text-center py-12 text-slate-400">Loading contacts...</div>
@@ -389,6 +440,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
               currentUser={currentUser}
               selectedContact={selectedContact}
               setSelectedContact={setSelectedContact}
+              chatRefreshKey={chatRefreshKey}
             />
           )}
 
@@ -405,11 +457,21 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                   className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'shared' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
                   onClick={() => setViewMode('shared')}
                 >
+                  Received Documents
+                </button>
+                <button
+                  className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'sent' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
+                  onClick={() => setViewMode('sent')}
+                >
                   Shared Documents
                 </button>
               </div>
               {viewMode === "my" ? (
                 <DocumentsPanel currentUser={currentUser} />
+              ) : viewMode === "shared" ? (
+                <div className="mt-4">
+                  <ReceivedDocumentsPanel currentUser={currentUser} />
+                </div>
               ) : (
                 <div className="mt-4">
                   <SharedDocumentsPanel currentUser={currentUser} />
