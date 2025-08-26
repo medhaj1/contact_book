@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../supabaseClient';
+import { toast } from 'react-toastify';
 
 function isOnline(lastSeen) {
   if (!lastSeen) return false;
@@ -9,7 +10,6 @@ function isOnline(lastSeen) {
 function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSendDocument, chatRefreshKey }) {
   // Multi-select state for sent messages
   const [openMenuId, setOpenMenuId] = useState(null);
-
   const currentUserId = currentUser?.id;
 
   // Contact and invite logic

@@ -3,6 +3,7 @@ import { Camera, X } from 'lucide-react';
 import { NoSymbolIcon } from '@heroicons/react/24/solid';
 import { useBlockedContacts } from './BlockedContactsContext';
 import { addContact, updateContact } from '../../services/contactService';
+import { toast } from 'react-toastify';
 
 const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => {
   // Formatting preferences from localStorage
@@ -86,7 +87,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
       !String(formData.email || '').trim() ||
       !String(formData.phone || '').trim()
     ) {
-      alert('Name, email, and phone are required');
+      toast.error('Name, email, and phone are required');
       return;
     }
 
@@ -113,10 +114,10 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
         localStorage.removeItem('contactFormData');
         onSave();
       } else {
-        alert(`Failed to ${contact ? 'update' : 'add'} contact: ${result.error}`);
+        toast.error(`Failed to ${contact ? 'update' : 'add'} contact: ${result.error}`);
       }
     } catch (error) {
-      alert(`Error ${contact ? 'updating' : 'adding'} contact: ${error.message}`);
+      toast.error(`Error ${contact ? 'updating' : 'adding'} contact: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -159,7 +160,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
   // ✅ Block/unblock handler
   const handleBlockContact = async () => {
     if (!contact) {
-      alert("You can only block saved contacts.");
+      toast.error("You can only block saved contacts.");
       return;
     }
 
@@ -167,17 +168,20 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
       if (window.confirm(`Are you sure you want to unblock ${formatName(contact)}?`)) {
         const result = await unblock(contact.contact_id);
         if (result.success) {
-          alert(`${formatName(contact)} has been unblocked.`);
+          toast.error(`${formatName(contact)} has been unblocked.`);
         } else {
-          alert(`Failed to unblock ${formatName(contact)}: ${result.error}`);
+          toast.error(`Failed to unblock ${formatName(contact)}: ${result.error}`);
+
         }
       }
     } else {
       const result = await block(contact.contact_id);
       if (result.success) {
-        alert(`${formatName(contact)} has been blocked.`);
+
+        toast.error(`${formatName(contact)} has been blocked.`);
       } else {
-        alert(`Failed to block ${formatName(contact)}: ${result.error}`);
+        toast.error(`Failed to block ${formatName(contact)}: ${result.error}`);
+
       }
     }
   };

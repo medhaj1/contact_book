@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeftIcon, NoSymbolIcon } from '@heroicons/react/24/outline';
 import { useBlockedContacts } from '../dashboard/BlockedContactsContext';
+import { toast } from 'react-toastify';
 
 const BlockedContacts = ({ onCancel }) => {
   const { blockedContacts, unblock } = useBlockedContacts();
@@ -9,9 +10,9 @@ const BlockedContacts = ({ onCancel }) => {
     if (window.confirm(`Are you sure you want to unblock ${contactName}?`)) {
       const result = await unblock(contact_id);
       if (result.success) {
-        alert(`${contactName} has been unblocked.`);
+        toast.success(`${contactName} has been unblocked.`);
       } else {
-        alert(`Failed to unblock ${contactName}: ${result.error}`);
+        toast.error(`Failed to unblock ${contactName}: ${result.error}`);
       }
     }
   };

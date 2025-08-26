@@ -1,6 +1,6 @@
-
   import React, { useState, useEffect, useCallback } from "react";
   import { useNavigate } from "react-router-dom";
+import { toast } from 'react-toastify';
   import ChatPanel from '../components/chat/ChatPanel';
   import ContactForm from '../components/dashboard/ContactForm';
   import BirthdayReminder from '../components/dashboard/BirthdayReminder';
@@ -81,7 +81,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const handleExport = async (format) => {
     try {
       if (!userId) {
-        alert('User not found');
+        toast.error('User not found');
         return;
       }
       const filters = {
@@ -94,12 +94,12 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
         result = await exportContactsVCF(userId, filters);
       }
       if (result.success) {
-        alert(`${format.toUpperCase()} exported successfully!`);
+        toast.error(`${format.toUpperCase()} exported successfully!`);
       } else {
-        alert(`Failed to export ${format.toUpperCase()}: ${result.error}`);
+        toast.error(`Failed to export ${format.toUpperCase()}: ${result.error}`);
       }
     } catch (error) {
-      alert(`Error exporting ${format.toUpperCase()}: ` + error.message);
+      toast.error(`Error exporting ${format.toUpperCase()}: ` + error.message);
     }
   };
 
