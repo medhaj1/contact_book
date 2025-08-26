@@ -383,9 +383,8 @@ export async function createGroupTask({ groupId, text, deadline, userId }) {
       }])
       .select();
     if (error) throw error;
-    return { success: true, data: data?.[0] };
+    return { success: true, data };
   } catch (error) {
-    console.error('createGroupTask error', error);
     return { success: false, error: error.message };
   }
 }

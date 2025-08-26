@@ -2,15 +2,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   getUserGroups,
-  createGroup,
   addMemberByEmail,
   getGroupMembers,
   getGroupTasks,
   createGroupTask,
-  deleteTask,
-  leaveGroup,
-  deleteGroup,
-  addContactToGroup,
   getUserContactsWhoAreUsers,
   debugGroupAccess,
   archiveGroup,
@@ -24,69 +19,87 @@ const GroupPanel = ({ currentUser }) => {
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [members, setMembers] = useState([]);
   const [tasks, setTasks] = useState([]);
-  const [contactsWhoAreUsers, setContactsWhoAreUsers] = useState([]);
-
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [groupTaskText, setGroupTaskText] = useState('');
+  const [groupTaskDeadline, setGroupTaskDeadline] = useState('');
+  const [memberTaskText, setMemberTaskText] = useState('');
+  const [memberTaskDeadline, setMemberTaskDeadline] = useState('');
+  const [selectedMemberId, setSelectedMemberId] = useState('');
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDesc, setNewGroupDesc] = useState('');
 
-  const [inviteEmail, setInviteEmail] = useState('');
   const [selectedContactId, setSelectedContactId] = useState('');
 
   const [taskText, setTaskText] = useState('');
   const [taskDeadline, setTaskDeadline] = useState('');
-  const [memberTaskText, setMemberTaskText] = useState('');
-  const [memberTaskDeadline, setMemberTaskDeadline] = useState('');
-  const [selectedMemberId, setSelectedMemberId] = useState('');
 
   const selectedGroup = useMemo(() => groups.find((g) => g.id === selectedGroupId) || null, [groups, selectedGroupId]);
 
   useEffect(() => {
-    if (!currentUserId) {
-      console.log('No currentUserId, skipping group fetch');
-      return;
-    }
-    
-    console.log('Fetching groups for user:', currentUserId);
-    (async () => {
-      // Debug call to see what's happening
-      await debugGroupAccess(currentUserId);
-      
-      const res = await getUserGroups(currentUserId);
-      console.log('getUserGroups result:', res);
-      if (res.success) {
-        setGroups(res.data);
-      } else {
-        console.error('Failed to fetch groups:', res.error);
-        setGroups([]);
-      }
-    })();
-  }, [currentUserId]);
-
-  useEffect(() => {
     if (!currentUserId) return;
-    (async () => {
-      const res = await getUserContactsWhoAreUsers(currentUserId);
-      if (res.success) setContactsWhoAreUsers(res.data);
-    })();
+    getUserGroups(currentUserId).then(res => {
+      if (res.success) setGroups(res.data);
+    });
+   
   }, [currentUserId]);
 
   useEffect(() => {
     if (!selectedGroupId) return;
-    (async () => {
-      const [membersRes, tasksRes] = await Promise.all([
-        getGroupMembers(selectedGroupId),
-        getGroupTasks(selectedGroupId),
-      ]);
+    Promise.all([
+      getGroupMembers(selectedGroupId),
+      getGroupTasks(selectedGroupId),
+    ]).then(([membersRes, tasksRes]) => {
       if (membersRes.success) setMembers(membersRes.data);
       if (tasksRes.success) setTasks(tasksRes.data);
-    })();
+    });
   }, [selectedGroupId]);
 
+  // Add member by email
+  const handleInvite = async () => {
+    if (!selectedGroupId || !inviteEmail.trim()) return;
+    const res = await addMemberByEmail({ groupId: selectedGroupId, email: inviteEmail.trim() });
+    if (res.success) {
+      const mRes = await getGroupMembers(selectedGroupId);
+      if (mRes.success) setMembers(mRes.data);
+      setInviteEmail('');
+    } else {
+      console.error('Invite error:', res.error); // Only log errors
+      alert(res.error || 'Failed to add member');
+    }
+  };
+
+  // Assign task to member
+  const handleAssignTask = async (e) => {
+    e.preventDefault();
+    if (!selectedGroupId || !selectedMemberId || !memberTaskText.trim()) {
+      alert('Please select a member and enter a task.');
+      return;
+    }
+    const res = await createGroupTask({
+      groupId: selectedGroupId,
+      text: memberTaskText,
+      deadline: memberTaskDeadline,
+      userId: selectedMemberId,
+      completed: false,
+      completion_percent: 0
+    });
+    if (res.success) {
+      setTasks((prev) => [...prev, res.data]);
+      setMemberTaskText('');
+      setMemberTaskDeadline('');
+      setSelectedMemberId('');
+      alert('Task assigned!');
+    } else {
+      alert(res.error || 'Failed to assign task');
+    }
+  };
+
+  // Create new group
   const handleCreateGroup = async () => {
     if (!newGroupName.trim()) return;
-    const res = await createGroup({ name: newGroupName, description: newGroupDesc, ownerUserId: currentUserId });
+    const res = await createGroup({ name: newGroupName.trim(), description: newGroupDesc.trim(), ownerUserId: currentUserId });
     if (res.success) {
-      setGroups((prev) => [...prev, res.data]);
+      setGroups(prev => [...prev, res.data]);
       setNewGroupName('');
       setNewGroupDesc('');
     } else {
@@ -94,42 +107,29 @@ const GroupPanel = ({ currentUser }) => {
     }
   };
 
+  // Leave group
+  // (Removed duplicate handleLeaveGroup function)
+
+  // Delete group
   const handleDeleteGroup = async (groupId) => {
-    if (!window.confirm('Are you sure you want to delete this group? This action cannot be undone.')) return;
-    
+    if (!groupId || !currentUserId) return;
     const res = await deleteGroup({ groupId, userId: currentUserId });
     if (res.success) {
-      setGroups((prev) => prev.filter((g) => g.id !== groupId));
-      if (selectedGroupId === groupId) setSelectedGroupId(null);
+      setGroups(groups.filter(g => g.id !== groupId));
+      setSelectedGroupId(null);
+      alert('Group deleted.');
     } else {
       alert(res.error || 'Failed to delete group');
     }
   };
 
-  const handleInvite = async () => {
-    if (!selectedGroupId || !inviteEmail.trim()) return;
-    const res = await addMemberByEmail({ groupId: selectedGroupId, email: inviteEmail.trim() });
-    if (res.success) {
-      // Refresh members
-      const mRes = await getGroupMembers(selectedGroupId);
-      if (mRes.success) setMembers(mRes.data);
-      setInviteEmail('');
-    } else {
-      alert(res.error || 'Failed to add member');
-    }
-  };
+  // Create task
+  // (Removed duplicate handleCreateTask function. Use the one below.)
 
-  const handleAddContact = async () => {
-    if (!selectedGroupId || !selectedContactId) return;
-    const res = await addContactToGroup({ groupId: selectedGroupId, contactId: selectedContactId, userId: currentUserId });
-    if (res.success) {
-      // Refresh members
-      const mRes = await getGroupMembers(selectedGroupId);
-      if (mRes.success) setMembers(mRes.data);
-      setSelectedContactId('');
-    } else {
-      alert(res.error || 'Failed to add contact');
-    }
+  // Update task completion status
+  const handleTaskCompletionChange = async (taskId, completed) => {
+    await supabase.from('task').update({ completed }).eq('id', taskId);
+    setTasks(tasks.map(t => t.id === taskId ? { ...t, completed } : t));
   };
 
   const handleCreateTask = async () => {
@@ -138,7 +138,9 @@ const GroupPanel = ({ currentUser }) => {
       groupId: selectedGroupId,
       text: taskText,
       deadline: taskDeadline,
-      userId: selectedMemberId || null // allow unassigned tasks
+      userId: selectedMemberId || null, // allow unassigned tasks
+      completed: false,
+      completion_percent: 0
     });
     if (res.success) {
       setTasks((prev) => [...prev, res.data]);
@@ -146,21 +148,6 @@ const GroupPanel = ({ currentUser }) => {
       setTaskDeadline('');
     } else {
       alert(res.error || 'Failed to add task');
-    }
-  };
-
-  const handleDeleteTask = async (taskId) => {
-    const res = await deleteTask(taskId);
-    if (res.success) setTasks((prev) => prev.filter((t) => t.id !== taskId));
-  };
-
-  const handleLeaveGroup = async (groupId) => {
-    const res = await leaveGroup({ groupId, userId: currentUserId });
-    if (res.success) {
-      setGroups((prev) => prev.filter((g) => g.id !== groupId));
-      if (selectedGroupId === groupId) setSelectedGroupId(null);
-    } else {
-      alert(res.error || 'Failed to leave');
     }
   };
 
@@ -287,61 +274,35 @@ const GroupPanel = ({ currentUser }) => {
           ))}
         </div>
 
-        {/* Create group */}
-        <div className="mt-4 pt-4 border-t border-slate-200">
-          <div className="font-semibold text-sm mb-2">Create Group</div>
-          <input className="w-full border rounded-md p-2 text-sm mb-2" placeholder="Group name" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} />
-          <input className="w-full border rounded-md p-2 text-sm mb-2" placeholder="Description (optional)" value={newGroupDesc} onChange={(e) => setNewGroupDesc(e.target.value)} />
-          <button className="w-full bg-blue-600 text-white rounded-md py-2 text-sm" onClick={handleCreateGroup}>Create</button>
+          {/* Create group */}
+          <div className="mt-4 pt-4 border-t border-slate-200">
+            <div className="font-semibold text-sm mb-2">Create Group</div>
+            <input className="w-full border rounded-md p-2 text-sm mb-2" placeholder="Group name" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} />
+            <input className="w-full border rounded-md p-2 text-sm mb-2" placeholder="Description (optional)" value={newGroupDesc} onChange={(e) => setNewGroupDesc(e.target.value)} />
+            <button className="w-full bg-blue-600 text-white rounded-md py-2 text-sm" onClick={handleCreateGroup}>Create</button>
+          </div>
         </div>
-      </div>
 
-      {/* Group details */}
-      <div className="flex-1 bg-white rounded-xl border border-slate-200 p-4 h-[520px] overflow-y-auto">
-        {!selectedGroup ? (
-          <div className="text-slate-500">Select a group to view members and tasks.</div>
-        ) : (
-          <div className="space-y-6">
-            {/* Members */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-lg">Members</h3>
-                <div className="flex gap-2">
-                  <input
-                    className="border rounded-md p-2 text-sm"
-                    placeholder="Invite by email"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                  />
-                  <button className="bg-slate-800 text-white rounded-md px-3 text-sm" onClick={handleInvite}>Invite</button>
+        {/* Group details */}
+        <div className="flex-1 bg-white rounded-xl border border-slate-200 p-4 h-[520px] overflow-y-auto">
+          {!selectedGroup ? (
+            <div className="text-slate-500">Select a group to view members and tasks.</div>
+          ) : (
+            <div className="space-y-6">
+              {/* Members */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-lg">Members</h3>
+                  <div className="flex gap-2">
+                    <input
+                      className="border rounded-md p-2 text-sm"
+                      placeholder="Invite by email"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                    />
+                    <button className="bg-slate-800 text-white rounded-md px-3 text-sm" onClick={handleInvite}>Invite</button>
+                  </div>
                 </div>
-              </div>
-
-              {/* Add from contacts */}
-              {contactsWhoAreUsers.length > 0 && (
-                <div className="flex gap-2 mb-3">
-                  <select
-                    className="flex-1 border rounded-md p-2 text-sm"
-                    value={selectedContactId}
-                    onChange={(e) => setSelectedContactId(e.target.value)}
-                  >
-                    <option value="">Add from contacts...</option>
-                    {contactsWhoAreUsers.map((contact) => (
-                      <option key={contact.contact_id} value={contact.contact_id}>
-                        {contact.name} ({contact.email})
-                      </option>
-                    ))}
-                  </select>
-                  <button 
-                    className="bg-green-600 text-white rounded-md px-3 text-sm" 
-                    onClick={handleAddContact}
-                    disabled={!selectedContactId}
-                  >
-                    Add
-                  </button>
-                </div>
-              )}
-
               <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {members.map((m) => (
                   <li key={m.u_id} className="border border-slate-200 rounded-lg p-3">

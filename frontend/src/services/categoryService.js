@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 
 /**
@@ -57,7 +58,7 @@ export const addCategory = async (categoryName, userId) => {
       throw new Error(`Failed to add category: ${insertError.message}`);
     }
 
-    return { success: true, data: insertData };
+    return { success: true, message: "Category added successfully" };
   } catch (error) {
     console.error("Add Category Error:", error.message);
     return { success: false, error: error.message };

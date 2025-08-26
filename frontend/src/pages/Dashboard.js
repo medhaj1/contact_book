@@ -409,115 +409,107 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                 onDeleteContact={handleDeleteContact}
                 safeString={safeString}
               />
-            )}
-
-            {/* Modals */}
-            {showAddContact && (
-              <ContactForm
-                categories={categories}
-                userId={userId}
-                onSave={handleContactSave}
-                onCancel={handleCancelContactForm}
-              />
-            )}
-            {editingContact && (
-              <ContactForm
-                contact={editingContact}
-                categories={categories}
-                userId={userId}
-                onSave={handleContactSave}
-                onCancel={handleCancelContactForm}
-              />
-            )}
-            {showImportModal && (
-              <ImportModal
-                userId={userId}
-                onImportComplete={fetchContacts}
-                onClose={handleImportModalClose}
-              />
-            )}
-          </>
         )}
 
-       
-
-        {activeTab === "settings" && (
-          <SettingsTab currentUser={currentUser} isDark={isDark} setIsDark={setIsDark} />
+        {/* Modals */}
+        {showAddContact && (
+          <ContactForm
+            categories={categories}
+            userId={userId}
+            onSave={handleContactSave}
+            onCancel={handleCancelContactForm}
+          />
         )}
-
-        {/* Tasks */}
-        {activeTab === "task" && (
-          <div className="max-w-5xl mx-auto">
-            <div className="flex gap-2 mb-6">
-              <button
-                className={taskTab === 'personal' ? 'tab-active' : 'tab'}
-                onClick={() => setTaskTab('personal')}
-              >
-                Personal Tasks
-              </button>
-              <button
-                className={taskTab === 'group' ? 'tab-active' : 'tab'}
-                onClick={() => setTaskTab('group')}
-              >
-                Group Tasks
-              </button>
-            </div>
-
-            {/* Personal Tasks */}
-            {taskTab === 'personal' && (
-              <TaskPanel currentUser={currentUser} />
-            )}
-
-            {/* Group Tasks (embed GroupPanel logic here) */}
-            {taskTab === 'group' && (
-              <GroupPanel currentUser={currentUser} />
-            )}
-          </div>
+        {editingContact && (
+          <ContactForm
+            contact={editingContact}
+            categories={categories}
+            userId={userId}
+            onSave={handleContactSave}
+            onCancel={handleCancelContactForm}
+          />
         )}
-
-        {/* Chat */}
-        {activeTab === "chat" && <ChatPanel currentUser={currentUser} />}
-
-        {/* Documents */}
-        {activeTab === "documents" && (
-          <div>
-            <div className="flex gap-2 mb-8">
-              <button
-                className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'my' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
-                onClick={() => setViewMode('my')}
-              >
-                My Documents
-              </button>
-              <button
-                className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'shared' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
-                onClick={() => setViewMode('shared')}
-              >
-                Shared Documents
-              </button>
-            </div>
-            {viewMode === "my" ? (
-              <DocumentsPanel currentUser={currentUser} />
-            ) : (
-              <div className="mt-4">
-                <SharedDocumentsPanel currentUser={currentUser} />
-              </div>
-            )}
-          </div>
+        {showImportModal && (
+          <ImportModal
+            userId={userId}
+            onImportComplete={fetchContacts}
+            onClose={handleImportModalClose}
+          />
         )}
+      </>
+    )}
+
+    {activeTab === "settings" && (
+      <SettingsTab currentUser={currentUser} isDark={isDark} setIsDark={setIsDark} />
+    )}
+
+    {activeTab === "task" && (
+      <div className="max-w-5xl mx-auto">
+        <div className="flex gap-2 mb-6">
+          <button
+            className={taskTab === 'personal' ? 'tab-active' : 'tab'}
+            onClick={() => setTaskTab('personal')}
+          >
+            Personal Tasks
+          </button>
+          <button
+            className={taskTab === 'group' ? 'tab-active' : 'tab'}
+            onClick={() => setTaskTab('group')}
+          >
+            Group Tasks
+          </button>
         </div>
-      
-      </div>
 
-      {/* Floating Add Contact Button (FAB) - Only show on contacts page */}
-      {activeTab === "contacts" && (
-        <FloatingActionButton
-          show={true}
-          onAddContact={() => setShowAddContact(true)}
-          onImportContacts={() => setShowImportModal(true)}
-        />
-      )}
+        {taskTab === 'personal' && (
+          <TaskPanel currentUser={currentUser} />
+        )}
+
+        {taskTab === 'group' && (
+          <GroupPanel currentUser={currentUser} />
+        )}
+      </div>
+    )}
+
+    {activeTab === "chat" && <ChatPanel currentUser={currentUser} />}
+
+    {activeTab === "documents" && (
+      <div>
+        <div className="flex gap-2 mb-8">
+          <button
+            className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'my' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
+            onClick={() => setViewMode('my')}
+          >
+            My Documents
+          </button>
+          <button
+            className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'shared' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
+            onClick={() => setViewMode('shared')}
+          >
+            Shared Documents
+          </button>
+        </div>
+        {viewMode === "my" ? (
+          <DocumentsPanel currentUser={currentUser} />
+        ) : (
+          <div className="mt-4">
+            <SharedDocumentsPanel currentUser={currentUser} />
+          </div>
+        )}
+      </div>
+    )}
     </div>
+  
+  </div>
+
+  {activeTab === "contacts" && (
+    <FloatingActionButton
+      show={true}
+      onAddContact={() => setShowAddContact(true)}
+      onImportContacts={() => setShowImportModal(true)}
+    />
+  )}
+</div>
   );
-};
+}
 
 export default Dashboard;
