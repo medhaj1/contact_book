@@ -8,13 +8,13 @@ const AccountSettings = ({ onCancel }) => {
     const [userDetails, setUserDetails] = useState(null);
 
     const handleAccountDetails = async () => {
-        const { data, error } = await supabase.auth.getUser();
-        if (error) {
+        const { data: userData, error } = await supabase.auth.getUser();
+        if (error || !userData || !userData.user) {
           toast.error('Failed to fetch user details.');
-            return;
+          return;
         }
 
-        const user = authData.user;
+        const user = userData.user;
         const userId = user.id;
 
         try {
@@ -170,32 +170,32 @@ const AccountSettings = ({ onCancel }) => {
                 Account Details
             </button>
             {showDetails && userDetails && (
-              <div className="rounded-lg bg-white dark:bg-gray-800 shadow-sm p-5 border border-slate-200 dark:border-gray-700">
-                <h3 className="font-semibold mb-3 text-slate-600 dark:text-gray-300">User Details</h3>
-                <div className="space-y-2 text-sm">
-                  <p>
-                    <span className="font-medium">Email:</span> {userDetails.email}
-                    {userDetails.email_confirmed_at && (
-                      <span className="ml-2 text-green-600 dark:text-green-400 font-semibold">✔ Verified</span>
-                    )}
-                  </p>
-                  <p><span className="font-medium">Authentic User:</span> {userDetails.authentic ? "Yes" : "No"}</p>
-                  <p><span className="font-medium">Contacts saved:</span> {userDetails.contactsCount}</p>
-                  <p><span className="font-medium">Contacts blocked:</span> {userDetails.blockedCount}</p>
-                  <p><span className="font-medium">Documents shared:</span> {userDetails.docsCount}</p>
-                  <p><span className="font-medium">Tasks:</span> {userDetails.tasksCount}</p>
-                  <p><span className="font-medium">Password:</span> {userDetails.password}</p>
-                </div>
-                <div className="mt-4 flex">
-                  <button
-                    onClick={() => setShowDetails(false)}
-                    className="px-4 py-1.5 rounded-md text-sm bg-slate-200 dark:bg-gray-700 text-slate-700 dark:text-gray-300 hover:bg-slate-300 dark:hover:bg-gray-600 transition"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            )}
+  <div className="rounded-lg bg-[#0d1117] dark:bg-[#0d1117] shadow-sm p-5 border border-[#30363d]">
+    <h3 className="font-semibold mb-4 text-gray-200 text-lg">User Details</h3>
+    <div className="space-y-3 text-sm text-gray-300">
+      <p>
+        <span className="font-medium text-gray-400">Email:</span> {userDetails.email}
+        {userDetails.email_confirmed_at && (
+          <span className="ml-2 text-green-500 font-semibold">✔ Verified</span>
+        )}
+      </p>
+      <p><span className="font-medium text-gray-400">Authentic User:</span> {userDetails.authentic ? "Yes" : "No"}</p>
+      <p><span className="font-medium text-gray-400">Contacts saved:</span> {userDetails.contactsCount}</p>
+      <p><span className="font-medium text-gray-400">Contacts blocked:</span> {userDetails.blockedCount}</p>
+      <p><span className="font-medium text-gray-400">Documents shared:</span> {userDetails.docsCount}</p>
+      <p><span className="font-medium text-gray-400">Tasks:</span> {userDetails.tasksCount}</p>
+      <p><span className="font-medium text-gray-400">Password:</span> {userDetails.password}</p>
+    </div>
+    <div className="mt-5 flex justify-end">
+      <button
+        onClick={() => setShowDetails(false)}
+        className="px-4 py-2 rounded-md text-sm bg-gray-700 text-gray-200 hover:bg-gray-600 transition"
+      >
+        Close
+      </button>
+    </div>
+  </div>
+)}
             <button onClick={handleClearAllData} className="w-full text-left py-5 px-2 rounded-lg text-red-600 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-800 dark:hover:bg-opacity-20 flex items-center">
               <NoSymbolIcon className="w-5 h-5 mr-3 inline" />
                 Clear All Data
