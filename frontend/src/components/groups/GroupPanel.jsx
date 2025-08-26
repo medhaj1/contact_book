@@ -13,6 +13,8 @@ import {
   addContactToGroup,
   getUserContactsWhoAreUsers,
   debugGroupAccess,
+  archiveGroup,
+  unarchiveGroup, // <-- Import unarchiveGroup
 } from '../../services/groupService';
 import { supabase } from '../../supabaseClient';
 
@@ -132,7 +134,12 @@ const GroupPanel = ({ currentUser }) => {
 
   const handleCreateTask = async () => {
     if (!selectedGroupId || !taskText.trim()) return;
-    const res = await createGroupTask({ groupId: selectedGroupId, text: taskText, deadline: taskDeadline, creatorUserId: currentUserId });
+    const res = await createGroupTask({
+      groupId: selectedGroupId,
+      text: taskText,
+      deadline: taskDeadline,
+      userId: selectedMemberId || null // allow unassigned tasks
+    });
     if (res.success) {
       setTasks((prev) => [...prev, res.data]);
       setTaskText('');
@@ -154,6 +161,20 @@ const GroupPanel = ({ currentUser }) => {
       if (selectedGroupId === groupId) setSelectedGroupId(null);
     } else {
       alert(res.error || 'Failed to leave');
+    }
+  };
+
+  const handleArchiveGroup = async (groupId) => {
+    const res = await archiveGroup({ groupId });
+    if (res.success) {
+      setGroups(prev => prev.map(g => g.id === groupId ? { ...g, archived: true } : g));
+    }
+  };
+
+  const handleUnarchiveGroup = async (groupId) => {
+    const res = await unarchiveGroup({ groupId });
+    if (res.success) {
+      setGroups(prev => prev.map(g => g.id === groupId ? { ...g, archived: false } : g));
     }
   };
 
@@ -197,16 +218,28 @@ const GroupPanel = ({ currentUser }) => {
       return 0;
     });
 
+  // Sort: archived groups go last
+  const sortedGroups = [...groups].sort((a, b) => {
+    if (!!a.archived !== !!b.archived) return a.archived ? 1 : -1;
+    return 0;
+  });
+
   return (
     <div className="flex gap-6 w-full">
       {/* Groups list */}
       <div className="w-72 bg-white rounded-xl border border-slate-200 p-4 h-[520px] overflow-y-auto">
         <h3 className="font-semibold text-lg mb-3">Groups</h3>
         <div className="space-y-2">
-          {groups.map((g) => (
+          {sortedGroups.map((g) => (
             <div
               key={g.id}
-              className={`p-3 rounded-lg cursor-pointer border ${selectedGroupId === g.id ? 'bg-blue-50 border-blue-300' : 'border-slate-200 hover:bg-slate-50'}`}
+              className={`p-3 rounded-lg cursor-pointer border ${
+                g.archived
+                  ? 'bg-yellow-50 border-yellow-300 opacity-60'
+                  : selectedGroupId === g.id
+                  ? 'bg-blue-50 border-blue-300'
+                  : 'border-slate-200 hover:bg-slate-50'
+              }`}
               onClick={() => setSelectedGroupId(g.id)}
             >
               <div className="flex items-center justify-between">
@@ -225,13 +258,29 @@ const GroupPanel = ({ currentUser }) => {
                     Leave
                   </button>
                 )}
-                {isProtectedRole(g.role) && (
+                {isProtectedRole(g.role) && !g.archived && (
                   <button 
-                    className="text-xs text-red-600 hover:text-red-800" 
-                    onClick={(e) => { e.stopPropagation(); handleDeleteGroup(g.id); }}
+                    className="text-xs text-yellow-600 hover:text-yellow-800" 
+                    onClick={(e) => { e.stopPropagation(); handleArchiveGroup(g.id); }}
                   >
-                    Delete
+                    Archive
                   </button>
+                )}
+                {isProtectedRole(g.role) && g.archived && (
+                  <>
+                    <button 
+                      className="text-xs text-blue-600 hover:text-blue-800" 
+                      onClick={(e) => { e.stopPropagation(); handleUnarchiveGroup(g.id); }}
+                    >
+                      Unarchive
+                    </button>
+                    <button 
+                      className="text-xs text-red-600 hover:text-red-800 ml-2" 
+                      onClick={(e) => { e.stopPropagation(); handleDeleteGroup(g.id); }}
+                    >
+                      Delete
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -383,10 +432,19 @@ const GroupPanel = ({ currentUser }) => {
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="font-medium text-sm">{t.text}</div>
-                          {t.deadline && <div className="text-xs text-slate-500">Due: {new Date(t.deadline).toLocaleDateString()}</div>}
-                          {t.user_id && (
+                          {t.deadline && (
+                            <div className="text-xs text-slate-500">
+                              Due: {new Date(t.deadline).toLocaleDateString()}
+                            </div>
+                          )}
+                          {/* Show assigned member or group */}
+                          {t.user_id ? (
                             <div className="text-xs text-blue-600">
-                              Assigned to: {members.find(m => m.u_id === t.user_id)?.name || members.find(m => m.u_id === t.user_id)?.email || 'Member'}
+                              Task assigned to: {members.find(m => m.u_id === t.user_id)?.name || members.find(m => m.u_id === t.user_id)?.email || 'Member'}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-blue-600">
+                              Task assigned to: GROUP
                             </div>
                           )}
                         </div>
@@ -432,3 +490,4 @@ const GroupPanel = ({ currentUser }) => {
 };
 
 export default GroupPanel;
+

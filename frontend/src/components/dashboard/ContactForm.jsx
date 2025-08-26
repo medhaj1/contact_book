@@ -52,6 +52,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
   // ✅ Blocked Contacts Context
   const { blockedContacts, block, unblock } = useBlockedContacts();
@@ -268,20 +269,10 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
               })}
             </div>
             <select
-              onChange={(e) => {
-                if (e.target.value) {
-                  addCategory(e.target.value);
-                  e.target.value = '';
-                }
-              }}
+              onClick={() => setShowCategoryPicker(true)}
               className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 bg-white text-slate-600 transform transition duration-200"
             >
               <option value="">+ Add more</option>
-              {categories.map((category) => (
-                <option key={category.category_id} value={category.category_id}>
-                  {category.category_name || category.name}
-                </option>
-              ))}
             </select>
           </div>
 
@@ -324,6 +315,32 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
             </button>
           )}
         </form>
+
+        {/* Category Picker Dropdown */}
+        {showCategoryPicker && (
+          <div className="absolute z-50 bg-white border rounded-lg shadow-lg p-4 mt-2 w-full max-h-64 overflow-y-auto">
+            <div className="flex flex-col gap-2">
+              {categories.map(category => (
+                <button
+                  key={category.category_id}
+                  className="text-left px-3 py-2 rounded hover:bg-blue-100 text-slate-700"
+                  onClick={() => {
+                    addCategory(String(category.category_id));
+                    setShowCategoryPicker(false);
+                  }}
+                >
+                  {category.category_name || category.name}
+                </button>
+              ))}
+            </div>
+            <button
+              className="mt-2 text-xs text-red-500"
+              onClick={() => setShowCategoryPicker(false)}
+            >
+              Close
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

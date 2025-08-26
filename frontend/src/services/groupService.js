@@ -32,7 +32,7 @@ export async function getUserGroups(userId) {
     // Then, get the actual group details
     const { data: groups, error: groupErr } = await supabase
       .from('groups')
-      .select('*')
+      .select('id, name, description, archived') // <-- include archived
       .in('id', groupIds)
       .order('created_at', { ascending: true });
 
@@ -346,18 +346,13 @@ export async function getGroupMembers(groupId) {
       .select('u_id, name, email, image, last_seen')
       .in('u_id', userIds);
 
-    if (profileErr) throw profileErr;
-
-    const roleByUserId = new Map(memberRows.map((m) => [m.user_id, m.role]));
-    const enriched = (profiles || []).map((p) => ({ ...p, role: roleByUserId.get(p.u_id) || 'member' }));
-    return { success: true, data: enriched };
+   if (profileErr) throw profileErr;
+return { success: true, data: profiles };
   } catch (error) {
-    console.error('getGroupMembers error', error);
+    console.error('getGroupTasks error', error);
     return { success: false, error: error.message };
   }
 }
-
-// GROUP TASKS
 export async function getGroupTasks(groupId) {
   try {
     if (!groupId) throw new Error('Missing groupId');
@@ -373,24 +368,20 @@ export async function getGroupTasks(groupId) {
     return { success: false, error: error.message };
   }
 }
-export async function createGroupTask({ groupId, text, deadline, userId, creatorUserId }) {
+
+export async function createGroupTask({ groupId, text, deadline, userId }) {
   try {
     if (!groupId) throw new Error('Missing groupId');
-    if (!userId) throw new Error('Missing userId');
-    if (!creatorUserId) throw new Error('Missing creatorUserId');
     if (!text || !text.trim()) throw new Error('Task text is required');
-
     const { data, error } = await supabase
       .from('task')
       .insert([{
         group_id: groupId,
-        user_id: userId, // assign to selected member
+        user_id: userId,
         text: text.trim(),
-        deadline,
-        //creator_user_id: creatorUserId
+        deadline
       }])
       .select();
-
     if (error) throw error;
     return { success: true, data: data?.[0] };
   } catch (error) {
@@ -414,7 +405,33 @@ export async function deleteTask(taskId) {
   }
 }
 
+export async function archiveGroup({ groupId }) {
+  try {
+    const { error } = await supabase
+      .from('groups')
+      .update({ archived: true })
+      .eq('id', groupId);
+    if (error) throw error;
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function unarchiveGroup({ groupId }) {
+  try {
+    const { error } = await supabase
+      .from('groups')
+      .update({ archived: false })
+      .eq('id', groupId);
+    if (error) throw error;
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// Optional stub for debugGroupAccess
 export function debugGroupAccess() {
-  // Stub for debugging
   console.log('debugGroupAccess called');
 }

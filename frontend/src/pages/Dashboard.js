@@ -22,7 +22,7 @@ import { exportContactsCSV, exportContactsVCF } from '../services/importExportSe
 
 // Import services
 import { getContacts, deleteContact } from '../services/contactService';
-import { getCategories } from '../services/categoryService';
+import { getCategories, addCategory } from '../services/categoryService';
 import { leaveGroup, deleteGroup } from '../services/groupService';
 
 const Dashboard = ({ currentUser, onLogout = () => {} }) => {
@@ -130,13 +130,12 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
 
   const fetchCategories = useCallback(async () => {
     try {
-      const result = await getCategories();
-      console.log(result);
-      setCategories(result.success ? result.data : []);
+      const result = await getCategories(currentUser.u_id);
+      if (result.success) setCategories(result.data);
     } catch {
       setCategories([]);
     }
-  }, []);
+  }, [currentUser.u_id]);
 
   useEffect(() => {
     if (userId && userId !== "unknown") {
@@ -362,6 +361,26 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
               userId={userId}
               onCategoriesChange={fetchCategories}
             />
+            {/* Categories list below search bar, right of Favourites, before "+" */}
+<div className="flex items-center gap-2 mt-2">
+  {/* All and Favourites buttons (already present) */}
+  {/* ...existing code... */}
+
+  {/* Categories */}
+  {categories.map(cat => (
+    <span
+      key={cat.category_id}
+      className={`px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-sm cursor-pointer hover:bg-blue-100`}
+      onClick={() => setSelectedCategory(cat.category_id)}
+    >
+      {cat.name}
+    </span>
+  ))}
+
+  {/* "+" button for adding category (already present) */}
+  {/* ...existing code... */}
+</div>
+            
             {/* Birthdays */}
             <BirthdayReminder contacts={contacts} />
 
@@ -420,7 +439,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
           </>
         )}
 
-     
+       
 
         {activeTab === "settings" && (
           <SettingsTab currentUser={currentUser} isDark={isDark} setIsDark={setIsDark} />
