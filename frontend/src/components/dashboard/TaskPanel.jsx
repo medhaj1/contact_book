@@ -5,9 +5,22 @@ const TaskPanel = () => {
   const isDayMonthYear = (localStorage.getItem("dateFormat") || "dd_mm_yyyy") === "dd_mm_yyyy";
   const [user, setUser] = useState(null);
   const [tasks, setTasks] = useState([]);
-  const [newTask, setNewTask] = useState('');
-  const [deadline, setDeadline] = useState('');
+  const [newTask, setNewTask] = useState(() => {
+    return localStorage.getItem('taskPanelNewTask') || '';
+  });
+  const [deadline, setDeadline] = useState(() => {
+    return localStorage.getItem('taskPanelDeadline') || '';
+  });
   const [loading, setLoading] = useState(false);
+
+  // Persist new task form data
+  useEffect(() => {
+    localStorage.setItem('taskPanelNewTask', newTask);
+  }, [newTask]);
+
+  useEffect(() => {
+    localStorage.setItem('taskPanelDeadline', deadline);
+  }, [deadline]);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
@@ -120,6 +133,9 @@ const TaskPanel = () => {
       setTasks(prev => [...prev, data[0]]);
       setNewTask('');
       setDeadline('');
+      // Clear persisted form data
+      localStorage.removeItem('taskPanelNewTask');
+      localStorage.removeItem('taskPanelDeadline');
     } catch (error) {
       console.error('Error adding task:', error);
       alert('Failed to add task. Please try again.');

@@ -2,39 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../supabaseClient';
 import { sendInviteEmail } from '../../services/inviteService';
 import { FiPaperclip } from "react-icons/fi";
+import { toast } from 'react-toastify';
 
 function isOnline(lastSeen) {
   if (!lastSeen) return false;
   return (new Date() - new Date(lastSeen)) < 30 * 1000;
 }
 
-function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSendDocument }) {
+function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSendDocument, chatRefreshKey }) {
   // Multi-select state for sent messages
-  const [selectMode, setSelectMode] = useState(false);
-  const [selectedMessages, setSelectedMessages] = useState([]);
   const [openMenuId, setOpenMenuId] = useState(null);
-  // Selection logic
-  const toggleSelectMessage = (id) => {
-    setSelectedMessages((prev) =>
-      prev.includes(id) ? prev.filter((mid) => mid !== id) : [...prev, id]
-    );
-  };
-  
-  // Delete selected messages
-  const handleDeleteSelected = async () => {
-    // Only keep valid string IDs
-    const validIds = selectedMessages.filter(id => typeof id === 'string' && id && id !== 'undefined');
-    if (validIds.length === 0) return;
-    const { error } = await supabase.from('messages').delete().in('id', validIds);
-    if (!error) {
-      setMessages((prev) => prev.filter((m) => !validIds.includes(m.id)));
-      setSelectedMessages([]);
-      setSelectMode(false);
-    } else {
-      alert('Failed to delete messages: ' + error.message);
-    }
-  };
-
   const currentUserId = currentUser?.id;
 
   // Contact and invite logic
@@ -51,7 +28,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
         setInviteContacts([]);
         return;
       }
-      const emails = contacts.map(c => c.email);
+
       const { data: profiles } = await supabase
         .from('user_profile')
         .select('email');
@@ -62,20 +39,16 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
     fetchInviteContacts();
   }, [currentUserId]);
 
-  const handleInvite = async (email) => {
-    try {
-      await sendInviteEmail(email);
-      alert(`Invite sent to ${email}`);
-    } catch (error) {
-      alert(`Failed to send invite: ${error.message}`);
-    }
-  };
 
   const [contacts, setContacts] = useState([]);
-  const [selectedContact, setSelectedContact] = useState(null);
+  const [selectedContact, setSelectedContact] = useState(() => {
+    const saved = localStorage.getItem('chatPanelSelectedContact');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [messages, setMessages] = useState(initialMessages);
-  const [newMessage, setNewMessage] = useState('');
-  const [realtimeSub, setRealtimeSub] = useState(null);
+  const [newMessage, setNewMessage] = useState(() => {
+    return localStorage.getItem('chatPanelNewMessage') || '';
+  });
   const [imageErrors, setImageErrors] = useState(new Set());
   const chatEndRef = useRef();
   const fileInputRef = useRef(null);
@@ -136,6 +109,45 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
     fetchContacts();
   }, [currentUserId]);
 
+  // Persist selected contact and new message input
+  useEffect(() => {
+    if (selectedContact) {
+      localStorage.setItem('chatPanelSelectedContact', JSON.stringify(selectedContact));
+    } else {
+      localStorage.removeItem('chatPanelSelectedContact');
+    }
+  }, [selectedContact]);
+
+  useEffect(() => {
+    localStorage.setItem('chatPanelNewMessage', newMessage);
+  }, [newMessage]);
+
+  // Restore selected contact from contacts list after contacts are loaded
+  useEffect(() => {
+    if (contacts.length > 0 && !selectedContact) {
+      const savedContact = localStorage.getItem('chatPanelSelectedContact');
+      if (savedContact) {
+        try {
+          const parsedContact = JSON.parse(savedContact);
+          // Find the contact in the current contacts list to ensure it's still valid
+          const foundContact = contacts.find(c => 
+            c.contact_user_id === parsedContact.contact_user_id || 
+            c.contact_id === parsedContact.contact_id
+          );
+          if (foundContact) {
+            setSelectedContact(foundContact);
+          } else {
+            // Contact no longer exists, clear the saved state
+            localStorage.removeItem('chatPanelSelectedContact');
+          }
+        } catch (error) {
+          console.error('Error parsing saved contact:', error);
+          localStorage.removeItem('chatPanelSelectedContact');
+        }
+      }
+    }
+  }, [contacts, selectedContact]);
+
   // Fetch message history and mark received messages as seen
   useEffect(() => {
     if (!selectedContact) return;
@@ -167,27 +179,34 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
       }
     };
     fetchMessages();
-  }, [selectedContact, currentUserId]);
+  }, [selectedContact, currentUserId, chatRefreshKey]);
 
-  // Subscribe to new incoming messages
+  // Reliable real-time subscription for chat
   useEffect(() => {
-    if (!currentUserId || realtimeSub) return;
+    if (!currentUserId || !selectedContact) return;
+    // Unique channel name per chat
+    const channelName = `chat_${currentUserId}_${selectedContact.contact_user_id}`;
     const sub = supabase
-      .channel('chat')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          filter: `receiver_id=eq.${currentUserId}`,
         },
         async (payload) => {
           const message = payload.new;
-          if (selectedContact?.contact_user_id === message.sender_id) {
-            setMessages(prev => [...prev, message]);
+          const isRelevant =
+            (message.sender_id === currentUserId && message.receiver_id === selectedContact.contact_user_id) ||
+            (message.sender_id === selectedContact.contact_user_id && message.receiver_id === currentUserId);
+          if (isRelevant) {
+            setMessages(prev => {
+              if (prev.some(m => m.id === message.id)) return prev;
+              return [...prev, message];
+            });
           }
-          if (message.content.startsWith('[file]')) {
+          if (isRelevant && message.content.startsWith('[file]')) {
             const [, rest] = message.content.split('[file]');
             const [fileName, fileUrl] = rest.split('|');
             await supabase.from('shared_documents').insert({
@@ -204,12 +223,12 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
       )
       .subscribe();
 
-    setRealtimeSub(sub);
 
+    // Cleanup previous subscription when contact changes
     return () => {
       if (sub) supabase.removeChannel(sub);
     };
-  }, [currentUserId, selectedContact, realtimeSub]);
+  }, [currentUserId, selectedContact]);
 
   // Update online status every 2 seconds
   useEffect(() => {
@@ -225,10 +244,31 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
     return () => clearInterval(interval);
   }, [currentUserId]);
 
+
+  
   // Scroll to bottom on new message
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, selectedContact]);
+
+   // Auto-refresh messages every 2 seconds when a contact is selected
+    useEffect(() => {
+      if (!selectedContact || !currentUserId) return;
+      const fetchMessages = async () => {
+        const { data } = await supabase
+          .from('messages')
+          .select('*')
+          .or(
+            `and(sender_id.eq.${currentUserId},receiver_id.eq.${selectedContact.contact_user_id}),and(sender_id.eq.${selectedContact.contact_user_id},receiver_id.eq.${currentUserId})`
+          )
+          .order('timestamp', { ascending: true });
+        setMessages(data || []);
+      };
+      fetchMessages();
+      const interval = setInterval(fetchMessages, 2000);
+      return () => clearInterval(interval);
+    }, [selectedContact, currentUserId]);
+
 
   const sendMessage = async (e) => {
     e.preventDefault();
@@ -245,6 +285,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
       // Use backend-generated message (with valid id)
       setMessages(prev => [...prev, data[0]]);
       setNewMessage('');
+      localStorage.removeItem('chatPanelNewMessage');
     } else {
       console.error("Failed to send message:", error?.message);
     }
@@ -261,7 +302,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
     const file = e.target.files[0];
     if (!file || !selectedContact) return;
     const filePath = `chat/${currentUserId}/${Date.now()}_${file.name}`;
-    const { data, error } = await supabase.storage.from('chat').upload(filePath, file);
+    const { error } = await supabase.storage.from('chat').upload(filePath, file);
     if (error) {
       alert('File upload failed: ' + error.message);
       return;
@@ -306,8 +347,11 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
     e.target.value = '';
   };
 
+  //for birthday wish
+  
+
   return (
-    <div className="flex w-full h-[650px] bg-white dark:bg-[#161b22] border dark:border-[#30363d] rounded-lg shadow-lg overflow-hidden">
+    <div className="flex w-full h-[600px] bg-white dark:bg-[#161b22] border dark:border-[#30363d] rounded-lg shadow-lg overflow-hidden">
       {/* Contact List */}
       <div className="w-96 bg-blue-50 dark:bg-[#141820] border-r border-gray-200 dark:border-[#30363d] p-4 overflow-y-auto">
         <ul>
@@ -433,28 +477,8 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 bg-slate-50 dark:bg-[#161b22]">
-              {/* Selection controls */}
-              <div className="mb-2 flex gap-2">
-                <button
-                  className={`px-3 py-1 rounded-xl ${selectMode ? 'btn hover:scale-100' : 'bg-slate-200 dark:bg-gray-700 dark:text-gray-400 text-slate-700'}`}
-                  onClick={() => {
-                    setSelectMode((m) => !m);
-                    setSelectedMessages([]);
-                  }}
-                >
-                  {selectMode ? 'Cancel Selection' : 'Select Messages'}
-                </button>
-                {selectMode && (
-                  <button
-                    className="px-3 py-1 rounded-xl bg-red-100 dark:bg-red-950/50 dark:border-red-950 border border-red-300 text-red-600 dark:text-red-300 dark:hover:bg-red-950 dark:hover:border-red-900 hover:bg-red-200"
-                    onClick={handleDeleteSelected}
-                    disabled={selectedMessages.length === 0}
-                  >
-                    Delete Selected
-                  </button>
-                )}
-              </div>
+            <div className="flex-1 overflow-y-auto p-4 bg-slate-50">
+              {/* Removed selection controls (Cancel Selection and Delete Selected buttons) */}
               {messages.length === 0 ? (
                 <div className="text-slate-500 py-24 text-center">No messages yet.</div>
               ) : (

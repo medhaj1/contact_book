@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { toast } from 'react-toastify';  // import toast
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -22,62 +23,64 @@ const SignUp = () => {
     const { name, contact, email, password, confirmPassword } = formData;
 
     if (password !== confirmPassword) {
-      alert('Passwords do not match.');
+      toast.error('Passwords do not match.');
       return;
     }
 
     try {
-      const {
-        data: { user },
-        error: signUpError,
-      } = await supabase.auth.signUp({
+      const signUpResponse = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: { name, contact },
         },
       });
+      const { data: { user }, error: signUpError } = signUpResponse;
 
-      if (signUpError) {
-        alert(signUpError.message);
+      console.log('Full signup response:', signUpResponse);
+      console.log('User after signup:', user);
+
+      if (signUpError || !user) {
+        toast.error(`Signup failed: ${signUpError?.message || 'No user returned. Please check your email and password.'}`);
         return;
       }
 
       // Insert into user_profile
-      const { error: profileError } = await supabase.from('user_profile').insert({
-        u_id: user.id,
-        name,
-        email,
-        phone: contact,
-        image: null,
-      });
+      const { error: profileError } = await supabase.from('user_profile').insert([
+        {
+          u_id: user?.id,
+          name,
+          email,
+          phone: contact,
+          image: null,
+        }
+      ]);
 
       if (profileError) {
         console.error('Profile creation failed:', profileError);
-        alert('Account created but failed to create profile. Please contact support.');
+        toast.error(`Database error: ${profileError.message}`);
       } else {
-        alert('Sign-up successful! Please check your email to confirm your account.');
+        toast.success('Sign-up successful! Please check your email to confirm your account.');
         navigate('/signin');
       }
     } catch (err) {
       console.error('Signup error:', err);
-      alert('Something went wrong. Please try again.');
+      toast.error(`Signup error: ${err.message}`);
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-blue-100 to-white flex items-center justify-center relative">
-
       <form
         onSubmit={handleSubmit}
         className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md"
       >
         <button
+          type="button"
           className="top-4 left-4 flex scale-100 hover:scale-110 transition transition-transform items-center"
-            onClick={() => navigate('/')}
-          >
-            <ArrowLeftIcon className="w-5 h-5 text-slate-400 hover:text-slate-600" />
-                
+          onClick={() => navigate('/')}
+        >
+          <ArrowLeftIcon className="w-5 h-5 text-slate-400 hover:text-slate-600" />
         </button>
         <h2 className="text-3xl font-bold mb-6 text-center text-blue-900">
           Create Account
@@ -143,4 +146,5 @@ const SignUp = () => {
 };
 
 export default SignUp;
+
 

@@ -1,9 +1,17 @@
 import { supabase } from '../supabaseClient';
 
 // ✅ Fetch blocked contacts for the logged-in user
+// ✅ Fetch blocked contacts for the logged-in user
 export async function getBlockedContacts(currentUserId) {
   const { data, error } = await supabase
     .from('block_contacts')
+    .select(`
+      contact_id,
+      contacts:contact_id (
+        name,
+        email
+      )
+    `)
     .select(`
       contact_id,
       contacts:contact_id (
@@ -110,4 +118,6 @@ export async function unblockContact(contactId, currentUserId) {
     console.error('Unexpected error in unblockContact:', err);
     return { success: false, error: err.message || String(err) };
   }
+
+  return { success: true };
 }
