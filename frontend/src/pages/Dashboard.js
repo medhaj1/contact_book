@@ -1,31 +1,48 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import ChatPanel from '../components/chat/ChatPanel';
-
-import ContactForm from '../components/dashboard/ContactForm';
-import BirthdayReminder from '../components/dashboard/BirthdayReminder';
-import TaskPanel from '../components/dashboard/TaskPanel';
-import DocumentsPanel from '../components/dashboard/DocumentsPanel';
-import ImportModal from '../components/dashboard/ImportModal';
-import GroupPanel from '../components/groups/GroupPanel';
-import SharedDocumentsPanel from '../components/dashboard/SharedDocumentsPanel';
-import Sidebar from '../components/dashboard/Sidebar';
-import HeaderSection from '../components/dashboard/HeaderSection';
-import ContactsControlBar from '../components/dashboard/ContactsControlBar';
-import ContactsGrid from '../components/dashboard/ContactsGrid';
-import ContactsList from '../components/dashboard/ContactsList';
-import FloatingActionButton from '../components/dashboard/FloatingActionButton';
-import { useBlockedContacts } from '../components/dashboard/BlockedContactsContext';
-import { useFormat } from '../components/settings/FormatContext';
-import { addFavourite, removeFavourite } from "../services/favouriteService";
-import { exportContactsCSV, exportContactsVCF } from '../services/importExportService';
-
-import { getContacts, deleteContact } from '../services/contactService';
+  import React, { useState, useEffect, useCallback } from "react";
+  import { useNavigate } from "react-router-dom";
+import { toast } from 'react-toastify';
+  import ChatPanel from '../components/chat/ChatPanel';
+  import ContactForm from '../components/dashboard/ContactForm';
+  import BirthdayReminder from '../components/dashboard/BirthdayReminder';
+  import TaskPanel from '../components/dashboard/TaskPanel';
+  import DocumentsPanel from '../components/dashboard/DocumentsPanel';
+  import ImportModal from '../components/dashboard/ImportModal';
+  import GroupPanel from '../components/groups/GroupPanel';
+  import ReceivedDocumentsPanel from '../components/dashboard/ReceivedDocumentsPanel';
+  import SharedDocumentsPanel from '../components/dashboard/SharedDocumentsPanel';
+  import Sidebar from '../components/dashboard/Sidebar';
+  import HeaderSection from '../components/dashboard/HeaderSection';
+  import ContactsControlBar from '../components/dashboard/ContactsControlBar';
+  import ContactsGrid from '../components/dashboard/ContactsGrid';
+  import ContactsList from '../components/dashboard/ContactsList';
+  import FloatingActionButton from '../components/dashboard/FloatingActionButton';
+  import { addFavourite, removeFavourite } from "../services/favouriteService";
+  import { exportContactsCSV, exportContactsVCF } from '../services/importExportService';
+  import { getContacts, deleteContact } from '../services/contactService';
 import { getCategories } from '../services/categoryService';
-
 import { supabase } from '../supabaseClient';
+import { useBlockedContacts } from "../components/dashboard/BlockedContactsContext";
+import { useFormat } from '../components/settings/FormatContext';
 
 const Dashboard = ({ currentUser, onLogout = () => {} }) => {
+  // Handles birthday wish: sets contact, switches tab, sends message
+  // Used to force chat refresh
+  const [chatRefreshKey, setChatRefreshKey] = useState(0);
+
+    const handleBirthdayWish = async (contact) => {
+      // Always find the chat contact with contact_user_id
+      let chatContact = contact;
+      if (contacts && contact.email) {
+        const found = contacts.find(c => c.email === contact.email && c.contact_user_id);
+        if (found) chatContact = found;
+      }
+      if (!chatContact.contact_user_id) {
+        alert('Cannot send message: user is not registered.');
+        return;
+      }
+      await sendWishMessage(chatContact);
+      setChatRefreshKey(prev => prev + 1);
+  };
   const navigate = useNavigate();
   const { blockedContacts } = useBlockedContacts(); // Use blocked contacts context
   const { formatContactName } = useFormat(); // Only use for sorting/filtering
@@ -71,7 +88,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const handleExport = async (format) => {
     try {
       if (!userId) {
-        alert('User not found');
+        toast.error('User not found');
         return;
       }
       const filters = {
@@ -84,12 +101,12 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
         result = await exportContactsVCF(userId, filters);
       }
       if (result.success) {
-        alert(`${format.toUpperCase()} exported successfully!`);
+        toast.error(`${format.toUpperCase()} exported successfully!`);
       } else {
-        alert(`Failed to export ${format.toUpperCase()}: ${result.error}`);
+        toast.error(`Failed to export ${format.toUpperCase()}: ${result.error}`);
       }
     } catch (error) {
-      alert(`Error exporting ${format.toUpperCase()}: ` + error.message);
+      toast.error(`Error exporting ${format.toUpperCase()}: ` + error.message);
     }
   };
 
@@ -102,7 +119,27 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     try {
       setLoading(true);
       const result = await getContacts(userId);
-      setContacts(result.success ? result.data : []);
+      let contacts = result.success ? result.data : [];
+      // Fetch user profiles for all contact emails
+      const emails = contacts.map(c => c.email).filter(Boolean);
+      let profiles = [];
+      if (emails.length > 0) {
+        const { data: profileData } = await supabase
+          .from('user_profile')
+          .select('*')
+          .in('email', emails);
+        profiles = profileData || [];
+      }
+      // Map contact_user_id for registered users
+      contacts = contacts.map(contact => {
+        const profile = profiles.find(p => p.email === contact.email);
+        return profile ? {
+          ...contact,
+          contact_user_id: profile.u_id,
+          user_profile: profile
+        } : contact;
+      });
+      setContacts(contacts);
     } finally {
       setLoading(false);
     }
@@ -343,6 +380,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                 setSelectedContact={setSelectedContact}
                 sendWishMessage={sendWishMessage}
                 setActiveTab={setActiveTab}
+                onBirthdayWish={handleBirthdayWish}
               />
               {loading ? (
                 <div className="text-center py-12 text-slate-400">Loading contacts...</div>
@@ -400,6 +438,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
               currentUser={currentUser}
               selectedContact={selectedContact}
               setSelectedContact={setSelectedContact}
+              chatRefreshKey={chatRefreshKey}
             />
           )}
           {/* Sidebar-driven tabs for groups, task, documents */}
@@ -422,11 +461,21 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                   className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'shared' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
                   onClick={() => setViewMode('shared')}
                 >
+                  Received Documents
+                </button>
+                <button
+                  className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'sent' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
+                  onClick={() => setViewMode('sent')}
+                >
                   Shared Documents
                 </button>
               </div>
               {viewMode === "my" ? (
                 <DocumentsPanel currentUser={currentUser} />
+              ) : viewMode === "shared" ? (
+                <div className="mt-4">
+                  <ReceivedDocumentsPanel currentUser={currentUser} />
+                </div>
               ) : (
                 <div className="mt-4">
                   <SharedDocumentsPanel currentUser={currentUser} />

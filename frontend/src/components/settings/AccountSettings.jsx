@@ -1,17 +1,16 @@
 import React, { useState } from 'react';
 import { ArrowLeftIcon, UserCircleIcon, NoSymbolIcon } from '@heroicons/react/24/outline';
 import { supabase } from '../../supabaseClient';
+import { toast } from 'react-toastify';
 
 const AccountSettings = ({ onCancel }) => {
     const [showDetails, setShowDetails] = useState(false);
     const [userDetails, setUserDetails] = useState(null);
 
     const handleAccountDetails = async () => {
-        setShowDetails(false);
-
-        const { data: authData, error: authError } = await supabase.auth.getUser();
-        if (authError || !authData?.user) {
-            alert("Failed to fetch user details.");
+        const { data, error } = await supabase.auth.getUser();
+        if (error) {
+          toast.error('Failed to fetch user details.');
             return;
         }
 
@@ -48,7 +47,7 @@ const AccountSettings = ({ onCancel }) => {
 
         const { data: userData, error: userError } = await supabase.auth.getUser();
         if (userError || !userData || !userData.user) {
-            alert('Failed to identify user.');
+          toast.error('Failed to identify user.');
             return;
         }
         const userId = userData.user.id;
@@ -56,14 +55,14 @@ const AccountSettings = ({ onCancel }) => {
         // Delete contacts
         const { error: contactsError } = await supabase.from('contact').delete().eq('user_id', userId);
         if (contactsError) {
-            alert('Failed to clear contacts.');
+          toast.error('Failed to clear contacts.');
             return;
         }
 
         // Delete blocked contacts
         const { error: blockedError } = await supabase.from('block_contacts').delete().eq('u_id', userId);
         if (blockedError) {
-            alert('Failed to clear blocked contacts.');
+          toast.error('Failed to clear blocked contacts.');
             return;
         }
 
@@ -84,7 +83,7 @@ const AccountSettings = ({ onCancel }) => {
             return;
         }
 
-        alert('All your data has been cleared.');
+        toast('All your data has been cleared.');
     };
 
     const handleDeleteAccount = async () => {
@@ -93,7 +92,7 @@ const AccountSettings = ({ onCancel }) => {
 
         const { data: userData, error: userError } = await supabase.auth.getUser();
         if (userError || !userData || !userData.user) {
-            alert('Failed to identify user.');
+          toast.error('Failed to identify user.');
             return;
         }
         const userId = userData.user.id;
@@ -101,14 +100,14 @@ const AccountSettings = ({ onCancel }) => {
         // Delete contacts
         const { error: contactsError } = await supabase.from('contact').delete().eq('user_id', userId);
         if (contactsError) {
-            alert('Failed to delete contacts.');
+          toast.error('Failed to delete contacts.');
             return;
         }
 
         // Delete blocked contacts
         const { error: blockedError } = await supabase.from('block_contacts').delete().eq('u_id', userId);
         if (blockedError) {
-            alert('Failed to delete blocked contacts.');
+          toast.error('Failed to delete blocked contacts.');
             return;
         }
 
@@ -146,17 +145,16 @@ const AccountSettings = ({ onCancel }) => {
                 body: JSON.stringify({ userId }),
             });
             if (!response.ok) {
-                alert('Failed to delete user account from authentication system.');
+              toast.error('Failed to delete user account from authentication system.');
                 return;
             }
         } catch (error) {
-            alert('Failed to delete user account from authentication system.');
+          toast.error('Failed to delete user account from authentication system.');
             return;
         }
 
         await supabase.auth.signOut();
-        alert('Your account has been permanently deleted.');
-        window.location.href = '/signup';
+        toast('Your account has been permanently deleted.');
     };
 
     return(

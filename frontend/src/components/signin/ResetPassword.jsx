@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify'; 
 
 const ResetPassword = () => {
   const [password, setPassword] = useState('');
@@ -12,11 +13,11 @@ const ResetPassword = () => {
     e.preventDefault();
 
     if (!password || !confirmPassword) {
-      alert('Please enter and confirm your new password.');
+      toast.error('Please enter and confirm your new password.');
       return;
     }
     if (password !== confirmPassword) {
-      alert('Passwords do not match.');
+      toast.error('Passwords do not match.');
       return;
     }
 
@@ -25,14 +26,14 @@ const ResetPassword = () => {
       const { error } = await supabase.auth.updateUser({ password });
 
       if (error) {
-        alert(error.message);
+        toast.error(error.message);
       } else {
-        alert('Password updated successfully! Please sign in.');
+        toast.success('Password updated successfully! Please sign in.');
         navigate('/signin');
       }
     } catch (err) {
       console.error('Reset error:', err);
-      alert('Something went wrong, please try again later.');
+      toast.error('Something went wrong, please try again later.');
     } finally {
       setLoading(false);
     }
@@ -79,3 +80,4 @@ const ResetPassword = () => {
 };
 
 export default ResetPassword;
+

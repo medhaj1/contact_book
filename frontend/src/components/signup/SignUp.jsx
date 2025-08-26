@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { toast } from 'react-toastify';  // import toast
 
 const SignUp = () => {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ const SignUp = () => {
     const { name, contact, email, password, confirmPassword } = formData;
 
     if (password !== confirmPassword) {
-      alert('Passwords do not match.');
+      toast.error('Passwords do not match.');
       return;
     }
 
@@ -40,11 +41,11 @@ const SignUp = () => {
       console.log('User after signup:', user);
 
       if (signUpError || !user) {
-        alert(`Signup failed: ${signUpError?.message || 'No user returned. Please check your email and password.'}`);
+        toast.error(`Signup failed: ${signUpError?.message || 'No user returned. Please check your email and password.'}`);
         return;
       }
 
-      // Insert into user_profile (array format)
+      // Insert into user_profile
       const { error: profileError } = await supabase.from('user_profile').insert([
         {
           u_id: user?.id,
@@ -57,20 +58,19 @@ const SignUp = () => {
 
       if (profileError) {
         console.error('Profile creation failed:', profileError);
-        alert(`Database error: ${profileError.message}`);
+        toast.error(`Database error: ${profileError.message}`);
       } else {
-        alert('Sign-up successful! Please check your email to confirm your account.');
+        toast.success('Sign-up successful! Please check your email to confirm your account.');
         navigate('/signin');
       }
     } catch (err) {
       console.error('Signup error:', err);
-      alert(`Signup error: ${err.message}`);
+      toast.error(`Signup error: ${err.message}`);
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-blue-100 to-white flex items-center justify-center relative">
-
       <form
         onSubmit={handleSubmit}
         className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md"
@@ -78,10 +78,9 @@ const SignUp = () => {
         <button
           type="button"
           className="top-4 left-4 flex scale-100 hover:scale-110 transition transition-transform items-center"
-            onClick={() => navigate('/')}
-          >
-            <ArrowLeftIcon className="w-5 h-5 text-slate-400 hover:text-slate-600" />
-                
+          onClick={() => navigate('/')}
+        >
+          <ArrowLeftIcon className="w-5 h-5 text-slate-400 hover:text-slate-600" />
         </button>
         <h2 className="text-3xl font-bold mb-6 text-center text-blue-900">
           Create Account
@@ -147,4 +146,5 @@ const SignUp = () => {
 };
 
 export default SignUp;
+
 

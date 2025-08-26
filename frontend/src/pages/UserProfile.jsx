@@ -5,6 +5,7 @@ import { MdEmail, MdPhone, MdPerson, MdLock } from "react-icons/md";
 import ProfileAvatar from "../components/profile/ProfileAvatar";
 import { supabase } from "../supabaseClient";
 import { getUserProfile, updateUserProfile, uploadUserAvatar } from "../services/userService";
+import { toast } from 'react-toastify';
 
 const UserProfile = ({ currentUser, onLogout }) => {
   const navigate = useNavigate();
@@ -114,7 +115,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
         if (result.success) {
           avatarUrl = result.avatarUrl;
         } else {
-          alert("Error uploading profile picture: " + result.error);
+          toast("Error uploading profile picture: " + result.error);
           return;
         }
       }
@@ -148,12 +149,12 @@ const UserProfile = ({ currentUser, onLogout }) => {
         setTempPhoto(avatarUrl);
         setIsEditing(false);
         localStorage.removeItem('userProfileIsEditing');
-        alert("Profile updated successfully!");
+        toast.success("Profile updated successfully!");
       } else {
-        alert("Error updating profile: " + result.error);
+        toast.error("Error updating profile: " + result.error);
       }
     } catch (error) {
-      alert("Error updating profile: " + error.message);
+      toast.error("Error updating profile: " + error.message);
     }
   };
 
@@ -202,7 +203,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
     setPasswordsSuccess('');
     if (passwords.new !== passwords.confirmNew) {
       setPasswordsError("New passwords do not match.");
-      alert("New passwords do not match.");
+      toast.error("New passwords do not match.");
       return;
     }
 
@@ -210,12 +211,12 @@ const UserProfile = ({ currentUser, onLogout }) => {
 
     if (error) {
       setPasswordsError(error.message);
-      alert("Error updating password: " + error.message);
+      toast.error("Error updating password: " + error.message);
       return;
     }
 
     setPasswordsSuccess("Password updated successfully!");
-    alert("Password updated successfully!");
+    toast.success("Password updated successfully!");
     setPasswords({ current: "", new: "", confirmNew: "" });
     setIsResettingPassword(false);
     localStorage.removeItem('userProfileIsResettingPassword');

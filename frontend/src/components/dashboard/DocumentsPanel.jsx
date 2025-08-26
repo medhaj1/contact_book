@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BookOpen, Trash2 } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
+import { toast } from 'react-toastify';
 
 
 const DocumentsPanel = ({ currentUser }) => {
@@ -91,12 +92,12 @@ const DocumentsPanel = ({ currentUser }) => {
     if (uploadedCount > 0) {
       const message = `${uploadedCount} document${uploadedCount > 1 ? 's' : ''} uploaded successfully!`;
       if (errorCount > 0) {
-        alert(`${message} (${errorCount} failed)`);
+        toast.error(`${message} (${errorCount} failed)`);
       } else {
-        alert(message);
+        toast.success(message);
       }
     } else if (errorCount > 0) {
-      alert(`Failed to upload ${errorCount} document${errorCount > 1 ? 's' : ''}.`);
+      toast.error(`Failed to upload ${errorCount} document${errorCount > 1 ? 's' : ''}.`);
     }
 
     // Clear the file input
@@ -114,7 +115,7 @@ const DocumentsPanel = ({ currentUser }) => {
       
       if (storageError) {
         console.error('Delete from storage failed:', storageError.message);
-        alert('Failed to delete file from storage: ' + storageError.message);
+        toast.error('Failed to delete file from storage: ' + storageError.message);
         return;
       }
 
@@ -126,7 +127,7 @@ const DocumentsPanel = ({ currentUser }) => {
       
       if (dbError) {
         console.error('Delete from DB failed:', dbError.message);
-        alert('Failed to delete document metadata: ' + dbError.message);
+        toast.error('Failed to delete document metadata: ' + dbError.message);
         return;
       }
 
@@ -134,7 +135,7 @@ const DocumentsPanel = ({ currentUser }) => {
       await fetchDocuments();
     } catch (error) {
       console.error('Error deleting document:', error);
-      alert('Error deleting document: ' + error.message);
+      toast.error('Error deleting document: ' + error.message);
     }
   };
 
