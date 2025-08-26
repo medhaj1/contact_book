@@ -5,7 +5,6 @@ import { toast } from 'react-toastify';
   import ContactForm from '../components/dashboard/ContactForm';
   import BirthdayReminder from '../components/dashboard/BirthdayReminder';
   import TaskPanel from '../components/dashboard/TaskPanel';
-  import SettingsTab from '../components/dashboard/SettingsTab';
   import DocumentsPanel from '../components/dashboard/DocumentsPanel';
   import ImportModal from '../components/dashboard/ImportModal';
   import GroupPanel from '../components/groups/GroupPanel';
@@ -427,10 +426,6 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
             <div className="max-w-6xl mx-auto">
               <GroupPanel currentUser={currentUser} />
             </div>
-          )}
-
-          {activeTab === "settings" && (
-            <SettingsTab currentUser={currentUser} isDark={isDark} setIsDark={setIsDark} />
           )}
 
           {activeTab === "task" && <TaskPanel />}

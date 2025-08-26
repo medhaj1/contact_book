@@ -15,7 +15,6 @@ const Sidebar = ({
     { id: "documents", label: "Documents", icon: BookOpen },
     { id: "groups", label: "Groups", icon: Users },
     { id: "task", label: "Task", icon: CheckSquare },
-    { id: "settings", label: "Settings", icon: Settings },
   ];
 
   const sidebarItems = customItems || defaultSidebarItems;
