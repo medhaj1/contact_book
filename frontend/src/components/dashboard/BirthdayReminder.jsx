@@ -1,23 +1,34 @@
-import React, { useState } from "react";
+import React from "react";
 import { isBirthdayToday, isBirthdayInNext7DaysExcludingToday, prettyDate } from "../../utils/birthdayUtils";
+// Simple toast implementation
+function showToast(message) {
+  const toast = document.createElement('div');
+  toast.textContent = message;
+  toast.style.position = 'fixed';
+  toast.style.bottom = '32px';
+  toast.style.left = '50%';
+  toast.style.transform = 'translateX(-50%)';
+  toast.style.background = '#22c55e';
+  toast.style.color = 'white';
+  toast.style.padding = '12px 24px';
+  toast.style.borderRadius = '8px';
+  toast.style.fontWeight = 'bold';
+  toast.style.zIndex = '9999';
+  toast.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => document.body.removeChild(toast), 400);
+  }, 1800);
+}
+// ...existing code...
 
-const BirthdayReminder = ({ contacts, setSelectedContact, sendWishMessage, setActiveTab }) => {
+const BirthdayReminder = ({ contacts, onBirthdayWish }) => {
   const todaysBirthdays = contacts.filter(c => isBirthdayToday(c.birthday));
   const upcomingBirthdays = contacts.filter(c => isBirthdayInNext7DaysExcludingToday(c.birthday));
 
-  const [wishedIds, setWishedIds] = useState(new Set());
 
-  const handleWish = async (contact) => {
-    if (wishedIds.has(contact.contact_id)) return;
-    try {
-      setSelectedContact(contact);
-      setActiveTab("chat");
-      await sendWishMessage(contact);
-      setWishedIds(new Set(wishedIds).add(contact.contact_id));
-    } catch (error) {
-      console.error("Failed to send birthday wish:", error);
-    }
-  };
+
 
   const BirthdaySection = ({ title, people, gradient, showWish }) => (
     people.length > 0 && (
@@ -33,7 +44,8 @@ const BirthdayReminder = ({ contacts, setSelectedContact, sendWishMessage, setAc
           style={{ alignItems: "center", paddingBottom: 4 }}
         >
           {people.map(c => {
-            const isWished = wishedIds.has(c.contact_id);
+            // Assume user is registered if c.user_id exists (adjust if your property is different)
+            const isRegistered = !!c.user_id;
             return (
               <div
                 key={c.contact_id}
@@ -64,19 +76,21 @@ const BirthdayReminder = ({ contacts, setSelectedContact, sendWishMessage, setAc
                     🎂 {prettyDate(c.birthday)}
                   </div>
                 </div>
-                {showWish && (
-                  <button
-                    onClick={() => handleWish(c)}
-                    disabled={isWished}
-                    className={`text-xs px-2 py-1 rounded transition-colors font-semibold flex-shrink-0 ${
-                      isWished ? "bg-gray-400 text-gray-300 cursor-not-allowed" : "bg-yellow-500 hover:bg-yellow-600 text-white"
-                    }`}
-                    title={isWished ? "Wish sent" : `Send birthday wish to ${c.name}`}
-                    aria-label={`Send birthday wish to ${c.name}`}
-                  >
-                    {isWished ? "Wished" : "Wish"}
-                  </button>
-                )}
+                  {showWish && isRegistered ? (
+                    <button
+                      onClick={async () => {
+                        if (onBirthdayWish) {
+                          await onBirthdayWish(c);
+                          showToast(`Wish has been sent to ${c.name}`);
+                        }
+                      }}
+                      className="text-xs px-2 py-1 rounded transition-colors font-semibold flex-shrink-0 bg-green-500 hover:bg-green-600 text-white"
+                      title={`Send Happy Birthday to ${c.name}`}
+                      aria-label={`Send Happy Birthday to ${c.name}`}
+                    >
+                      Happy Birthday
+                    </button>
+                  ) : null}
               </div>
             );
           })}

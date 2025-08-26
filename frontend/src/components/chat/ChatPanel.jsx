@@ -6,7 +6,7 @@ function isOnline(lastSeen) {
   return (new Date() - new Date(lastSeen)) < 30 * 1000;
 }
 
-function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSendDocument }) {
+function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSendDocument, chatRefreshKey }) {
   // Multi-select state for sent messages
   const [openMenuId, setOpenMenuId] = useState(null);
 
@@ -47,7 +47,6 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
   const [newMessage, setNewMessage] = useState(() => {
     return localStorage.getItem('chatPanelNewMessage') || '';
   });
-  const [realtimeSub, setRealtimeSub] = useState(null);
   const [imageErrors, setImageErrors] = useState(new Set());
   const chatEndRef = useRef();
   const fileInputRef = useRef(null);
@@ -158,27 +157,34 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
       }
     };
     fetchMessages();
-  }, [selectedContact, currentUserId]);
+  }, [selectedContact, currentUserId, chatRefreshKey]);
 
-  // Subscribe to new incoming messages
+  // Reliable real-time subscription for chat
   useEffect(() => {
-    if (!currentUserId || realtimeSub) return;
+    if (!currentUserId || !selectedContact) return;
+    // Unique channel name per chat
+    const channelName = `chat_${currentUserId}_${selectedContact.contact_user_id}`;
     const sub = supabase
-      .channel('chat')
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          filter: `receiver_id=eq.${currentUserId}`,
         },
         async (payload) => {
           const message = payload.new;
-          if (selectedContact?.contact_user_id === message.sender_id) {
-            setMessages(prev => [...prev, message]);
+          const isRelevant =
+            (message.sender_id === currentUserId && message.receiver_id === selectedContact.contact_user_id) ||
+            (message.sender_id === selectedContact.contact_user_id && message.receiver_id === currentUserId);
+          if (isRelevant) {
+            setMessages(prev => {
+              if (prev.some(m => m.id === message.id)) return prev;
+              return [...prev, message];
+            });
           }
-          if (message.content.startsWith('[file]')) {
+          if (isRelevant && message.content.startsWith('[file]')) {
             const [, rest] = message.content.split('[file]');
             const [fileName, fileUrl] = rest.split('|');
             await supabase.from('shared_documents').insert({
@@ -195,12 +201,12 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
       )
       .subscribe();
 
-    setRealtimeSub(sub);
 
+    // Cleanup previous subscription when contact changes
     return () => {
       if (sub) supabase.removeChannel(sub);
     };
-  }, [currentUserId, selectedContact, realtimeSub]);
+  }, [currentUserId, selectedContact]);
 
   // Update online status every 2 seconds
   useEffect(() => {
@@ -216,10 +222,31 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
     return () => clearInterval(interval);
   }, [currentUserId]);
 
+
+  
   // Scroll to bottom on new message
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, selectedContact]);
+
+   // Auto-refresh messages every 2 seconds when a contact is selected
+    useEffect(() => {
+      if (!selectedContact || !currentUserId) return;
+      const fetchMessages = async () => {
+        const { data } = await supabase
+          .from('messages')
+          .select('*')
+          .or(
+            `and(sender_id.eq.${currentUserId},receiver_id.eq.${selectedContact.contact_user_id}),and(sender_id.eq.${selectedContact.contact_user_id},receiver_id.eq.${currentUserId})`
+          )
+          .order('timestamp', { ascending: true });
+        setMessages(data || []);
+      };
+      fetchMessages();
+      const interval = setInterval(fetchMessages, 2000);
+      return () => clearInterval(interval);
+    }, [selectedContact, currentUserId]);
+
 
   const sendMessage = async (e) => {
     e.preventDefault();
@@ -299,23 +326,6 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
   };
 
   //for birthday wish
-  const sendWishMessage = async (contact) => {
-    if (!contact) return;
-    const birthdayMessage = `Happy Birthday, ${contact.name}! 🎉`;
-    const msg = {
-      sender_id: currentUser?.id,
-      receiver_id: contact.contact_id || contact.contact_user_id,
-      content: birthdayMessage,
-      timestamp: new Date().toISOString(),
-    };
-    const { data, error } = await supabase.from('messages').insert(msg).select();
-    if (!error && data && data.length > 0) {
-      setMessages(prev => [...prev, data[0]]);
-      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-    } else {
-      console.error('Failed to send birthday wish:', error?.message);
-    }
-  };
   
 
   return (
