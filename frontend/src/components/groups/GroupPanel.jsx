@@ -11,6 +11,9 @@ import {
   deleteGroup,
   leaveGroup,
   deleteTask,
+  archiveGroup,
+  unarchiveGroup,
+  handleInvite,
   addContactToGroup,
 } from '../../services/groupService';
 import { supabase } from '../../supabaseClient';
@@ -29,8 +32,18 @@ const GroupPanel = ({ currentUser }) => {
   const [taskText, setTaskText] = useState('');
   const [taskDeadline, setTaskDeadline] = useState('');
   const [contactsWhoAreUsers, setContactsWhoAreUsers] = useState([]);
+  const [selectedMemberId, setSelectedMemberId] = useState('');
+  const [memberTaskText, setMemberTaskText] = useState('');
+  const [memberTaskDeadline, setMemberTaskDeadline] = useState('');
 
   const selectedGroup = useMemo(() => groups.find((g) => g.id === selectedGroupId) || null, [groups, selectedGroupId]);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+    getUserGroups(currentUserId).then(res => {
+      if (res.success) setGroups(res.data);
+    });
+  }, [currentUserId]);
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -58,6 +71,7 @@ const GroupPanel = ({ currentUser }) => {
       setGroups((prev) => [...prev, res.data]);
       setNewGroupName('');
       setNewGroupDesc('');
+      toast.success('Group created successfully!');
     } else {
       toast.error(res.error || 'Failed to create group');
     }
@@ -90,47 +104,62 @@ const GroupPanel = ({ currentUser }) => {
     }
   };
 
-  const handleInvite = async () => {
+  // Invite member by email
+  const handleInviteByEmail = async () => {
     if (!selectedGroupId || !inviteEmail.trim()) return;
     const res = await addMemberByEmail({ groupId: selectedGroupId, email: inviteEmail.trim() });
     if (res.success) {
-      // Refresh members
       const mRes = await getGroupMembers(selectedGroupId);
       if (mRes.success) setMembers(mRes.data);
       setInviteEmail('');
+      toast.success('Member invited successfully!');
     } else {
       toast.error(res.error || 'Failed to add member');
     }
   };
 
-  const handleAddContact = async () => {
-    if (!selectedGroupId || !selectedContactId) return;
-    const res = await addContactToGroup({ groupId: selectedGroupId, contactId: selectedContactId, userId: currentUserId });
+  // Delete task
+  const handleDeleteTask = async (taskId) => {
+    const res = await deleteTask(taskId);
     if (res.success) {
-      // Refresh members
-      const mRes = await getGroupMembers(selectedGroupId);
-      if (mRes.success) setMembers(mRes.data);
-      setSelectedContactId('');
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      toast.success('Task deleted.');
     } else {
-      toast.error(res.error || 'Failed to add contact');
+      toast.error('Failed to delete task');
     }
   };
 
   const handleCreateTask = async () => {
     if (!selectedGroupId || !taskText.trim()) return;
-    const res = await createGroupTask({ groupId: selectedGroupId, text: taskText, deadline: taskDeadline, creatorUserId: currentUserId });
+    const res = await createGroupTask({
+      groupId: selectedGroupId,
+      text: taskText,
+      deadline: taskDeadline,
+      userId: selectedMemberId || null, // allow unassigned tasks
+      completed: false,
+      completion_percent: 0
+    });
     if (res.success) {
       setTasks((prev) => [...prev, res.data]);
       setTaskText('');
       setTaskDeadline('');
     } else {
-      toast.error(res.error || 'Failed to add task');
+      alert(res.error || 'Failed to add task');
     }
   };
 
-  const handleDeleteTask = async (taskId) => {
-    const res = await deleteTask(taskId);
-    if (res.success) setTasks((prev) => prev.filter((t) => t.id !== taskId));
+  const handleArchiveGroup = async (groupId) => {
+    const res = await archiveGroup({ groupId });
+    if (res.success) {
+      setGroups(prev => prev.map(g => g.id === groupId ? { ...g, archived: true } : g));
+    }
+  };
+
+  const handleUnarchiveGroup = async (groupId) => {
+    const res = await unarchiveGroup({ groupId });
+    if (res.success) {
+      setGroups(prev => prev.map(g => g.id === groupId ? { ...g, archived: false } : g));
+    }
   };
 
   // Keep user online heartbeat in groups view too
@@ -145,41 +174,97 @@ const GroupPanel = ({ currentUser }) => {
 
   const isProtectedRole = (role) => ['admin'].includes(String(role || '').toLowerCase());
 
+  const handleCompletionChange = async (taskId, percent, forceComplete = false) => {
+    const completed = forceComplete || percent === 100;
+    const { error } = await supabase
+      .from('task')
+      .update({ completion_percent: percent, completed })
+      .eq('id', taskId);
+    if (!error) {
+      setTasks(prev =>
+        prev.map(t =>
+          t.id === taskId ? { ...t, completion_percent: percent, completed } : t
+        )
+      );
+    }
+  };
+
+  const sortedTasks = [...tasks]
+    .sort((a, b) => {
+      // Completed tasks go last
+      if (!!a.completed !== !!b.completed) return a.completed ? 1 : -1;
+      // Sort by deadline (earliest first)
+      if (a.deadline && b.deadline) {
+        return new Date(a.deadline) - new Date(b.deadline);
+      }
+      if (a.deadline) return -1;
+      if (b.deadline) return 1;
+      return 0;
+    });
+
+  // Sort: archived groups go last
+  const sortedGroups = [...groups].sort((a, b) => {
+    if (!!a.archived !== !!b.archived) return a.archived ? 1 : -1;
+    return 0;
+  });
+
   return (
     <div className="flex gap-6 w-full">
       {/* Groups list */}
-      <div className="w-72 bg-white dark:bg-[#141820] rounded-xl border border-slate-200 dark:border-[#30363d] p-4 h-[520px] overflow-y-auto">
-        <h3 className="font-semibold text-lg dark:text-gray-100 mb-3">Groups</h3>
+      <div className="w-72 bg-white rounded-xl border border-slate-200 p-4 h-[520px] overflow-y-auto">
+        <h3 className="font-semibold text-lg mb-3">Groups</h3>
         <div className="space-y-2">
-          {groups.map((g) => (
+          {sortedGroups.map((g) => (
             <div
               key={g.id}
-              className={`p-3 rounded-lg cursor-pointer border ${selectedGroupId === g.id ? 'bg-blue-50 dark:bg-[#161b22] border-blue-300 dark:border-blue-700' : 'border-slate-200 dark:border-[#30363d] hover:bg-slate-50 dark:hover:bg-[#1f2937]'}`}
+              className={`p-3 rounded-lg cursor-pointer border ${
+                g.archived
+                  ? 'bg-yellow-50 border-yellow-300 opacity-60'
+                  : selectedGroupId === g.id
+                  ? 'bg-blue-50 border-blue-300'
+                  : 'border-slate-200 hover:bg-slate-50'
+              }`}
               onClick={() => setSelectedGroupId(g.id)}
             >
               <div className="flex items-center justify-between">
                 <span className="font-medium">{g.name}</span>
-                <span className="text-xs text-gray-400 dark:text-gray-400 capitalize">{g.role}</span>
+                <span className="text-xs text-slate-500 capitalize">{g.role}</span>
               </div>
               {g.description && (
-                <div className="text-xs text-gray-400 dark:text-gray-400 mt-1 line-clamp-2">{g.description}</div>
+                <div className="text-xs text-slate-500 mt-1 line-clamp-2">{g.description}</div>
               )}
               <div className="flex gap-2 mt-2">
                 {!isProtectedRole(g.role) && (
                   <button 
-                    className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 hover:dark:text-red-500" 
+                    className="text-xs text-red-600 hover:text-red-800" 
                     onClick={(e) => { e.stopPropagation(); handleLeaveGroup(g.id); }}
                   >
                     Leave
                   </button>
                 )}
-                {isProtectedRole(g.role) && (
+                {isProtectedRole(g.role) && !g.archived && (
                   <button 
-                    className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 hover:dark:text-red-500" 
-                    onClick={(e) => { e.stopPropagation(); handleDeleteGroup(g.id); }}
+                    className="text-xs text-yellow-600 hover:text-yellow-800" 
+                    onClick={(e) => { e.stopPropagation(); handleArchiveGroup(g.id); }}
                   >
-                    Delete
+                    Archive
                   </button>
+                )}
+                {isProtectedRole(g.role) && g.archived && (
+                  <>
+                    <button 
+                      className="text-xs text-blue-600 hover:text-blue-800" 
+                      onClick={(e) => { e.stopPropagation(); handleUnarchiveGroup(g.id); }}
+                    >
+                      Unarchive
+                    </button>
+                    <button 
+                      className="text-xs text-red-600 hover:text-red-800 ml-2" 
+                      onClick={(e) => { e.stopPropagation(); handleDeleteGroup(g.id); }}
+                    >
+                      Delete
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -212,43 +297,18 @@ const GroupPanel = ({ currentUser }) => {
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
                   />
-                  <button className="bg-gradient-to-r from-indigo-950 via-indigo-900 to-indigo-700 hover:from-indigo-900 hover:via-indigo-700 hover:to-indigo-500 text-white rounded-md px-3 text-sm" onClick={handleInvite}>Invite</button>
+                  <button className="bg-gradient-to-r from-indigo-950 via-indigo-900 to-indigo-700 hover:from-indigo-900 hover:via-indigo-700 hover:to-indigo-500 text-white rounded-md px-3 text-sm" onClick={handleInviteByEmail}>Invite</button>
                 </div>
               </div>
 
-              {/* Add from contacts */}
-              {contactsWhoAreUsers.length > 0 && (
-                <div className="flex gap-2 mb-3">
-                  <select
-                    className="flex-1 border rounded-md p-2 text-sm dark:bg-[#1a1f2c] dark:border-[#202733] dark:text-gray-400 placeholder:dark:text-gray-400"
-                    value={selectedContactId}
-                    onChange={(e) => setSelectedContactId(e.target.value)}
-                  >
-                    <option value="">Add from contacts...</option>
-                    {contactsWhoAreUsers.map((contact) => (
-                      <option key={contact.contact_id} value={contact.contact_id}>
-                        {contact.name} ({contact.email})
-                      </option>
-                    ))}
-                  </select>
-                  <button 
-                    className="bg-green-600 dark:bg-green-700 text-white rounded-md px-3 text-sm hover:dark:bg-green-600" 
-                    onClick={handleAddContact}
-                    disabled={!selectedContactId}
-                  >
-                    Add
-                  </button>
-                </div>
-              )}
-
               <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {members.map((m) => (
-                  <li key={m.u_id} className="border border-slate-200 dark:border-[#30363d] rounded-lg p-3 dark:bg-[#1a1f2c]">
+                  <li key={m.u_id} className="border border-slate-200 rounded-lg p-3">
                     <div className="flex items-center gap-3">
                       <img className="w-8 h-8 rounded-full object-cover" src={m.image || '/user-placeholder.png'} alt={m.name || m.email} />
                       <div>
                         <div className="font-medium text-sm">{m.name || m.email}</div>
-                        <div className="text-xs text-gray-400 dark:text-gray-400 capitalize">{m.role}</div>
+                        <div className="text-xs text-slate-500 capitalize">{m.role}</div>
                       </div>
                     </div>
                   </li>
@@ -256,25 +316,123 @@ const GroupPanel = ({ currentUser }) => {
               </ul>
             </div>
 
+            {/* Assign task to member */}
+            <div className="mt-4 mb-3">
+              <h4 className="font-semibold mb-2">Assign Task to Member</h4>
+              <div className="flex gap-2">
+                <select
+                  className="border rounded-md p-2 text-sm"
+                  value={selectedMemberId}
+                  onChange={e => setSelectedMemberId(e.target.value)}
+                >
+                  <option value="">Select member...</option>
+                  {members.map(m => (
+                    <option key={m.u_id} value={m.u_id}>
+                      {m.name || m.email}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  className="flex-1 border rounded-md p-2 text-sm"
+                  placeholder="Task description"
+                  value={memberTaskText}
+                  onChange={e => setMemberTaskText(e.target.value)}
+                />
+                <input
+                  type="date"
+                  className="border rounded-md p-2 text-sm"
+                  value={memberTaskDeadline}
+                  onChange={e => setMemberTaskDeadline(e.target.value)}
+                />
+                <button
+                  className="bg-blue-600 text-white rounded-md px-3 text-sm"
+                  onClick={async () => {
+                    if (!selectedGroupId || !selectedMemberId || !memberTaskText.trim()) return;
+                    const res = await createGroupTask({
+                      groupId: selectedGroupId,
+                      text: memberTaskText,
+                      deadline: memberTaskDeadline,
+                      userId: selectedMemberId
+                    });
+                    if (res.success) {
+                      setTasks((prev) => [...prev, res.data]);
+                      setMemberTaskText('');
+                      setMemberTaskDeadline('');
+                      toast.success('Task assigned!');
+                    } else {
+                      toast.error(res.error || 'Failed to assign task');
+                    }
+                  }}
+                >
+                  Assign
+                </button>
+              </div>
+            </div>
+
             {/* Tasks */}
             <div>
-              <h3 className="font-semibold text-lg dark:text-gray-100 mb-2">Group Tasks</h3>
+              <h3 className="font-semibold text-lg mb-2">Group Tasks</h3>
               <div className="flex gap-2 mb-3">
-                <input className="flex-1 border rounded-md p-2 text-sm dark:bg-[#1a1f2c] dark:border-[#202733] dark:text-gray-400 placeholder:dark:text-gray-400" placeholder="Task description" value={taskText} onChange={(e) => setTaskText(e.target.value)} />
-                <input type="date" className="border rounded-md p-2 text-sm dark:bg-[#1a1f2c] dark:border-[#202733] dark:text-gray-400 placeholder:dark:text-gray-400" value={taskDeadline} onChange={(e) => setTaskDeadline(e.target.value)} />
-                <button className="bg-gradient-to-r from-indigo-950 via-indigo-900 to-indigo-700 hover:from-indigo-900 hover:via-indigo-700 hover:to-indigo-500 text-white rounded-md px-3 text-sm" onClick={handleCreateTask}>Add</button>
+                <input className="flex-1 border rounded-md p-2 text-sm" placeholder="Task description" value={taskText} onChange={(e) => setTaskText(e.target.value)} />
+                <input type="date" className="border rounded-md p-2 text-sm" value={taskDeadline} onChange={(e) => setTaskDeadline(e.target.value)} />
+                <button className="bg-blue-600 text-white rounded-md px-3 text-sm" onClick={handleCreateTask}>Add</button>
               </div>
               {tasks.length === 0 ? (
-                <div className="text-gray-500 dark:text-gray-400 text-sm">No tasks yet.</div>
+                <div className="text-slate-500 text-sm">No tasks yet.</div>
               ) : (
                 <ul className="space-y-2">
-                  {tasks.map((t) => (
-                    <li key={t.id} className="border border-slate-200 dark:border-[#30363d] rounded-lg p-3 flex items-center justify-between dark:bg-[#1a1f2c]">
-                      <div>
-                        <div className="font-medium text-sm">{t.text}</div>
-                        {t.deadline && <div className="text-xs text-gray-400 dark:text-gray-400">Due: {new Date(t.deadline).toLocaleDateString()}</div>}
+                  {sortedTasks.map((t) => (
+                    <li
+                      key={t.id}
+                      className={`border rounded-lg p-3 flex flex-col gap-2 ${
+                        t.completed
+                          ? 'bg-green-50 border-green-300 opacity-70'
+                          : 'bg-white border-slate-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium text-sm">{t.text}</div>
+                          {t.deadline && (
+                            <div className="text-xs text-slate-500">
+                              Due: {new Date(t.deadline).toLocaleDateString()}
+                            </div>
+                          )}
+                          {t.user_id ? (
+                            <div className="text-xs text-blue-600">
+                              Task assigned to: {members.find(m => m.u_id === t.user_id)?.name || members.find(m => m.u_id === t.user_id)?.email || 'Member'}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-blue-600">
+                              Task assigned to: GROUP
+                            </div>
+                          )}
+                        </div>
+                        <button className="text-red-600 text-sm" onClick={() => handleDeleteTask(t.id)}>Delete</button>
                       </div>
-                      <button className="text-red-600 dark:text-red-400 hover:dark:text-red-500 text-sm" onClick={() => handleDeleteTask(t.id)}>Delete</button>
+                      <div className="flex items-center gap-3 mt-2">
+                        <label className="text-xs text-slate-500">Progress:</label>
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          value={t.completion_percent || 0}
+                          onChange={e => handleCompletionChange(t.id, Number(e.target.value))}
+                          className="w-32 h-2 accent-blue-600"
+                          style={{ accentColor: "#2563eb" }}
+                        />
+                        <span className="text-xs font-semibold w-8 text-center">{t.completion_percent || 0}%</span>
+                        <label className="flex items-center gap-1 text-xs">
+                          <input
+                            type="checkbox"
+                            checked={!!t.completed}
+                            onChange={e => handleCompletionChange(t.id, e.target.checked ? 100 : t.completion_percent || 0, e.target.checked)}
+                            className="accent-blue-600"
+                            style={{ accentColor: "#2563eb" }}
+                          />
+                          Completed
+                        </label>
+                      </div>
                     </li>
                   ))}
                 </ul>

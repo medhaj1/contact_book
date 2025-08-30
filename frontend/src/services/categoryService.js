@@ -12,11 +12,12 @@ function sanitizeString(str) {
 /**
  * Get all categories from the database
  */
-export const getCategories = async () => {
+export const getCategories = async (userId) => {
   try {
     const { data, error } = await supabase
       .from("category")
       .select("*")
+      .eq("user_id", userId) // Only fetch categories for this user
       .order("category_id", { ascending: true });
 
     if (error) {
@@ -40,11 +41,22 @@ export const addCategory = async (categoryName, userId) => {
     if (!cleanName) {
       throw new Error("Category name is required");
     }
+    if (!userId) {
+      throw new Error("User ID is required");
+    }
 
-    // When creating a new category
-    await supabase.from('category').insert([
-      { name: cleanName, user_id: userId }
-    ]);
+    const { data: insertData, error: insertError } = await supabase
+      .from("category")
+      .insert([{
+        name: cleanName,
+        user_id: userId
+      }])
+      .select()
+      .single();
+
+    if (insertError) {
+      throw new Error(`Failed to add category: ${insertError.message}`);
+    }
 
     return { success: true, message: "Category added successfully" };
   } catch (error) {
@@ -103,92 +115,5 @@ export const deleteCategory = async (categoryId) => {
   }
 };
 
-/**
- * Get categories for a specific user
- */
-export async function getUserCategories(userId) {
-  const { data, error } = await supabase
-    .from('category')
-    .select('*')
-    .eq('user_id', userId);
 
-  if (error) return { success: false, error };
-  return { success: true, data };
-}
 
-/**
- * Get contacts by category
- */
-export async function getContactsByCategory(categoryId, userId) {
-  const { data, error } = await supabase
-    .from('contact')
-    .select('*')
-    .eq('category_id', categoryId)
-    .eq('user_id', userId);
-
-  if (error) return { success: false, error };
-  return { success: true, data };
-}
-
-/**
- * React component to display and manage categories
- */
-const CategoryManager = () => {
-  const [categories, setCategories] = useState([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
-  const [contacts, setContacts] = useState([]);
-  const userId = supabase.auth.user()?.id;
-
-  useEffect(() => {
-    if (!userId) return;
-    getUserCategories(userId).then(res => {
-      if (res.success) setCategories(res.data);
-    });
-  }, [userId]);
-
-  // Fetch contacts when a category is selected
-  useEffect(() => {
-    if (!selectedCategoryId || !userId) {
-      setContacts([]);
-      return;
-    }
-    getContactsByCategory(selectedCategoryId, userId).then(res => {
-      if (res.success) setContacts(res.data);
-    });
-  }, [selectedCategoryId, userId]);
-
-  return (
-    <div>
-      <h1>Your Categories</h1>
-      <ul>
-        {categories.map(category => (
-          <li
-            key={category.category_id}
-            style={{ cursor: 'pointer', fontWeight: selectedCategoryId === category.category_id ? 'bold' : 'normal' }}
-            onClick={() => setSelectedCategoryId(category.category_id)}
-          >
-            {category.name}
-          </li>
-        ))}
-      </ul>
-      {/* Show contacts for selected category */}
-      {selectedCategoryId && (
-        <div>
-          <h2>Contacts in this category:</h2>
-          <ul>
-            {contacts.length === 0 ? (
-              <li>No contacts found.</li>
-            ) : (
-              contacts.map(contact => (
-                <li key={contact.contact_id}>{contact.name} ({contact.email})</li>
-              ))
-            )}
-          </ul>
-        </div>
-      )}
-      {/* ... add category form ... */}
-    </div>
-  );
-};
-
-export default CategoryManager;

@@ -115,7 +115,7 @@ const ContactsControlBar = ({
           ⭐ Favourites ({getCategoryCount('favourites')})
         </button>
 
-        {/* Category tabs */}
+        {/* User's Categories - Place here */}
         {categories.map((category) => (
           <button
             key={category.category_id}
@@ -130,7 +130,7 @@ const ContactsControlBar = ({
           </button>
         ))}
 
-        {/* Add Category Button */}
+        {/* Add Category Button - Place last */}
         <button
           onClick={() => setShowAddCategory(true)}
           className="flex-shrink-0 p-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"

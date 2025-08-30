@@ -32,7 +32,7 @@ export async function getUserGroups(userId) {
     // Then, get the actual group details
     const { data: groups, error: groupErr } = await supabase
       .from('groups')
-      .select('*')
+      .select('id, name, description, archived') // <-- include archived
       .in('id', groupIds)
       .order('created_at', { ascending: true });
 
@@ -346,18 +346,13 @@ export async function getGroupMembers(groupId) {
       .select('u_id, name, email, image, last_seen')
       .in('u_id', userIds);
 
-    if (profileErr) throw profileErr;
-
-    const roleByUserId = new Map(memberRows.map((m) => [m.user_id, m.role]));
-    const enriched = (profiles || []).map((p) => ({ ...p, role: roleByUserId.get(p.u_id) || 'member' }));
-    return { success: true, data: enriched };
+   if (profileErr) throw profileErr;
+return { success: true, data: profiles };
   } catch (error) {
-    console.error('getGroupMembers error', error);
+    console.error('getGroupTasks error', error);
     return { success: false, error: error.message };
   }
 }
-
-// GROUP TASKS
 export async function getGroupTasks(groupId) {
   try {
     if (!groupId) throw new Error('Missing groupId');
@@ -367,33 +362,75 @@ export async function getGroupTasks(groupId) {
       .eq('group_id', groupId)
       .order('deadline', { ascending: true });
     if (error) throw error;
-    return { success: true, data: data || [] };
+    return { success: true, data };
   } catch (error) {
     console.error('getGroupTasks error', error);
     return { success: false, error: error.message };
   }
 }
 
-export async function createGroupTask({ groupId, text, deadline, userId, completed = false, completion_percent = 0 }) {
+export async function createGroupTask({ groupId, text, deadline, userId }) {
   try {
-    if (!groupId || !text) throw new Error('Missing required fields');
-    const insertObj = {
-      group_id: groupId,
-      text,
-      deadline,
-      completed,
-      completion_percent,
-    };
-    if (userId) insertObj.user_id = userId; // Only set if provided
+    if (!groupId) throw new Error('Missing groupId');
+    if (!text || !text.trim()) throw new Error('Task text is required');
     const { data, error } = await supabase
       .from('task')
-      .insert([insertObj])
-      .select()
-      .single();
-
+      .insert([{
+        group_id: groupId,
+        user_id: userId,
+        text: text.trim(),
+        deadline
+      }])
+      .select();
     if (error) throw error;
     return { success: true, data };
   } catch (error) {
     return { success: false, error: error.message };
   }
+}
+
+export async function deleteTask(taskId) {
+  try {
+    if (!taskId) throw new Error('Missing taskId');
+    const { error } = await supabase
+      .from('task')
+      .delete()
+      .eq('id', taskId);
+    if (error) throw error;
+    return { success: true };
+  } catch (error) {
+    console.error('deleteTask error', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function archiveGroup({ groupId }) {
+  try {
+    const { error } = await supabase
+      .from('groups')
+      .update({ archived: true })
+      .eq('id', groupId);
+    if (error) throw error;
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function unarchiveGroup({ groupId }) {
+  try {
+    const { error } = await supabase
+      .from('groups')
+      .update({ archived: false })
+      .eq('id', groupId);
+    if (error) throw error;
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// Optional stub for debugGroupAccess
+export function debugGroupAccess() {
+  console.log('debugGroupAccess called');
 }
