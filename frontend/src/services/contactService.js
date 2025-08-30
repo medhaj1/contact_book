@@ -105,7 +105,8 @@ export const addContact = async (contactData, photoFile = null, userId) => {
         photo_url: photoUrl,
         user_id: userId,
         birthday: formattedBirthday,
-        category_ids: cleanCategoryIds.length > 0 ? cleanCategoryIds : null
+        category_ids: cleanCategoryIds.length > 0 ? cleanCategoryIds : null,
+        is_favourite: false  // Default new contacts to not favourite
       }])
       .select()
       .single();

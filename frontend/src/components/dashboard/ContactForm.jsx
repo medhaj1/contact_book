@@ -1,21 +1,64 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Camera, X } from 'lucide-react';
 import { NoSymbolIcon } from '@heroicons/react/24/solid';
 import { useBlockedContacts } from './BlockedContactsContext';
 import { addContact, updateContact } from '../../services/contactService';
+import { useFormat } from '../settings/FormatContext';
+import { toast } from 'react-toastify';
 
 const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => {
-  const [formData, setFormData] = useState({
-    name: contact?.name != null ? String(contact.name) : '',
-    email: contact?.email != null ? String(contact.email) : '',
-    phone: contact?.phone != null ? String(contact.phone) : '',
-    birthday: contact?.birthday || '',
-    category_ids:
-      contact?.category_ids != null
-        ? contact.category_ids.map(String)
-        : [], // ✅ multiple categories
-    image: contact?.photo_url || contact?.image || null
-  });
+  const { nameFormat, dateFormat, formatContactName, formatDate } = useFormat();
+
+  // Helper functions for formatting
+  function formatName(contact) {
+    if (!contact) return "";
+    return formatContactName(contact);
+  }
+
+  // Initialize form data with persistence
+  const getInitialFormData = () => {
+    if (contact) {
+      // If editing existing contact, use contact data
+      return {
+        name: contact?.name != null ? String(contact.name) : '',
+        email: contact?.email != null ? String(contact.email) : '',
+        phone: contact?.phone != null ? String(contact.phone) : '',
+        birthday: contact?.birthday || '',
+        category_ids:
+          contact?.category_ids != null
+            ? contact.category_ids.map(String)
+            : [],
+        image: contact?.photo_url || contact?.image || null
+      };
+    } else {
+      // If adding new contact, try to restore from localStorage
+      const saved = localStorage.getItem('contactFormData');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          // If parsing fails, return default
+        }
+      }
+      return {
+        name: '',
+        email: '',
+        phone: '',
+        birthday: '',
+        category_ids: [],
+        image: null
+      };
+    }
+  };
+
+  const [formData, setFormData] = useState(getInitialFormData);
+
+  // Persist form data when adding new contact (not when editing)
+  useEffect(() => {
+    if (!contact && (formData.name || formData.email || formData.phone)) {
+      localStorage.setItem('contactFormData', JSON.stringify(formData));
+    }
+  }, [formData, contact]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -33,7 +76,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
       !String(formData.email || '').trim() ||
       !String(formData.phone || '').trim()
     ) {
-      alert('Name, email, and phone are required');
+      toast.error('Name, email, and phone are required');
       return;
     }
 
@@ -56,12 +99,14 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
       }
 
       if (result.success) {
+        // Clear persisted form data on successful submission
+        localStorage.removeItem('contactFormData');
         onSave();
       } else {
-        alert(`Failed to ${contact ? 'update' : 'add'} contact: ${result.error}`);
+        toast.error(`Failed to ${contact ? 'update' : 'add'} contact: ${result.error}`);
       }
     } catch (error) {
-      alert(`Error ${contact ? 'updating' : 'adding'} contact: ${error.message}`);
+      toast.error(`Error ${contact ? 'updating' : 'adding'} contact: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -104,25 +149,28 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
   // ✅ Block/unblock handler
   const handleBlockContact = async () => {
     if (!contact) {
-      alert("You can only block saved contacts.");
+      toast.error("You can only block saved contacts.");
       return;
     }
 
     if (isBlocked) {
-      if (window.confirm(`Are you sure you want to unblock ${contact.name}?`)) {
+      if (window.confirm(`Are you sure you want to unblock ${formatName(contact)}?`)) {
         const result = await unblock(contact.contact_id);
         if (result.success) {
-          alert(`${contact.name} has been unblocked.`);
+          toast.error(`${formatName(contact)} has been unblocked.`);
         } else {
-          alert(`Failed to unblock ${contact.name}: ${result.error}`);
+          toast.error(`Failed to unblock ${formatName(contact)}: ${result.error}`);
+
         }
       }
     } else {
       const result = await block(contact.contact_id);
       if (result.success) {
-        alert(`${contact.name} has been blocked.`);
+
+        toast.error(`${formatName(contact)} has been blocked.`);
       } else {
-        alert(`Failed to block ${contact.name}: ${result.error}`);
+        toast.error(`Failed to block ${formatName(contact)}: ${result.error}`);
+
       }
     }
   };
@@ -131,7 +179,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
     <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-[1000]">
       <div className="bg-white dark:bg-[#161b22] p-8 rounded-[16px] border dark:border-slate-700 w-[400px] max-h-[90vh] overflow-y-auto shadow-[0_10px_40px_rgba(0,0,0,0.15)]">
         <h3 className="text-[1.4rem] font-semibold text-[#334155] dark:text-slate-300 mb-6 text-center">
-          {contact ? 'Edit Contact' : 'Add New Contact'}
+          {contact ? `Edit Contact - ${formatName(contact)}` : 'Add New Contact'}
         </h3>
         <form onSubmit={handleSubmit}>
           {/* Image Upload */}
@@ -140,7 +188,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
               <div className="w-[100px] h-[100px] mx-auto mb-4 rounded-full bg-slate-100 dark:bg-gray-800/50 flex items-center justify-center relative overflow-hidden border-2 border-dashed border-slate-300 dark:border-slate-700 cursor-pointer hover:scale-105 transform transition duration-200">
                 {formData.image ? (
                   <>
-                    <img src={formData.image} alt="Contact" className="w-full h-full object-cover" />
+                    <img src={formData.image} alt={contact ? formatName(contact) : "Contact"} className="w-full h-full object-cover" />
                     <button
                       className="absolute top-[5px] right-[5px] bg-red-600/80 text-white rounded-full w-6 h-6 flex items-center justify-center cursor-pointer text-[12px]"
                       type="button"
@@ -173,6 +221,11 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
               className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 transform transition duration-200"
               required
             />
+            {formData.name && (
+              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Display format: {formatName({ name: formData.name })}
+              </div>
+            )}
           </div>
 
           {/* Email */}
@@ -199,16 +252,29 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
             />
           </div>
 
-          {/* Birthday */}
-          <div className="mb-4">
-            <input
-              type="date"
-              placeholder="Birthday"
-              value={formData.birthday}
-              onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
-              className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 transform transition duration-200"
-            />
-          </div>
+          {/* Birthday with label */}
+<div className="mb-4">
+  <label
+    htmlFor="birthday-input"
+    className="block mb-1 font-semibold text-gray-700 dark:text-gray-300"
+  >
+    Birthday
+  </label>
+  <input
+    id="birthday-input"
+    type="date"
+    placeholder="Birthday"
+    value={formData.birthday}
+    onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
+    className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 transform transition duration-200"
+  />
+  {formData.birthday && (
+    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+      Display format: {formatDate(formData.birthday)}
+    </div>
+  )}
+</div>
+
 
           {/* ✅ Multi-Category Select with Tags */}
           <div className="mb-6">
@@ -241,7 +307,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
               }}
               className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 bg-white text-slate-600 transform transition duration-200"
             >
-              <option value="">+ Add more</option>
+              <option value="">+ Add categories</option>
               {categories.map((category) => (
                 <option key={category.category_id} value={category.category_id}>
                   {category.category_name || category.name}

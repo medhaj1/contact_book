@@ -185,23 +185,18 @@ export const importContacts = async (file, userId) => {
 };
 
 /**
- * Export Contacts to CSV
+ * Export Contacts to CSV (Optimized with Database Function)
  */
 export const exportContactsCSV = async (userId, filters = {}) => {
   try {
-    const { search = '', category, hasBirthday, filename } = filters;
+    const { category } = filters;
 
-    // Base query: user's contacts
-    let query = supabase
-      .from("contact")
-      .select("*")
-      .eq("user_id", userId);
+    // Use database function for efficient category filtering
+    const { data: contacts, error } = await supabase.rpc('get_contacts_by_category', {
+      user_id_param: userId,
+      category_filter: category || null  // Pass category ID or 'favourites' or null for all
+    });
 
-    if (category) {
-      query = query.eq("category_id", category);
-    }
-
-    const { data: contacts, error } = await query;
     if (error) {
       throw new Error(`Failed to fetch contacts: ${error.message}`);
     }
@@ -210,34 +205,32 @@ export const exportContactsCSV = async (userId, filters = {}) => {
       throw new Error("No contacts found");
     }
 
-    // In-memory filters
-    let filtered = contacts;
-    if (search) {
-      const s = search.toLowerCase();
-      filtered = filtered.filter(c =>
-        (c.name?.toLowerCase().includes(s)) ||
-        (c.email?.toLowerCase().includes(s)) ||
-        (c.phone?.includes(s))
-      );
-    }
-    if (hasBirthday === '1') {
-      filtered = filtered.filter(c => !!c.birthday);
-    }
+    // Database already filtered by category, use contacts directly
+    const filtered = contacts;
 
     // Define CSV fields
-    const fields = ["name", "phone", "email", "birthday", "category_id", "photo_url"];
+    const fields = ["name", "phone", "email", "birthday", "category_ids", "photo_url"];
     const lines = [fields.join(',')];
+    
+    console.log('CSV Export - Final filtered contacts count:', filtered.length);
+    console.log('CSV Export - Filtered contacts:', filtered.map(c => ({ name: c.name, category_ids: c.category_ids })));
+    
     filtered.forEach(c => {
       lines.push(
-        fields.map(f => `"${(c[f] ?? '').toString().replace(/"/g, '""')}"`).join(',')
+        fields.map(f => {
+          let value = c[f] ?? '';
+          // Handle array fields (like category_ids)
+          if (Array.isArray(value)) {
+            value = value.join(';');
+          }
+          return `"${value.toString().replace(/"/g, '""')}"`;
+        }).join(',')
       );
     });
     const csv = lines.join('\n');
 
-    // Create filename
-    const safeName = filename?.trim()
-      ? filename.trim().replace(/[^a-z0-9_\-.]/gi, '_')
-      : `contacts_${userId}_${new Date().toISOString().slice(0, 10)}.csv`;
+    // Create filename with timestamp
+    const safeName = `contacts_${userId}_${new Date().toISOString().slice(0, 10)}.csv`;
 
     // Create and download file
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -258,23 +251,18 @@ export const exportContactsCSV = async (userId, filters = {}) => {
 };
 
 /**
- * Export Contacts to VCF
+ * Export Contacts to VCF (Optimized with Database Function)
  */
 export const exportContactsVCF = async (userId, filters = {}) => {
   try {
-    const { search = '', category, hasBirthday, filename } = filters;
+    const { category } = filters;
 
-    // Base query
-    let query = supabase
-      .from("contact")
-      .select("*")
-      .eq("user_id", userId);
-    
-    if (category) {
-      query = query.eq("category_id", category);
-    }
-
-    const { data: contacts, error } = await query;
+    // Use database function for efficient category filtering
+    const { data: contacts, error } = await supabase.rpc('get_contacts_by_category', {
+      user_id_param: userId,
+      category_filter: category || null  // Pass category ID or 'favourites' or null for all
+    });
+      
     if (error) {
       throw new Error(`Failed to fetch contacts: ${error.message}`);
     }
@@ -283,19 +271,8 @@ export const exportContactsVCF = async (userId, filters = {}) => {
       throw new Error("No contacts found");
     }
 
-    // In-memory filters
-    let filtered = contacts;
-    if (search) {
-      const s = search.toLowerCase();
-      filtered = filtered.filter(c =>
-        (c.name?.toLowerCase().includes(s)) ||
-        (c.email?.toLowerCase().includes(s)) ||
-        (c.phone?.includes(s))
-      );
-    }
-    if (hasBirthday === '1') {
-      filtered = filtered.filter(c => !!c.birthday);
-    }
+    // Database already filtered by category, use contacts directly
+    const filtered = contacts;
 
     // Generate VCF content
     let vcfContent = '';
@@ -331,10 +308,8 @@ export const exportContactsVCF = async (userId, filters = {}) => {
       vcfContent += 'END:VCARD\n';
     }
 
-    // Create filename
-    const safeName = filename?.trim()
-      ? filename.trim().replace(/[^a-z0-9_\-.]/gi, '_')
-      : `contacts_${userId}_${new Date().toISOString().slice(0, 10)}.vcf`;
+    // Create filename with timestamp
+    const safeName = `contacts_${userId}_${new Date().toISOString().slice(0, 10)}.vcf`;
 
     // Create and download file
     const blob = new Blob([vcfContent], { type: 'text/vcard' });
