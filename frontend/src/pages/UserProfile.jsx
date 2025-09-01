@@ -5,6 +5,7 @@ import { MdEmail, MdPhone, MdPerson, MdLock } from "react-icons/md";
 import ProfileAvatar from "../components/profile/ProfileAvatar";
 import { supabase } from "../supabaseClient";
 import { getUserProfile, updateUserProfile, uploadUserAvatar } from "../services/userService";
+import { toast } from 'react-toastify';
 
 const UserProfile = ({ currentUser, onLogout }) => {
   const navigate = useNavigate();
@@ -114,7 +115,7 @@ const UserProfile = ({ currentUser, onLogout }) => {
         if (result.success) {
           avatarUrl = result.avatarUrl;
         } else {
-          alert("Error uploading profile picture: " + result.error);
+          toast("Error uploading profile picture: " + result.error);
           return;
         }
       }
@@ -148,12 +149,30 @@ const UserProfile = ({ currentUser, onLogout }) => {
         setTempPhoto(avatarUrl);
         setIsEditing(false);
         localStorage.removeItem('userProfileIsEditing');
-        alert("Profile updated successfully!");
+        toast.success("Profile updated successfully!", {
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
       } else {
-        alert("Error updating profile: " + result.error);
+        toast.error("Error updating profile: " + result.error, {
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
       }
     } catch (error) {
-      alert("Error updating profile: " + error.message);
+      toast.error("Error updating profile: " + error.message, {
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     }
   };
 
@@ -202,7 +221,13 @@ const UserProfile = ({ currentUser, onLogout }) => {
     setPasswordsSuccess('');
     if (passwords.new !== passwords.confirmNew) {
       setPasswordsError("New passwords do not match.");
-      alert("New passwords do not match.");
+      toast.error("New passwords do not match.", {
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
       return;
     }
 
@@ -210,12 +235,24 @@ const UserProfile = ({ currentUser, onLogout }) => {
 
     if (error) {
       setPasswordsError(error.message);
-      alert("Error updating password: " + error.message);
+      toast.error("Error updating password: " + error.message, {
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
       return;
     }
 
     setPasswordsSuccess("Password updated successfully!");
-    alert("Password updated successfully!");
+    toast.success("Password updated successfully!", {
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+    });
     setPasswords({ current: "", new: "", confirmNew: "" });
     setIsResettingPassword(false);
     localStorage.removeItem('userProfileIsResettingPassword');
@@ -244,23 +281,30 @@ const UserProfile = ({ currentUser, onLogout }) => {
 
         <div className="flex flex-col md:flex-row items-start gap-12">
           <div className="flex flex-col items-center w-full md:w-1/3">
-            <label htmlFor="photo-upload" className="cursor-pointer">
-              <ProfileAvatar
-                name={userData.name}
-                image={isEditing ? tempPhoto : userData.photo}
-                size="128px"
-                textSize="3rem"
-              />
-              {isEditing && (
-                <input
-                  type="file"
-                  id="photo-upload"
-                  accept="image/*"
-                  onChange={handlePhotoChange}
-                  className="hidden"
+            <div className="relative">
+              <label htmlFor="photo-upload">
+                <ProfileAvatar
+                  name={userData.name}
+                  image={isEditing ? tempPhoto : userData.photo}
+                  size="128px"
+                  textSize="3rem"
                 />
-              )}
-            </label>
+                {isEditing && (
+                  <>
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 rounded-full hover:cursor-pointer">
+                      <FiEdit2 className="text-white text-3xl" />
+                    </div>
+                    <input
+                      type="file"
+                      id="photo-upload"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      className="hidden"
+                    />
+                  </>
+                )}
+              </label>
+            </div>
             {isEditing && (userData.photo || tempPhoto) && (
               <button
                 onClick={handleRemovePhoto}

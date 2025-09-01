@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { addCategory } from '../../services/categoryService';
+import { addCategory, getCategories } from '../../services/categoryService';
 
 const CategoryForm = ({ onSave, onCancel, existingCategories = [], userId }) => {
   const [categoryName, setCategoryName] = useState(() => {
@@ -7,15 +7,35 @@ const CategoryForm = ({ onSave, onCancel, existingCategories = [], userId }) => 
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [categories, setCategories] = useState([]);
 
   // Persist category name
   useEffect(() => {
     localStorage.setItem('categoryFormCategoryName', categoryName);
   }, [categoryName]);
 
+  // Fetch categories
+  useEffect(() => {
+    async function fetchCategories() {
+      if (!userId || userId === "unknown") {
+        return;
+      }
+      const result = await getCategories(userId);
+      if (result.success) {
+        setCategories(result.data);
+      }
+    }
+    fetchCategories();
+  }, [userId]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
+    if (!userId || userId === "unknown") {
+      setError('User not authenticated');
+      return;
+    }
     
     const trimmedName = categoryName.trim();
     
@@ -48,7 +68,7 @@ const CategoryForm = ({ onSave, onCancel, existingCategories = [], userId }) => 
     setIsSubmitting(true);
     
     try {
-      const result = await addCategory(trimmedName);
+      const result = await addCategory(trimmedName,userId);
       
       if (result.success) {
         localStorage.removeItem('categoryFormCategoryName');
@@ -108,6 +128,18 @@ const CategoryForm = ({ onSave, onCancel, existingCategories = [], userId }) => 
             </button>
           </div>
         </form>
+        <div className="mt-6">
+          <h4 className="text-md font-semibold text-slate-900 mb-4">Existing Categories</h4>
+          {categories.length === 0 ? (
+            <p className="text-slate-500 text-sm">No categories found</p>
+          ) : (
+            categories.map(cat => (
+              <div key={cat.category_id} className="text-slate-700 text-sm py-1">
+                {cat.name}
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

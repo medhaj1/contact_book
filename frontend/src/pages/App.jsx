@@ -1,14 +1,27 @@
-import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+} from "react-router-dom";
 
-import SignUp from '../components/signup/SignUp';
-import SignIn from '../components/signin/SignIn';
-import ResetPassword from '../components/signin/ResetPassword';
-import Dashboard from './Dashboard';
-import LandingPage from './LandingPage';
-import UserProfile from './UserProfile';
-import { supabase } from '../supabaseClient';
-import { BlockedContactsProvider } from '../components/dashboard/BlockedContactsContext';
+import SignUp from "../components/signup/SignUp";
+import SignIn from "../components/signin/SignIn";
+import ResetPassword from "../components/signin/ResetPassword";
+import Dashboard from "./Dashboard";
+import LandingPage from "./LandingPage";
+import UserProfile from "./UserProfile";
+import SettingsPage from './SettingsPage';
+import { supabase } from "../supabaseClient";
+import { BlockedContactsProvider } from "../components/dashboard/BlockedContactsContext";
+import { FormatProvider } from "../components/settings/FormatContext";
+import { ThemeProvider } from "../contexts/ThemeContext";
+import ThemedToastContainer from "../components/ThemedToastContainer";
+
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const AuthListener = ({ setIsLoggedIn, setCurrentUser }) => {
   const navigate = useNavigate();
@@ -21,21 +34,23 @@ const AuthListener = ({ setIsLoggedIn, setCurrentUser }) => {
       }
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setIsLoggedIn(false);
-        setCurrentUser(null);
-        navigate('/reset-password');
-      } else if (event === 'SIGNED_IN') {
-        setIsLoggedIn(true);
-        setCurrentUser(session?.user || null);
-        navigate('/dashboard');
-      } else if (event === 'SIGNED_OUT') {
-        setIsLoggedIn(false);
-        setCurrentUser(null);
-        navigate('/signin');
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === "PASSWORD_RECOVERY") {
+          setIsLoggedIn(false);
+          setCurrentUser(null);
+          navigate("/reset-password");
+        } else if (event === "SIGNED_IN") {
+          setIsLoggedIn(true);
+          setCurrentUser(session?.user || null);
+          navigate("/dashboard");
+        } else if (event === "SIGNED_OUT") {
+          setIsLoggedIn(false);
+          setCurrentUser(null);
+          navigate("/signin");
+        }
       }
-    });
+    );
 
     return () => {
       listener.subscription.unsubscribe();
@@ -50,44 +65,33 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
 
-  // Mark loading false after initial session check inside AuthListener
   useEffect(() => {
-    // Wait until isLoggedIn or currentUser is set to stop loading
     if (isLoggedIn || currentUser === null) {
       setLoading(false);
     }
   }, [isLoggedIn, currentUser]);
 
   const clearPersistenceData = () => {
-    // Clear all application persistence data
     const keysToRemove = [
-      // Dashboard states
-      'dashboardSearchTerm',
-      'dashboardSelectedCategory', 
-      'dashboardContactViewFilter',
-      'dashboardViewMode',
-      'dashboardShowAddContact',
-      'dashboardEditingContact',
-      'dashboardShowImportModal',
-      // Settings states
-      'settingsActiveSubPage',
-      // Contact form data
-      'contactFormData',
-      // Task panel data
-      'taskPanelNewTask',
-      'taskPanelDeadline',
-      // Categories panel data
-      'categoriesPanelShowAddCategory',
-      'categoryFormCategoryName',
-      // User profile states
-      'userProfileIsEditing',
-      'userProfileIsResettingPassword',
-      // Chat states
-      'chatPanelSelectedContact',
-      'chatPanelNewMessage'
+      "dashboardSearchTerm",
+      "dashboardSelectedCategory",
+      "dashboardContactViewFilter",
+      "dashboardViewMode",
+      "dashboardShowAddContact",
+      "dashboardEditingContact",
+      "dashboardShowImportModal",
+      "settingsActiveSubPage",
+      "contactFormData",
+      "taskPanelNewTask",
+      "taskPanelDeadline",
+      "categoriesPanelShowAddCategory",
+      "categoryFormCategoryName",
+      "userProfileIsEditing",
+      "userProfileIsResettingPassword",
+      "chatPanelSelectedContact",
+      "chatPanelNewMessage",
     ];
-    
-    keysToRemove.forEach(key => {
+    keysToRemove.forEach((key) => {
       localStorage.removeItem(key);
     });
   };
@@ -96,65 +100,88 @@ function App() {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) {
-        alert('Error logging out. Please try again.');
+        const toastId = toast.error("Error logging out. Please try again.", {
+          autoClose: 1000,
+        });
+        setTimeout(() => toast.dismiss(toastId), 1000);
       } else {
-        // Clear all persistence data on logout
         clearPersistenceData();
         setIsLoggedIn(false);
         setCurrentUser(null);
+        const toastId = toast.success("Logged out successfully", {
+          autoClose: 1000,
+        });
+        setTimeout(() => toast.dismiss(toastId), 1000);
       }
     } catch {
-      alert('Error logging out. Please try again.');
+      const toastId = toast.error("Error logging out. Please try again.", {
+        autoClose: 1000,
+      });
+      setTimeout(() => toast.dismiss(toastId), 1000);
     }
   };
 
   const handleLogin = (user) => {
     setIsLoggedIn(true);
     setCurrentUser(user);
+    const toastId = toast.success("Logged in successfully", { autoClose: 1000 });
+    setTimeout(() => toast.dismiss(toastId), 1000);
   };
 
-  if (loading) return null; // or add loading spinner
+  if (loading) return null; // You can add a spinner here
 
   return (
-    <Router>
-      <AuthListener setIsLoggedIn={setIsLoggedIn} setCurrentUser={setCurrentUser} />
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/signin" element={<SignIn onLogin={handleLogin} />} />
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        {/* Protected Routes */}
-        <Route
-          path="/dashboard"
-          element={
-            isLoggedIn ? (
-              <BlockedContactsProvider currentUser={currentUser}>
-                <Dashboard currentUser={currentUser} onLogout={handleLogout} />
-              </BlockedContactsProvider>
-            ) : (
-              <Navigate to="/signin" />
-            )
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            isLoggedIn ? (
-              <UserProfile currentUser={currentUser} onLogout={handleLogout} />
-            ) : (
-              <Navigate to="/signin" />
-            )
-          }
-        />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </Router>
+    <ThemeProvider>
+      <FormatProvider>
+        <Router>
+          <AuthListener setIsLoggedIn={setIsLoggedIn} setCurrentUser={setCurrentUser} />
+          <ThemedToastContainer />
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/signin" element={<SignIn onLogin={handleLogin} />} />
+          <Route path="/signup" element={<SignUp />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          {/* Protected Routes */}
+          <Route
+            path="/dashboard"
+            element={
+              isLoggedIn ? (
+                <BlockedContactsProvider currentUser={currentUser}>
+                  <Dashboard currentUser={currentUser} onLogout={handleLogout} />
+                </BlockedContactsProvider>
+              ) : (
+                <Navigate to="/signin" />
+              )
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              isLoggedIn ? (
+                <UserProfile currentUser={currentUser} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/signin" />
+              )
+            }
+          />
+          <Route
+            path="/settings"
+            element={isLoggedIn ? <SettingsPage currentUser={currentUser} /> : <Navigate to="/signin" />}
+          />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </Router>
+    </FormatProvider>
+    </ThemeProvider>
   );
 }
 
 export default App;
+
+
+
+
 
 
 

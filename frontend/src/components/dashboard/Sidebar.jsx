@@ -1,6 +1,5 @@
 import React from 'react';
-import {
-  Users, BookOpen, Settings, CheckSquare, MessageSquare,
+import { BookOpen, CheckSquare, LayoutDashboard,
 } from "lucide-react";
 
 const Sidebar = ({ 
@@ -10,12 +9,10 @@ const Sidebar = ({
   customItems = null 
 }) => {
   const defaultSidebarItems = [
-    { id: "contacts", label: "Contacts", icon: Users },
-    { id: "chat", label: "Chat", icon: MessageSquare },
+    { id: "contacts", label: "Home", icon: LayoutDashboard },
     { id: "documents", label: "Documents", icon: BookOpen },
-    { id: "groups", label: "Groups", icon: Users },
+   // { //id: "groups", label: "Groups", icon: Users },
     { id: "task", label: "Task", icon: CheckSquare },
-    { id: "settings", label: "Settings", icon: Settings },
   ];
 
   const sidebarItems = customItems || defaultSidebarItems;
@@ -38,7 +35,7 @@ const Sidebar = ({
               <div
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`flex items-center pl-4 py-2 rounded-lg cursor-pointer ${
+                className={`flex items-center pl-3.5 py-2 rounded-xl cursor-pointer ${
                   activeTab === item.id
                     ? "bg-blue-100 dark:bg-indigo-300 text-blue-700 dark:text-indigo-900"
                     : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"

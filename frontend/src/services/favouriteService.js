@@ -59,9 +59,62 @@ export async function removeFavourite(userId, contactId) {
     console.error('Error removing favourite:', error);
     return { success: false };
   }
-} 
+}
 
+// Bulk add favourites
+export async function bulkAddFavourites(userId, contactIds) {
+  try {
+    if (!contactIds || contactIds.length === 0) {
+      throw new Error("No contacts selected");
+    }
 
+    const { error } = await supabase
+      .from('contact')
+      .update({ is_favourite: true })
+      .in('contact_id', contactIds)
+      .eq('user_id', userId);
 
+    if (error) {
+      console.error('Error bulk adding favourites:', error);
+      return { success: false, error: error.message };
+    }
+    
+    return { 
+      success: true, 
+      message: `Successfully added ${contactIds.length} contact(s) to favourites`,
+      updatedCount: contactIds.length
+    };
+  } catch (error) {
+    console.error('Error bulk adding favourites:', error);
+    return { success: false, error: error.message };
+  }
+}
 
+// Bulk remove favourites
+export async function bulkRemoveFavourites(userId, contactIds) {
+  try {
+    if (!contactIds || contactIds.length === 0) {
+      throw new Error("No contacts selected");
+    }
 
+    const { error } = await supabase
+      .from('contact')
+      .update({ is_favourite: false })
+      .in('contact_id', contactIds)
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Error bulk removing favourites:', error);
+      return { success: false, error: error.message };
+    }
+    
+    return { 
+      success: true, 
+      message: `Successfully removed ${contactIds.length} contact(s) from favourites`,
+      updatedCount: contactIds.length
+    };
+  } catch (error) {
+    console.error('Error bulk removing favourites:', error);
+    return { success: false, error: error.message };
+  }
+}

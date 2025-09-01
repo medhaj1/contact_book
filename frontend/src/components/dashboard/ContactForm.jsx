@@ -3,8 +3,18 @@ import { Camera, X } from 'lucide-react';
 import { NoSymbolIcon } from '@heroicons/react/24/solid';
 import { useBlockedContacts } from './BlockedContactsContext';
 import { addContact, updateContact } from '../../services/contactService';
+import { useFormat } from '../settings/FormatContext';
+import { toast } from 'react-toastify';
 
 const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => {
+  const { formatContactName, formatDate } = useFormat();
+
+  // Helper functions for formatting
+  function formatName(contact) {
+    if (!contact) return "";
+    return formatContactName(contact);
+  }
+
   // Initialize form data with persistence
   const getInitialFormData = () => {
     if (contact) {
@@ -66,7 +76,13 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
       !String(formData.email || '').trim() ||
       !String(formData.phone || '').trim()
     ) {
-      alert('Name, email, and phone are required');
+      toast.error('Name, email, and phone are required', {
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
       return;
     }
 
@@ -91,12 +107,31 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
       if (result.success) {
         // Clear persisted form data on successful submission
         localStorage.removeItem('contactFormData');
+        toast.success(`Contact ${contact ? 'updated' : 'added'} successfully!`, {
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
         onSave();
       } else {
-        alert(`Failed to ${contact ? 'update' : 'add'} contact: ${result.error}`);
+        toast.error(`Failed to ${contact ? 'update' : 'add'} contact: ${result.error}`, {
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
       }
     } catch (error) {
-      alert(`Error ${contact ? 'updating' : 'adding'} contact: ${error.message}`);
+      toast.error(`Error ${contact ? 'updating' : 'adding'} contact: ${error.message}`, {
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -139,25 +174,55 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
   // ✅ Block/unblock handler
   const handleBlockContact = async () => {
     if (!contact) {
-      alert("You can only block saved contacts.");
+      toast.error("You can only block saved contacts.", {
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
       return;
     }
 
     if (isBlocked) {
-      if (window.confirm(`Are you sure you want to unblock ${contact.name}?`)) {
+      if (window.confirm(`Are you sure you want to unblock ${formatName(contact)}?`)) {
         const result = await unblock(contact.contact_id);
         if (result.success) {
-          alert(`${contact.name} has been unblocked.`);
+          toast.success(`${formatName(contact)} has been unblocked.`, {
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
         } else {
-          alert(`Failed to unblock ${contact.name}: ${result.error}`);
+          toast.error(`Failed to unblock ${formatName(contact)}: ${result.error}`, {
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
         }
       }
     } else {
       const result = await block(contact.contact_id);
       if (result.success) {
-        alert(`${contact.name} has been blocked.`);
+        toast.warning(`${formatName(contact)} has been blocked.`, {
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
       } else {
-        alert(`Failed to block ${contact.name}: ${result.error}`);
+        toast.error(`Failed to block ${formatName(contact)}: ${result.error}`, {
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
       }
     }
   };
@@ -166,7 +231,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
     <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-[1000]">
       <div className="bg-white dark:bg-[#161b22] p-8 rounded-[16px] border dark:border-slate-700 w-[400px] max-h-[90vh] overflow-y-auto shadow-[0_10px_40px_rgba(0,0,0,0.15)]">
         <h3 className="text-[1.4rem] font-semibold text-[#334155] dark:text-slate-300 mb-6 text-center">
-          {contact ? 'Edit Contact' : 'Add New Contact'}
+          {contact ? `Edit Contact - ${formatName(contact)}` : 'Add New Contact'}
         </h3>
         <form onSubmit={handleSubmit}>
           {/* Image Upload */}
@@ -175,7 +240,7 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
               <div className="w-[100px] h-[100px] mx-auto mb-4 rounded-full bg-slate-100 dark:bg-gray-800/50 flex items-center justify-center relative overflow-hidden border-2 border-dashed border-slate-300 dark:border-slate-700 cursor-pointer hover:scale-105 transform transition duration-200">
                 {formData.image ? (
                   <>
-                    <img src={formData.image} alt="Contact" className="w-full h-full object-cover" />
+                    <img src={formData.image} alt={contact ? formatName(contact) : "Contact"} className="w-full h-full object-cover" />
                     <button
                       className="absolute top-[5px] right-[5px] bg-red-600/80 text-white rounded-full w-6 h-6 flex items-center justify-center cursor-pointer text-[12px]"
                       type="button"
@@ -208,6 +273,11 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
               className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 transform transition duration-200"
               required
             />
+            {formData.name && (
+              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Display format: {formatName({ name: formData.name })}
+              </div>
+            )}
           </div>
 
           {/* Email */}
@@ -234,55 +304,108 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
             />
           </div>
 
-          {/* Birthday */}
-          <div className="mb-4">
-            <input
-              type="date"
-              placeholder="Birthday"
-              value={formData.birthday}
-              onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
-              className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 transform transition duration-200"
-            />
-          </div>
+          {/* Birthday with label */}
+<div className="mb-4">
+  <label
+    htmlFor="birthday-input"
+    className="block mb-1 font-semibold text-gray-700 dark:text-gray-300"
+  >
+    Birthday
+  </label>
+  <input
+    id="birthday-input"
+    type="date"
+    placeholder="Birthday"
+    value={formData.birthday}
+    onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
+    className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 transform transition duration-200"
+  />
+  {formData.birthday && (
+    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+      Display format: {formatDate(formData.birthday)}
+    </div>
+  )}
+</div>
+
 
           {/* ✅ Multi-Category Select with Tags */}
           <div className="mb-6">
-            <div className="flex flex-wrap gap-2 mb-2">
-              {formData.category_ids.map((id) => {
-                const cat = categories.find((c) => String(c.category_id) === id);
-                return (
-                  <span
-                    key={id}
-                    className="px-3 py-1 bg-blue-100 dark:bg-indigo-700 text-blue-700 dark:text-slate-100 rounded-full flex items-center gap-2 text-sm"
-                  >
-                    {cat?.category_name || cat?.name || 'Unknown'}
-                    <button
-                      type="button"
-                      onClick={() => removeCategory(id)}
-                      className="text-red-500 hover:text-red-700"
+            <label className="block mb-2 font-semibold text-gray-700 dark:text-gray-300">
+              Categories
+            </label>
+            
+            {/* Selected Categories Tags */}
+            {formData.category_ids.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {formData.category_ids.map((id) => {
+                  const cat = categories.find((c) => String(c.category_id) === id);
+                  return (
+                    <span
+                      key={id}
+                      className="px-3 py-1 bg-blue-100 dark:bg-indigo-700 text-blue-700 dark:text-slate-100 rounded-full flex items-center gap-2 text-sm"
                     >
-                      <X size={12} />
-                    </button>
-                  </span>
-                );
-              })}
+                      {cat?.category_name || cat?.name || 'Unknown'}
+                      <button
+                        type="button"
+                        onClick={() => removeCategory(id)}
+                        className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Category Selection */}
+            <div className="border border-slate-300 dark:border-slate-700 rounded-xl p-4 bg-slate-50 dark:bg-gray-800/30">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                Select categories for this contact:
+              </div>
+              <div className="max-h-32 overflow-y-auto">
+                {categories.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-1">
+                    {categories.map(category => {
+                      const isSelected = formData.category_ids.includes(String(category.category_id));
+                      return (
+                        <button
+                          key={category.category_id}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              removeCategory(String(category.category_id));
+                            } else {
+                              addCategory(String(category.category_id));
+                            }
+                          }}
+                          className={`text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                            isSelected
+                              ? 'bg-blue-100 dark:bg-indigo-700 text-blue-700 dark:text-slate-100 border border-blue-300 dark:border-indigo-600'
+                              : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <span className={`w-3 h-3 rounded border-2 ${
+                              isSelected 
+                                ? 'bg-blue-500 border-blue-500 dark:bg-indigo-500 dark:border-indigo-500' 
+                                : 'border-gray-300 dark:border-gray-500'
+                            }`}>
+                              {isSelected && <span className="block w-full h-full bg-white dark:bg-slate-100 rounded-sm scale-50"></span>}
+                            </span>
+                            {category.category_name || category.name}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+                    No categories available. Add categories first.
+                  </div>
+                )}
+              </div>
             </div>
-            <select
-              onChange={(e) => {
-                if (e.target.value) {
-                  addCategory(e.target.value);
-                  e.target.value = '';
-                }
-              }}
-              className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 bg-white text-slate-600 transform transition duration-200"
-            >
-              <option value="">+ Add more</option>
-              {categories.map((category) => (
-                <option key={category.category_id} value={category.category_id}>
-                  {category.category_name || category.name}
-                </option>
-              ))}
-            </select>
           </div>
 
           {/* Buttons */}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Grid, List, Plus } from 'lucide-react';
+import { Search, Grid, List, Plus, CheckSquare, Square } from 'lucide-react';
 import CategoryForm from './CategoryForm';
 
 const ContactsControlBar = ({
@@ -12,7 +12,13 @@ const ContactsControlBar = ({
   categories,
   contacts,
   userId,
-  onCategoriesChange
+  onCategoriesChange,
+  // Selection mode props
+  selectionMode = false,
+  onToggleSelectionMode,
+  selectedContacts = [],
+  onSelectAll,
+  onClearSelection
 }) => {
   const [showAddCategory, setShowAddCategory] = useState(() => {
     return localStorage.getItem('contactsControlBarShowAddCategory') === 'true';
@@ -49,6 +55,28 @@ const ContactsControlBar = ({
     ).length;
   };
 
+  // Get filtered contacts count for selection
+  const getFilteredContacts = () => {
+    return contacts.filter(contact => {
+      const matchesSearch =
+        (contact.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (contact.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (contact.phone || '').includes(searchTerm);
+    
+      const matchesCategory =
+        !selectedCategory ||
+        selectedCategory === '' ||
+        (selectedCategory === 'favourites' ? contact.is_favourite === true :
+          (Array.isArray(contact.category_ids) &&
+            contact.category_ids.some((id) => String(id) === String(selectedCategory))));
+    
+      return matchesSearch && matchesCategory;
+    });
+  };
+
+  const filteredContacts = getFilteredContacts();
+  const allSelected = filteredContacts.length > 0 && filteredContacts.every(c => selectedContacts.includes(c.contact_id));
+
   return (
     <div className="mb-8">
       {/* Search bar and view controls */}
@@ -63,6 +91,35 @@ const ContactsControlBar = ({
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+
+        {/* Selection controls */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onToggleSelectionMode}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              selectionMode
+                ? 'bg-blue-500 dark:bg-indigo-600 text-white'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+            }`}
+            title={selectionMode ? "Exit selection mode" : "Enter selection mode"}
+          >
+            {selectionMode ? <CheckSquare size={16} /> : <Square size={16} />}
+            <span>{selectionMode ? 'Exit Select' : 'Select'}</span>
+          </button>
+
+          {selectionMode && (
+            <>
+              <button
+                onClick={allSelected ? onClearSelection : () => onSelectAll(filteredContacts)}
+                className="px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                title={allSelected ? "Deselect all" : "Select all visible"}
+              >
+                {allSelected ? 'Deselect All' : 'Select All'}
+              </button>
+            </>
+          )}
+        </div>
+
         <div className="flex h-10 bg-white dark:bg-[#161b22] rounded-xl border dark:border-slate-700">
           <button
             onClick={() => setViewMode("card")}
@@ -115,7 +172,7 @@ const ContactsControlBar = ({
           ⭐ Favourites ({getCategoryCount('favourites')})
         </button>
 
-        {/* Category tabs */}
+        {/* User's Categories - Place here */}
         {categories.map((category) => (
           <button
             key={category.category_id}
@@ -130,7 +187,7 @@ const ContactsControlBar = ({
           </button>
         ))}
 
-        {/* Add Category Button */}
+        {/* Add Category Button - Place last */}
         <button
           onClick={() => setShowAddCategory(true)}
           className="flex-shrink-0 p-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"

@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from 'react-toastify';
 import ChatPanel from '../components/chat/ChatPanel';
-
 import ContactForm from '../components/dashboard/ContactForm';
 import BirthdayReminder from '../components/dashboard/BirthdayReminder';
 import TaskPanel from '../components/dashboard/TaskPanel';
-import SettingsTab from '../components/dashboard/SettingsTab';
 import DocumentsPanel from '../components/dashboard/DocumentsPanel';
 import ImportModal from '../components/dashboard/ImportModal';
 import GroupPanel from '../components/groups/GroupPanel';
+import ReceivedDocumentsPanel from '../components/dashboard/ReceivedDocumentsPanel';
 import SharedDocumentsPanel from '../components/dashboard/SharedDocumentsPanel';
 import Sidebar from '../components/dashboard/Sidebar';
 import HeaderSection from '../components/dashboard/HeaderSection';
@@ -16,18 +16,38 @@ import ContactsControlBar from '../components/dashboard/ContactsControlBar';
 import ContactsGrid from '../components/dashboard/ContactsGrid';
 import ContactsList from '../components/dashboard/ContactsList';
 import FloatingActionButton from '../components/dashboard/FloatingActionButton';
-import { addFavourite, removeFavourite } from "../services/favouriteService";
+import BulkActionsBar from '../components/dashboard/BulkActionsBar';
+import { addFavourite, removeFavourite, bulkAddFavourites, bulkRemoveFavourites } from "../services/favouriteService";
 import { exportContactsCSV, exportContactsVCF } from '../services/importExportService';
-
-
-// Import services
-import { getContacts, deleteContact } from '../services/contactService';
+import { getContacts, deleteContact, bulkDeleteContacts } from '../services/contactService';
 import { getCategories } from '../services/categoryService';
+import { supabase } from '../supabaseClient';
+import { useBlockedContacts } from "../components/dashboard/BlockedContactsContext";
+import { useFormat } from '../components/settings/FormatContext';
 
 const Dashboard = ({ currentUser, onLogout = () => {} }) => {
-  const navigate = useNavigate();
+  // Handles birthday wish: sets contact, switches tab, sends message
+  // Used to force chat refresh
+  const [chatRefreshKey, setChatRefreshKey] = useState(0);
 
-  // Navigation handlers
+    const handleBirthdayWish = async (contact) => {
+      // Always find the chat contact with contact_user_id
+      let chatContact = contact;
+      if (contacts && contact.email) {
+        const found = contacts.find(c => c.email === contact.email && c.contact_user_id);
+        if (found) chatContact = found;
+      }
+      if (!chatContact.contact_user_id) {
+        alert('Cannot send message: user is not registered.');
+        return;
+      }
+      await sendWishMessage(chatContact);
+      setChatRefreshKey(prev => prev + 1);
+  };
+  const navigate = useNavigate();
+  const { blockedContacts } = useBlockedContacts(); // Use blocked contacts context
+  const { formatContactName } = useFormat(); // Only use for sorting/filtering
+
   const onNavigateToProfile = () => {
     navigate('/profile');
   };
@@ -39,85 +59,85 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const [searchTerm, setSearchTerm] = useState(
-    () => localStorage.getItem("dashboardSearchTerm") || ""
-  );
-  const [selectedCategory, setSelectedCategory] = useState(
-    () => localStorage.getItem("dashboardSelectedCategory") || ""
-  );
-  const [viewMode, setViewMode] = useState(
-    () => localStorage.getItem("dashboardViewMode") || "card"
-  );
+  const [searchTerm, setSearchTerm] = useState(() => localStorage.getItem("dashboardSearchTerm") || "");
+  const [selectedCategory, setSelectedCategory] = useState(() => localStorage.getItem("dashboardSelectedCategory") || "");
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem("dashboardViewMode") || "card");
 
-  const [showAddContact, setShowAddContact] = useState(
-    () => localStorage.getItem("dashboardShowAddContact") === "true"
-  );
+  const [showAddContact, setShowAddContact] = useState(() => localStorage.getItem("dashboardShowAddContact") === "true");
   const [editingContact, setEditingContact] = useState(() => {
     const saved = localStorage.getItem("dashboardEditingContact");
     return saved ? JSON.parse(saved) : null;
   });
-  const [activeTab, setActiveTab] = useState(
-    () => localStorage.getItem("dashboardActiveTab") || "contacts"
-  );
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem("dashboardActiveTab") || "contacts");
+  // Main dashboard header tabs: "contacts" or "chat"
+  const [activeMainTab, setActiveMainTab] = useState(() => localStorage.getItem("dashboardActiveMainTab") || "contacts");
+
+  useEffect(() => {
+    localStorage.setItem("dashboardActiveMainTab", activeMainTab);
+  }, [activeMainTab]);
 
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showAddContactDropdown, setShowAddContactDropdown] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(
-    () => localStorage.getItem("dashboardShowImportModal") === "true"
-  );
+  const [showImportModal, setShowImportModal] = useState(() => localStorage.getItem("dashboardShowImportModal") === "true");
   const [profileImageError, setProfileImageError] = useState(false);
 
-  const [isDark, setIsDark] = useState(
-    () => localStorage.getItem("theme") === "dark"
-  );
+  // Chat integration states
+  const [selectedContact, setSelectedContact] = useState(null);
 
-  //export functions
+  // Bulk selection states
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedContacts, setSelectedContacts] = useState([]);
+
   const handleExport = async (format) => {
     try {
-      const userId = currentUser?.id;
       if (!userId) {
-        alert('User not found');
+        toast.error('User not found');
         return;
       }
-
-      // Use the current selected category for filtering
       const filters = {
         category: selectedCategory, // Pass the selected category as-is, including 'favourites'
-        filename: '',
-        search: '',
-        hasBirthday: ''
       };
-
       let result;
       if (format === 'csv') {
         result = await exportContactsCSV(userId, filters);
       } else {
         result = await exportContactsVCF(userId, filters);
       }
-
       if (result.success) {
-        alert(`${format.toUpperCase()} exported successfully!`);
+        toast.success(`${format.toUpperCase()} exported successfully!`);
       } else {
-        alert(`Failed to export ${format.toUpperCase()}: ${result.error}`);
+        toast.error(`Failed to export ${format.toUpperCase()}: ${result.error}`);
       }
     } catch (error) {
-      alert(`Error exporting ${format.toUpperCase()}: ` + error.message);
+      toast.error(`Error exporting ${format.toUpperCase()}: ` + error.message);
     }
   };
 
-
-  // ---------- THEME HANDLING ----------
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", isDark);
-    localStorage.setItem("theme", isDark ? "dark" : "light");
-  }, [isDark]);
-
-  // ---------- FETCH CONTACTS (with multi-category) ----------
   const fetchContacts = useCallback(async () => {
     try {
       setLoading(true);
       const result = await getContacts(userId);
-      setContacts(result.success ? result.data : []);
+      let contacts = result.success ? result.data : [];
+      // Fetch user profiles for all contact emails
+      const emails = contacts.map(c => c.email).filter(Boolean);
+      let profiles = [];
+      if (emails.length > 0) {
+        const { data: profileData } = await supabase
+          .from('user_profile')
+          .select('*')
+          .in('email', emails);
+        profiles = profileData || [];
+      }
+      // Map contact_user_id for registered users
+      contacts = contacts.map(contact => {
+        const profile = profiles.find(p => p.email === contact.email);
+        return profile ? {
+          ...contact,
+          contact_user_id: profile.u_id,
+          user_profile: profile
+        } : contact;
+      });
+      setContacts(contacts);
     } finally {
       setLoading(false);
     }
@@ -125,13 +145,16 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
 
   const fetchCategories = useCallback(async () => {
     try {
-      const result = await getCategories();
-      console.log(result);
+      if (!userId || userId === "unknown") {
+        setCategories([]);
+        return;
+      }
+      const result = await getCategories(userId);
       setCategories(result.success ? result.data : []);
     } catch {
       setCategories([]);
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     if (userId && userId !== "unknown") {
@@ -142,13 +165,11 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
 
   useEffect(() => {
     localStorage.setItem("dashboardActiveTab", activeTab);
-    // When switching to documents tab, default to 'my' view
     if (activeTab === "documents") {
       setViewMode("my");
     }
   }, [activeTab]);
 
-  // Persist search and filter states
   useEffect(() => {
     localStorage.setItem("dashboardSearchTerm", searchTerm);
   }, [searchTerm]);
@@ -161,7 +182,6 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     localStorage.setItem("dashboardViewMode", viewMode);
   }, [viewMode]);
 
-  // Persist modal states
   useEffect(() => {
     localStorage.setItem("dashboardShowAddContact", showAddContact.toString());
   }, [showAddContact]);
@@ -174,25 +194,19 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     localStorage.setItem("dashboardShowImportModal", showImportModal.toString());
   }, [showImportModal]);
 
-  // Dropdown close on outside click
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (showUserDropdown && !event.target.closest(".relative"))
-        setShowUserDropdown(false);
-      if (showAddContactDropdown && !event.target.closest(".relative"))
-        setShowAddContactDropdown(false);
+      if (showUserDropdown && !event.target.closest(".relative")) setShowUserDropdown(false);
+      if (showAddContactDropdown && !event.target.closest(".relative")) setShowAddContactDropdown(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () =>
-      document.removeEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showUserDropdown, showAddContactDropdown]);
 
-  // ---------- CONTACT CRUD ----------
   const handleContactSave = async () => {
     await fetchContacts();
     setShowAddContact(false);
     setEditingContact(null);
-    // Clear persistence when closing modals
     localStorage.removeItem("dashboardShowAddContact");
     localStorage.removeItem("dashboardEditingContact");
   };
@@ -205,7 +219,6 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const handleCancelContactForm = () => {
     setShowAddContact(false);
     setEditingContact(null);
-    // Clear persistence when canceling
     localStorage.removeItem("dashboardShowAddContact");
     localStorage.removeItem("dashboardEditingContact");
   };
@@ -223,52 +236,187 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   };
 
   const toggleFavourite = async (contactId) => {
-    // Find the contact to check current favorite status
     const contact = contacts.find(c => c.contact_id === contactId);
     const isFav = contact?.is_favourite || false;
-    
     if (isFav) {
       const result = await removeFavourite(userId, contactId);
       if (result.success) {
-        // Update local state
-        setContacts(prev => prev.map(c => 
-          c.contact_id === contactId ? { ...c, is_favourite: false } : c
-        ));
+        setContacts(prev => prev.map(c => c.contact_id === contactId ? { ...c, is_favourite: false } : c));
       }
     } else {
       const result = await addFavourite(userId, contactId);
       if (result.success) {
-        // Update local state
-        setContacts(prev => prev.map(c => 
-          c.contact_id === contactId ? { ...c, is_favourite: true } : c
-        ));
+        setContacts(prev => prev.map(c => c.contact_id === contactId ? { ...c, is_favourite: true } : c));
       }
     }
   };
 
-  // ---------- FILTERS ----------
+  // Bulk selection handlers
+  const handleToggleSelectionMode = () => {
+    setSelectionMode(!selectionMode);
+    setSelectedContacts([]);
+  };
+
+  const handleContactSelect = (contactId) => {
+    setSelectedContacts(prev => {
+      if (prev.includes(contactId)) {
+        return prev.filter(id => id !== contactId);
+      } else {
+        return [...prev, contactId];
+      }
+    });
+  };
+
+  const handleSelectAll = (contacts) => {
+    const contactIds = contacts.map(c => c.contact_id);
+    setSelectedContacts(contactIds);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedContacts([]);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedContacts.length === 0) {
+      toast.warning('No contacts selected');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ${selectedContacts.length} contact${selectedContacts.length > 1 ? 's' : ''}?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const result = await bulkDeleteContacts(selectedContacts);
+      if (result.success) {
+        toast.success(result.message);
+        await fetchContacts();
+        setSelectedContacts([]);
+        setSelectionMode(false);
+      } else {
+        toast.error(`Failed to delete contacts: ${result.error}`);
+      }
+    } catch (error) {
+      toast.error(`Error deleting contacts: ${error.message}`);
+    }
+  };
+
+  const handleBulkAddFavourite = async () => {
+    if (selectedContacts.length === 0) {
+      toast.warning('No contacts selected');
+      return;
+    }
+
+    try {
+      const result = await bulkAddFavourites(userId, selectedContacts);
+      if (result.success) {
+        toast.success(result.message);
+        setContacts(prev => 
+          prev.map(c => 
+            selectedContacts.includes(c.contact_id) 
+              ? { ...c, is_favourite: true } 
+              : c
+          )
+        );
+        setSelectedContacts([]);
+        setSelectionMode(false);
+      } else {
+        toast.error(`Failed to add favourites: ${result.error}`);
+      }
+    } catch (error) {
+      toast.error(`Error adding favourites: ${error.message}`);
+    }
+  };
+
+  const handleBulkRemoveFavourite = async () => {
+    if (selectedContacts.length === 0) {
+      toast.warning('No contacts selected');
+      return;
+    }
+
+    try {
+      const result = await bulkRemoveFavourites(userId, selectedContacts);
+      if (result.success) {
+        toast.success(result.message);
+        setContacts(prev => 
+          prev.map(c => 
+            selectedContacts.includes(c.contact_id) 
+              ? { ...c, is_favourite: false } 
+              : c
+          )
+        );
+        setSelectedContacts([]);
+        setSelectionMode(false);
+      } else {
+        toast.error(`Failed to remove favourites: ${result.error}`);
+      }
+    } catch (error) {
+      toast.error(`Error removing favourites: ${error.message}`);
+    }
+  };
+
+  const handleBulkExport = async (format) => {
+    if (selectedContacts.length === 0) {
+      toast.warning('No contacts selected');
+      return;
+    }
+
+    try {
+      const filters = {
+        selectedContactIds: selectedContacts
+      };
+      
+      let result;
+      if (format === 'csv') {
+        result = await exportContactsCSV(userId, filters);
+      } else {
+        result = await exportContactsVCF(userId, filters);
+      }
+      
+      if (result.success) {
+        toast.success(`${format.toUpperCase()} export completed successfully!`);
+        setSelectedContacts([]);
+        setSelectionMode(false);
+      } else {
+        toast.error(`Failed to export ${format.toUpperCase()}: ${result.error}`);
+      }
+    } catch (error) {
+      toast.error(`Error exporting ${format.toUpperCase()}: ${error.message}`);
+    }
+  };
+
   const safeString = (val) => (val ? String(val) : "");
-  let filteredContacts = contacts.filter((contact) => {
+
+
+  // Enhanced filtering logic with blocked contacts support
+  let filteredContacts = contacts.filter(contact => {
     const matchesSearch =
       safeString(contact.name).toLowerCase().includes(searchTerm.toLowerCase()) ||
       safeString(contact.email).toLowerCase().includes(searchTerm.toLowerCase()) ||
       safeString(contact.phone).includes(searchTerm);
-    
-    // Handle category filtering including favourites
-    let matchesCategory = true;
-    if (selectedCategory === 'favourites') {
-      matchesCategory = contact.is_favourite === true;
-    } else if (selectedCategory && selectedCategory !== '') {
-      matchesCategory = Array.isArray(contact.category_ids) &&
-        contact.category_ids.some((id) => String(id) === String(selectedCategory));
-    }
-    
-    return matchesSearch && matchesCategory;
-  });
+  
+    // Enhanced category matching with array support
+    const matchesCategory =
+      !selectedCategory ||
+      selectedCategory === '' ||
+      (selectedCategory === 'favourites' ? contact.is_favourite === true :
+        (Array.isArray(contact.category_ids) &&
+          contact.category_ids.some((id) => String(id) === String(selectedCategory))));
+  
+    // Check if contact is blocked
+    const isBlocked =
+      Array.isArray(blockedContacts) &&
+      blockedContacts.some((b) => String(b.contact_id) === String(contact.contact_id));
+  
+    return matchesSearch && matchesCategory && !isBlocked;
+  }).sort((a, b) => formatContactName(a).localeCompare(formatContactName(b)));
 
-  // Sort contacts alphabetically
-  filteredContacts = filteredContacts.sort((a, b) =>
-    safeString(a.name).localeCompare(safeString(b.name))
+  // Filter out blocked contacts for various subcomponents/logic
+  const unblockedContacts = contacts.filter(
+    (c) =>
+      !(Array.isArray(blockedContacts) && blockedContacts.some((b) => String(b.contact_id) === String(c.contact_id)))
   );
 
 
@@ -276,7 +424,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     if (!Array.isArray(contact.category_ids) || contact.category_ids.length === 0) return null;
     return (
       <div className="flex flex-wrap gap-1 mt-1">
-        {contact.category_ids.map((id) => {
+        {contact.category_ids.map(id => {
           const cat = categories.find(c => String(c.category_id ?? c.id) === String(id));
           const name = cat?.category_name || cat?.name || "Unknown";
           return (
@@ -289,155 +437,228 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     );
   };
 
-  // ---------- RENDER ----------
+  const sendWishMessage = async (contact) => {
+    if (!contact) return;
+  
+    try {
+      const senderId = currentUser?.id;
+      const receiverId = contact.contact_user_id || contact.contact_id;
+  
+      if (!senderId || !receiverId) {
+        console.error('Invalid sender or receiver ID');
+        return;
+      }
+  
+      const birthdayMessage = `Happy Birthday, ${contact.name}! 🎉`;
+      const msg = {
+        sender_id: senderId,
+        receiver_id: receiverId,
+        content: birthdayMessage,
+        timestamp: new Date().toISOString(),
+      };
+  
+      console.log('Sending birthday wish message:', msg);
+  
+      const { data, error } = await supabase.from('messages').insert(msg).select();
+  
+      if (error) {
+        console.error('Failed to send birthday wish:', error.message);
+        return;
+      }
+  
+      if (data && data.length > 0) {
+        console.log('Birthday wish message sent successfully:', data[0]);
+        // Update chat messages state here if available to show message immediately
+        // Example: setMessages(prev => [...prev, data[0]]) if you manage messages state here
+      }
+    } catch (err) {
+      console.error('Error sending birthday wish:', err);
+    }
+  };
+  
+
   return (
-    <div className="flex min-h-screen font-sans">
+    <div className="flex h-screen font-sans overflow-hidden">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-
-      {/* Main area */}
-      <div className="flex-1 p-8 bg-blue-50 dark:bg-[#0d1117] ml-16">
-        {/* Header */}
-        <div className="sticky top-0 z-40 bg-blue-50 dark:bg-[#0d1117] px-8 py-4 border-b border-slate-200 dark:border-[#30363d]">
-          <HeaderSection
-            activeTab={activeTab}
-            currentUser={currentUser}
-            userName={userName}
-            profileImageError={profileImageError}
-            setProfileImageError={setProfileImageError}
-            showUserDropdown={showUserDropdown}
-            setShowUserDropdown={setShowUserDropdown}
-            onNavigateToProfile={onNavigateToProfile}
-            onLogout={onLogout}
-            onExport={handleExport}
-          />
-        </div>
-
-        {/* Scrollable Content */}
-        <div className="flex-1 p-8 overflow-y-auto">
-        {/* Contacts Tab */}
-        {activeTab === "contacts" && (
-          <>
-            {/* Controls */}
-            <ContactsControlBar
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              selectedCategory={selectedCategory}
-              setSelectedCategory={setSelectedCategory}
-              viewMode={viewMode}
-              setViewMode={setViewMode}
-              categories={categories}
-              contacts={contacts}
-              userId={userId}
-              onCategoriesChange={fetchCategories}
+      <div className="flex-1 flex flex-col bg-blue-50 dark:bg-[#0d1117] ml-16">
+        {activeTab === "contacts" ? (
+          <div className="sticky top-0 z-40 bg-blue-50 dark:bg-[#0d1117] px-8 py-4 border-b border-slate-200 dark:border-[#30363d] flex-shrink-0">
+            <HeaderSection
+              activeTab={activeMainTab}
+              setActiveTab={setActiveMainTab}
+              currentUser={currentUser}
+              userName={userName}
+              profileImageError={profileImageError}
+              setProfileImageError={setProfileImageError}
+              showUserDropdown={showUserDropdown}
+              setShowUserDropdown={setShowUserDropdown}
+              onNavigateToProfile={onNavigateToProfile}
+              onLogout={onLogout}
+              onExport={handleExport}
             />
-            {/* Birthdays */}
-            <BirthdayReminder contacts={contacts} />
-
-            {/* Contact display */}
-            {loading ? (
-              <div className="text-center py-12 text-slate-400">Loading contacts...</div>
-            ) : filteredContacts.length === 0 ? (
-              <div className="text-center py-12 text-slate-400">
-                {contacts.length === 0 ? "No contacts yet." : "No matches found."}
-              </div>
-            ) : viewMode === "card" ? (
-              <ContactsGrid
-                contacts={filteredContacts}
-                renderCategoryBadges={renderCategoryBadges}
-                toggleFavourite={toggleFavourite}
-                handleEditContact={handleEditContact}
-                handleDeleteContact={handleDeleteContact}
-                safeString={safeString}
-              />
-            ) : (
-              <ContactsList
-                contacts={filteredContacts}
-                renderCategoryBadges={renderCategoryBadges}
-                onToggleFavourite={toggleFavourite}
-                onEditContact={handleEditContact}
-                onDeleteContact={handleDeleteContact}
-                safeString={safeString}
-              />
-            )}
-
-            {/* Modals */}
-            {showAddContact && (
-              <ContactForm
-                categories={categories}
-                userId={userId}
-                onSave={handleContactSave}
-                onCancel={handleCancelContactForm}
-              />
-            )}
-            {editingContact && (
-              <ContactForm
-                contact={editingContact}
-                categories={categories}
-                userId={userId}
-                onSave={handleContactSave}
-                onCancel={handleCancelContactForm}
-              />
-            )}
-            {showImportModal && (
-              <ImportModal
-                userId={userId}
-                onImportComplete={fetchContacts}
-                onClose={handleImportModalClose}
-              />
-            )}
-          </>
-        )}
-
-        {/* Groups Tab */}
-        {activeTab === 'groups' && (
-          <div className="max-w-6xl mx-auto">
-            <GroupPanel currentUser={currentUser} />
           </div>
-        )}
-
-        {/* Settings */}
-        {activeTab === "settings" && (
-          <SettingsTab currentUser={currentUser} isDark={isDark} setIsDark={setIsDark} />
-        )}
-
-        {/* Tasks */}
-        {activeTab === "task" && <TaskPanel />}
-
-        {/* Chat */}
-        {activeTab === "chat" && <ChatPanel currentUser={currentUser} />}
-
-        {/* Documents */}
-        {activeTab === "documents" && (
-          <div>
-            <div className="flex gap-2 mb-8">
-              <button
-                className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'my' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
-                onClick={() => setViewMode('my')}
-              >
-                My Documents
-              </button>
-              <button
-                className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'shared' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
-                onClick={() => setViewMode('shared')}
-              >
-                Shared Documents
-              </button>
+        ) : null}
+        
+        <div className="flex-1 p-8 overflow-y-auto min-h-0">{/* Added min-h-0 for proper flex behavior */}
+          {activeTab === "contacts" && activeMainTab === "contacts" && (
+            <>
+              <ContactsControlBar
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                selectedCategory={selectedCategory}
+                setSelectedCategory={setSelectedCategory}
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+                categories={categories}
+                contacts={unblockedContacts}
+                userId={userId}
+                onCategoriesChange={fetchCategories}
+                selectionMode={selectionMode}
+                onToggleSelectionMode={handleToggleSelectionMode}
+                selectedContacts={selectedContacts}
+                onSelectAll={handleSelectAll}
+                onClearSelection={handleClearSelection}
+              />
+              <BirthdayReminder
+                contacts={unblockedContacts}
+                setSelectedContact={setSelectedContact}
+                sendWishMessage={sendWishMessage}
+                setActiveTab={setActiveTab}
+                onBirthdayWish={handleBirthdayWish}
+              />
+              {loading ? (
+                <div className="text-center py-12 text-slate-400">Loading contacts...</div>
+              ) : filteredContacts.length === 0 ? (
+                <div className="text-center py-12 text-slate-400">
+                  {contacts.length === 0 ? "No contacts yet." : "No matches found."}
+                </div>
+              ) : viewMode === "card" ? (
+                <ContactsGrid
+                  contacts={filteredContacts}
+                  renderCategoryBadges={renderCategoryBadges}
+                  toggleFavourite={toggleFavourite}
+                  handleEditContact={handleEditContact}
+                  handleDeleteContact={handleDeleteContact}
+                  safeString={safeString}
+                  selectedContacts={selectedContacts}
+                  onContactSelect={handleContactSelect}
+                  selectionMode={selectionMode}
+                />
+              ) : (
+                <ContactsList
+                  contacts={filteredContacts}
+                  renderCategoryBadges={renderCategoryBadges}
+                  onToggleFavourite={toggleFavourite}
+                  onEditContact={handleEditContact}
+                  onDeleteContact={handleDeleteContact}
+                  safeString={safeString}
+                  selectedContacts={selectedContacts}
+                  onContactSelect={handleContactSelect}
+                  selectionMode={selectionMode}
+                />
+              )}
+              {showAddContact && (
+                <ContactForm
+                  categories={categories}
+                  userId={userId}
+                  onSave={handleContactSave}
+                  onCancel={handleCancelContactForm}
+                />
+              )}
+              {editingContact && (
+                <ContactForm
+                  contact={editingContact}
+                  categories={categories}
+                  userId={userId}
+                  onSave={handleContactSave}
+                  onCancel={handleCancelContactForm}
+                />
+              )}
+              {showImportModal && (
+                <ImportModal
+                  userId={userId}
+                  onImportComplete={fetchContacts}
+                  onClose={handleImportModalClose}
+                />
+              )}
+              
+              {/* Bulk Actions Bar */}
+              <BulkActionsBar
+                selectedContacts={selectedContacts}
+                onBulkDelete={handleBulkDelete}
+                onBulkAddFavourite={handleBulkAddFavourite}
+                onBulkRemoveFavourite={handleBulkRemoveFavourite}
+                onBulkExport={handleBulkExport}
+                onClearSelection={handleClearSelection}
+                contacts={filteredContacts}
+              />
+            </>
+          )}
+          {activeTab === "contacts" && activeMainTab === "chat" && (
+            <ChatPanel
+              currentUser={currentUser}
+              selectedContact={selectedContact}
+              setSelectedContact={setSelectedContact}
+              chatRefreshKey={chatRefreshKey}
+            />
+          )}
+          {/* Sidebar-driven tabs for groups, task, documents */}
+          {activeTab === 'groups' && (
+            <div className="h-full flex flex-col">
+              {currentUser && currentUser.id ? (
+                <GroupPanel currentUser={currentUser} />
+              ) : (
+                <div className="flex items-center justify-center h-64">
+                  <div className="text-center">
+                    <p className="text-gray-500 dark:text-gray-400">
+                      Loading user information...
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
-            {viewMode === "my" ? (
-              <DocumentsPanel currentUser={currentUser} />
-            ) : (
-              <div className="mt-4">
-                <SharedDocumentsPanel currentUser={currentUser} />
+          )}
+          {activeTab === "task" && (
+            <div className="h-full">
+              <TaskPanel currentUser={currentUser} />
+            </div>
+          )}
+          {activeTab === "documents" && (
+            <div className="h-full flex flex-col">{/* Fixed height container */}
+              <div className="flex gap-2 mb-8 flex-shrink-0">{/* Prevent tab buttons from shrinking */}
+                <button
+                  className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'my' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
+                  onClick={() => setViewMode('my')}
+                >
+                  My Documents
+                </button>
+                <button
+                  className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'shared' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
+                  onClick={() => setViewMode('shared')}
+                >
+                  Received Documents
+                </button>
+                <button
+                  className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'sent' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
+                  onClick={() => setViewMode('sent')}
+                >
+                  Shared Documents
+                </button>
               </div>
-            )}
-          </div>
-        )}
+              <div className="flex-1 overflow-y-auto min-h-0">{/* Scrollable content area */}
+                {viewMode === "my" ? (
+                  <DocumentsPanel currentUser={currentUser} />
+                ) : viewMode === "shared" ? (
+                  <ReceivedDocumentsPanel currentUser={currentUser} />
+                ) : (
+                  <SharedDocumentsPanel currentUser={currentUser} />
+                )}
+              </div>
+            </div>
+          )}
         </div>
-      
       </div>
-
-      {/* Floating Add Contact Button (FAB) - Only show on contacts page */}
-      {activeTab === "contacts" && (
+      {activeTab === "contacts" && activeMainTab === "contacts" && (
         <FloatingActionButton
           show={true}
           onAddContact={() => setShowAddContact(true)}

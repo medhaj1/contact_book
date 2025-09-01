@@ -328,3 +328,64 @@ export const deleteContact = async (contactId) => {
   }
 };
 
+/**
+ * Bulk Delete Contacts
+ */
+export const bulkDeleteContacts = async (contactIds) => {
+  try {
+    if (!contactIds || contactIds.length === 0) {
+      throw new Error("No contacts selected for deletion");
+    }
+
+    // Fetch contacts to get photo URLs
+    const { data: contactsData, error: fetchError } = await supabase
+      .from("contact")
+      .select("contact_id, photo_url")
+      .in("contact_id", contactIds);
+
+    if (fetchError) {
+      throw new Error(`Failed to fetch contacts: ${fetchError.message}`);
+    }
+
+    // Delete photos from storage
+    const photosToDelete = contactsData
+      .filter(contact => contact.photo_url)
+      .map(contact => {
+        const fullPath = new URL(contact.photo_url).pathname;
+        return decodeURIComponent(
+          fullPath.replace("/storage/v1/object/public/contact-images/", "")
+        );
+      })
+      .filter(path => path);
+
+    if (photosToDelete.length > 0) {
+      const { error: deletePhotosError } = await supabase.storage
+        .from("contact-images")
+        .remove(photosToDelete);
+
+      if (deletePhotosError) {
+        console.warn("Failed to delete some photos:", deletePhotosError.message);
+      }
+    }
+
+    // Delete contacts from DB
+    const { error: deleteDbError } = await supabase
+      .from("contact")
+      .delete()
+      .in("contact_id", contactIds);
+
+    if (deleteDbError) {
+      throw new Error(`Bulk delete failed: ${deleteDbError.message}`);
+    }
+
+    return { 
+      success: true, 
+      message: `Successfully deleted ${contactIds.length} contact(s)`,
+      deletedCount: contactIds.length
+    };
+  } catch (error) {
+    console.error("Bulk Delete Contacts Error:", error.message);
+    return { success: false, error: error.message };
+  }
+};
+

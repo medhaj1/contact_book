@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeftIcon, NoSymbolIcon } from '@heroicons/react/24/outline';
 import { useBlockedContacts } from '../dashboard/BlockedContactsContext';
+import { toast } from 'react-toastify';
 
 const BlockedContacts = ({ onCancel }) => {
   const { blockedContacts, unblock } = useBlockedContacts();
@@ -9,24 +10,24 @@ const BlockedContacts = ({ onCancel }) => {
     if (window.confirm(`Are you sure you want to unblock ${contactName}?`)) {
       const result = await unblock(contact_id);
       if (result.success) {
-        alert(`${contactName} has been unblocked.`);
+        toast.success(`${contactName} has been unblocked.`);
       } else {
-        alert(`Failed to unblock ${contactName}: ${result.error}`);
+        toast.error(`Failed to unblock ${contactName}: ${result.error}`);
       }
     }
   };
 
   return (
-    <div>
-      <div className="px-6 py-4">
+    <div className='w-full h-[500px]'>
+      <div className="">
         <button onClick={onCancel}>
           <ArrowLeftIcon className="w-5 inline mb-6 text-slate-400 scale-100 hover:scale-105 hover:text-slate-800 dark:hover:text-slate-300 transform transition-tranform duration-200" />
         </button>
-        <h2 className="text-slate-500 dark:text-gray-400 text-md font-semibold uppercase mb-5">
+        <h2 className="ml-8 text-slate-500 dark:text-gray-400 text-md font-semibold uppercase mb-5">
           Blocked Contacts
         </h2>
         {blockedContacts.length === 0 ? (
-          <h3 className='text-gray-600 dark:text-gray-400'>No blocked contacts</h3>
+          <h3 className='ml-10 text-gray-600 dark:text-gray-400'>No blocked contacts</h3>
         ) : (
           <ul className='space-y-2 rounded-lg'>
             {blockedContacts.map(contact => (

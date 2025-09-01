@@ -1,9 +1,14 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback} from 'react';
 import { supabase } from '../../supabaseClient';
+import GroupPanel from '../groups/GroupPanel';
 
-const TaskPanel = () => {
-  const [user, setUser] = useState(null);
+const TaskPanel = ({ currentUser }) => {
+  const isDayMonthYear = (localStorage.getItem("dateFormat") || "dd_mm_yyyy") === "dd_mm_yyyy";
+  const [user, setUser] = useState(currentUser);
   const [tasks, setTasks] = useState([]);
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem('taskPanelActiveTab') || 'personal';
+  });
   const [newTask, setNewTask] = useState(() => {
     return localStorage.getItem('taskPanelNewTask') || '';
   });
@@ -11,6 +16,11 @@ const TaskPanel = () => {
     return localStorage.getItem('taskPanelDeadline') || '';
   });
   const [loading, setLoading] = useState(false);
+
+  // Persist active tab
+  useEffect(() => {
+    localStorage.setItem('taskPanelActiveTab', activeTab);
+  }, [activeTab]);
 
   // Persist new task form data
   useEffect(() => {
@@ -20,6 +30,15 @@ const TaskPanel = () => {
   useEffect(() => {
     localStorage.setItem('taskPanelDeadline', deadline);
   }, [deadline]);
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "";
+    return isDayMonthYear
+      ? date.toLocaleDateString("en-GB")
+      : date.toLocaleDateString("en-US");
+  };
 
   const getTaskStatus = (deadline) => {
     if (!deadline) return { status: 'no-deadline', class: '', badge: '', badgeClass: '' };
@@ -87,18 +106,9 @@ const TaskPanel = () => {
   }, [user]);
 
   useEffect(() => {
-    const getUser = async () => {
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
-
-      if (error) console.error('Error fetching user:', error);
-      else setUser(user);
-    };
-
-    getUser();
-  }, []);
+    // Update user state when currentUser prop changes
+    setUser(currentUser);
+  }, [currentUser]);
 
   useEffect(() => {
     if (!user) return;
@@ -152,13 +162,41 @@ const TaskPanel = () => {
   };
 
   return (
-    <div className="p-6 bg-white rounded-xl shadow-lg w-full max-w-3xl mx-auto dark:bg-[#161b22]">
-      <h2 className="text-3xl font-bold mb-6 text-blue-900 border-b pb-5 border-slate-300 dark:text-indigo-400 dark:border-[#484f58] text-center">📝 My Tasks</h2>
+    <div className="h-full flex flex-col bg-white rounded-xl shadow-lg w-full max-w-4xl mx-auto dark:bg-[#161b22]">
+      {/* Tab Navigation */}
+      <div className="flex-shrink-0 p-6 pb-0">
+        <div className="flex border-b border-slate-300 dark:border-[#484f58]">
+          <button
+            onClick={() => setActiveTab('personal')}
+            className={`px-6 py-3 font-semibold text-lg transition-all duration-200 border-b-2 ${
+              activeTab === 'personal'
+                ? 'text-blue-900 dark:text-indigo-400 border-blue-500 dark:border-indigo-400 bg-blue-50 dark:bg-indigo-900 dark:bg-opacity-30'
+                : 'text-gray-600 dark:text-gray-400 border-transparent hover:text-blue-700 dark:hover:text-indigo-300 hover:border-blue-300 dark:hover:border-indigo-500'
+            }`}
+          >
+            📝 My Tasks
+          </button>
+          <button
+            onClick={() => setActiveTab('groups')}
+            className={`px-6 py-3 font-semibold text-lg transition-all duration-200 border-b-2 ${
+              activeTab === 'groups'
+                ? 'text-blue-900 dark:text-indigo-400 border-blue-500 dark:border-indigo-400 bg-blue-50 dark:bg-indigo-900 dark:bg-opacity-30'
+                : 'text-gray-600 dark:text-gray-400 border-transparent hover:text-blue-700 dark:hover:text-indigo-300 hover:border-blue-300 dark:hover:border-indigo-500'
+            }`}
+          >
+            👥 Group Tasks
+          </button>
+        </div>
+      </div>
 
-      {!user ? (
-        <p className="text-gray-500 dark:text-slate-400 text-center">Loading user...</p>
-      ) : (
-        <>
+      {/* Tab Content - Scrollable */}
+      <div className="flex-1 p-6 overflow-y-auto min-h-0">{/* Added scrollable content area */}
+      {activeTab === 'personal' ? (
+        // Personal Tasks Content
+        !user ? (
+          <p className="text-gray-500 dark:text-slate-400 text-center">Loading user...</p>
+        ) : (
+          <>
           {getUrgentTasks().length > 0 && (
             <div className="mb-6 p-4 bg-orange-50 dark:bg-indigo-900 dark:bg-opacity-50 border border-orange-200 dark:border-indigo-900 rounded-lg shadow-inner shadow-md">
               <h3 className="text-lg font-semibold text-red-700 dark:text-indigo-200 mb-3 flex items-center">
@@ -198,7 +236,9 @@ const TaskPanel = () => {
             </div>
 
             <div>
-              <label className="block text-blue-800 dark:text-indigo-300 font-semibold mb-1">Deadline Date</label>
+              <label className="block text-blue-800 dark:text-indigo-300 font-semibold mb-1">
+                Deadline Date ({isDayMonthYear ? "DD/MM/YYYY" : "MM/DD/YYYY"})
+              </label>
               <input
                 type="date"
                 className="w-full text-slate-500 dark:text-slate-300 dark:bg-[#21262d] dark:border-[#484f58] border-[.5px] border-slate-300 p-3 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 hover:ring-1 hover:ring-blue-300 dark:focus:ring-indigo-300 dark:hover:ring-indigo-300 transition"
@@ -232,7 +272,7 @@ const TaskPanel = () => {
                       {task.deadline && (
                         <div className="mt-2 flex items-center space-x-2">
                           <p className="text-sm text-gray-600 dark:text-slate-300">
-                            📅 Deadline: <span className="font-medium">{task.deadline}</span>
+                            📅 Deadline: <span className="font-medium">{formatDate(task.deadline)}</span>
                           </p>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${taskStatus.badgeClass}`}>
                             {taskStatus.badge}
@@ -251,8 +291,13 @@ const TaskPanel = () => {
               })
             )}
           </ul>
-        </>
+          </>
+        )
+      ) : (
+        // Group Tasks Content
+        <GroupPanel currentUser={currentUser} />
       )}
+      </div>
     </div>
   );
 };
