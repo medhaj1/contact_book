@@ -23,7 +23,13 @@ const SignUp = () => {
     const { name, contact, email, password, confirmPassword } = formData;
 
     if (password !== confirmPassword) {
-      toast.error('Passwords do not match.');
+      toast.error('Passwords do not match.', {
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
       return;
     }
 
@@ -41,7 +47,13 @@ const SignUp = () => {
       console.log('User after signup:', user);
 
       if (signUpError || !user) {
-        toast.error(`Signup failed: ${signUpError?.message || 'No user returned. Please check your email and password.'}`);
+        toast.error(`Signup failed: ${signUpError?.message || 'No user returned. Please check your email and password.'}`, {
+          autoClose: 6000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
         return;
       }
 
@@ -58,14 +70,32 @@ const SignUp = () => {
 
       if (profileError) {
         console.error('Profile creation failed:', profileError);
-        toast.error(`Database error: ${profileError.message}`);
+        toast.error(`Database error: ${profileError.message}`, {
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
       } else {
-        toast.success('Sign-up successful! Please check your email to confirm your account.');
+        toast.success('Sign-up successful! Please check your email to confirm your account.', {
+          autoClose: 6000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
         navigate('/signin');
       }
     } catch (err) {
       console.error('Signup error:', err);
-      toast.error(`Signup error: ${err.message}`);
+      toast.error(`Signup error: ${err.message}`, {
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     }
   };
 

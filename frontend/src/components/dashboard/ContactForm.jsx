@@ -7,7 +7,7 @@ import { useFormat } from '../settings/FormatContext';
 import { toast } from 'react-toastify';
 
 const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => {
-  const { nameFormat, dateFormat, formatContactName, formatDate } = useFormat();
+  const { formatContactName, formatDate } = useFormat();
 
   // Helper functions for formatting
   function formatName(contact) {
@@ -62,7 +62,6 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
-  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
   // ✅ Blocked Contacts Context
   const { blockedContacts, block, unblock } = useBlockedContacts();
@@ -77,7 +76,13 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
       !String(formData.email || '').trim() ||
       !String(formData.phone || '').trim()
     ) {
-      toast.error('Name, email, and phone are required');
+      toast.error('Name, email, and phone are required', {
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
       return;
     }
 
@@ -102,12 +107,31 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
       if (result.success) {
         // Clear persisted form data on successful submission
         localStorage.removeItem('contactFormData');
+        toast.success(`Contact ${contact ? 'updated' : 'added'} successfully!`, {
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
         onSave();
       } else {
-        toast.error(`Failed to ${contact ? 'update' : 'add'} contact: ${result.error}`);
+        toast.error(`Failed to ${contact ? 'update' : 'add'} contact: ${result.error}`, {
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
       }
     } catch (error) {
-      toast.error(`Error ${contact ? 'updating' : 'adding'} contact: ${error.message}`);
+      toast.error(`Error ${contact ? 'updating' : 'adding'} contact: ${error.message}`, {
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -150,7 +174,13 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
   // ✅ Block/unblock handler
   const handleBlockContact = async () => {
     if (!contact) {
-      toast.error("You can only block saved contacts.");
+      toast.error("You can only block saved contacts.", {
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
       return;
     }
 
@@ -158,20 +188,41 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
       if (window.confirm(`Are you sure you want to unblock ${formatName(contact)}?`)) {
         const result = await unblock(contact.contact_id);
         if (result.success) {
-          toast.error(`${formatName(contact)} has been unblocked.`);
+          toast.success(`${formatName(contact)} has been unblocked.`, {
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
         } else {
-          toast.error(`Failed to unblock ${formatName(contact)}: ${result.error}`);
-
+          toast.error(`Failed to unblock ${formatName(contact)}: ${result.error}`, {
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
         }
       }
     } else {
       const result = await block(contact.contact_id);
       if (result.success) {
-
-        toast.error(`${formatName(contact)} has been blocked.`);
+        toast.warning(`${formatName(contact)} has been blocked.`, {
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
       } else {
-        toast.error(`Failed to block ${formatName(contact)}: ${result.error}`);
-
+        toast.error(`Failed to block ${formatName(contact)}: ${result.error}`, {
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
       }
     }
   };
@@ -279,32 +330,82 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
 
           {/* ✅ Multi-Category Select with Tags */}
           <div className="mb-6">
-            <div className="flex flex-wrap gap-2 mb-2">
-              {formData.category_ids.map((id) => {
-                const cat = categories.find((c) => String(c.category_id) === id);
-                return (
-                  <span
-                    key={id}
-                    className="px-3 py-1 bg-blue-100 dark:bg-indigo-700 text-blue-700 dark:text-slate-100 rounded-full flex items-center gap-2 text-sm"
-                  >
-                    {cat?.category_name || cat?.name || 'Unknown'}
-                    <button
-                      type="button"
-                      onClick={() => removeCategory(id)}
-                      className="text-red-500 hover:text-red-700"
+            <label className="block mb-2 font-semibold text-gray-700 dark:text-gray-300">
+              Categories
+            </label>
+            
+            {/* Selected Categories Tags */}
+            {formData.category_ids.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {formData.category_ids.map((id) => {
+                  const cat = categories.find((c) => String(c.category_id) === id);
+                  return (
+                    <span
+                      key={id}
+                      className="px-3 py-1 bg-blue-100 dark:bg-indigo-700 text-blue-700 dark:text-slate-100 rounded-full flex items-center gap-2 text-sm"
                     >
-                      <X size={12} />
-                    </button>
-                  </span>
-                );
-              })}
+                      {cat?.category_name || cat?.name || 'Unknown'}
+                      <button
+                        type="button"
+                        onClick={() => removeCategory(id)}
+                        className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Category Selection */}
+            <div className="border border-slate-300 dark:border-slate-700 rounded-xl p-4 bg-slate-50 dark:bg-gray-800/30">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                Select categories for this contact:
+              </div>
+              <div className="max-h-32 overflow-y-auto">
+                {categories.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-1">
+                    {categories.map(category => {
+                      const isSelected = formData.category_ids.includes(String(category.category_id));
+                      return (
+                        <button
+                          key={category.category_id}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              removeCategory(String(category.category_id));
+                            } else {
+                              addCategory(String(category.category_id));
+                            }
+                          }}
+                          className={`text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                            isSelected
+                              ? 'bg-blue-100 dark:bg-indigo-700 text-blue-700 dark:text-slate-100 border border-blue-300 dark:border-indigo-600'
+                              : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <span className={`w-3 h-3 rounded border-2 ${
+                              isSelected 
+                                ? 'bg-blue-500 border-blue-500 dark:bg-indigo-500 dark:border-indigo-500' 
+                                : 'border-gray-300 dark:border-gray-500'
+                            }`}>
+                              {isSelected && <span className="block w-full h-full bg-white dark:bg-slate-100 rounded-sm scale-50"></span>}
+                            </span>
+                            {category.category_name || category.name}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+                    No categories available. Add categories first.
+                  </div>
+                )}
+              </div>
             </div>
-            <select
-              onClick={() => setShowCategoryPicker(true)}
-              className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 bg-white text-slate-600 transform transition duration-200"
-            >
-              <option value="">+ Add more</option>
-            </select>
           </div>
 
           {/* Buttons */}
@@ -346,32 +447,6 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
             </button>
           )}
         </form>
-
-        {/* Category Picker Dropdown */}
-        {showCategoryPicker && (
-          <div className="absolute z-50 bg-white border rounded-lg shadow-lg p-4 mt-2 w-full max-h-64 overflow-y-auto">
-            <div className="flex flex-col gap-2">
-              {categories.map(category => (
-                <button
-                  key={category.category_id}
-                  className="text-left px-3 py-2 rounded hover:bg-blue-100 text-slate-700"
-                  onClick={() => {
-                    addCategory(String(category.category_id));
-                    setShowCategoryPicker(false);
-                  }}
-                >
-                  {category.category_name || category.name}
-                </button>
-              ))}
-            </div>
-            <button
-              className="mt-2 text-xs text-red-500"
-              onClick={() => setShowCategoryPicker(false)}
-            >
-              Close
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

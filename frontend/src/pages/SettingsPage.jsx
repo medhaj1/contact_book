@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState} from 'react';
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeftIcon,
-  DocumentArrowDownIcon,
   UserCircleIcon,
   NoSymbolIcon,
   MoonIcon,
@@ -13,68 +12,15 @@ import {FiArrowLeft} from "react-icons/fi";
 
 import AccountSettings from '../components/settings/AccountSettings';
 import BlockedContacts from '../components/settings/BlockedContacts';
-import { getCategories } from '../services/categoryService';
-import { exportContactsCSV, exportContactsVCF } from '../services/importExportService';
 import { BlockedContactsProvider } from '../components/dashboard/BlockedContactsContext';
 import { useFormat } from '../components/settings/FormatContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 function SettingsPage({ currentUser }) {
-  const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') === 'dark');
-
-  useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [isDark]);
-
-  const toggleTheme = () => setIsDark(!isDark);
+  const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const [activeSubPage, setActiveSubPage] = useState(null);
-  const [categories, setCategories] = useState([]);
-
-  const fetchCategories = useCallback(async () => {
-    try {
-      const result = await getCategories();
-      if (result.success) setCategories(result.data);
-      else throw new Error(result.error);
-    } catch {
-      setCategories([
-        { category_id: 1, category_name: 'Family' },
-        { category_id: 2, category_name: 'Friends' },
-        { category_id: 3, category_name: 'Work' },
-        { category_id: 4, category_name: 'Business' }
-      ]);
-    }
-  }, []);
-
-  useEffect(() => { fetchCategories(); }, [fetchCategories]);
-
-  const [showExportPanel, setShowExportPanel] = useState(false);
-  const [exportFormat, setExportFormat] = useState('csv');
-  const [exportFilters, setExportFilters] = useState({ filename: '', search: '', category: '', hasBirthday: false });
-
-  const openExportPanel = (format) => { setExportFormat(format); setShowExportPanel(true); };
-  const closeExportPanel = () => { setShowExportPanel(false); setExportFilters({ filename: '', search: '', category: '', hasBirthday: false }); };
-
-  const handleExport = async () => {
-    try {
-      const userId = currentUser?.id;
-      if (!userId) return alert('User not found');
-
-      const filters = { ...exportFilters, hasBirthday: exportFilters.hasBirthday ? '1' : '' };
-      const result = exportFormat === 'csv'
-        ? await exportContactsCSV(userId, filters)
-        : await exportContactsVCF(userId, filters);
-
-      if (result.success) { closeExportPanel(); alert(`${exportFormat.toUpperCase()} exported successfully!`); }
-      else alert(`Failed to export ${exportFormat.toUpperCase()}: ${result.error}`);
-    } catch (error) { alert(`Error exporting ${exportFormat.toUpperCase()}: ` + error.message); }
-  };
 
   /** --------------------------
    * FORMAT HANDLING (using FormatContext)
@@ -148,26 +94,6 @@ function SettingsPage({ currentUser }) {
                     >
                       <IdentificationIcon className="w-5 h-5 mr-3 inline" />
                       Format
-                    </button>
-                  </div>
-                </div>
-    
-                <div className="px-6 py-4">
-                  <h2 className="text-gray-500 dark:text-gray-400 text-md font-semibold uppercase mb-2">Export</h2>
-                  <div className="divide-y divide-slate-200 dark:divide-[#30363d]">
-                    <button
-                      className="w-full text-left py-5 px-5 rounded-lg text-slate-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 flex items-center"
-                      onClick={() => openExportPanel('csv')}
-                    >
-                      <DocumentArrowDownIcon className="w-5 h-5 mr-3" />
-                      Export as CSV
-                    </button>
-                    <button
-                      className="w-full text-left py-5 px-5 rounded-lg text-slate-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 flex items-center"
-                      onClick={() => openExportPanel('vcf')}
-                    >
-                      <DocumentArrowDownIcon className="w-5 h-5 mr-3" />
-                      Export as VCF
                     </button>
                   </div>
                 </div>
@@ -254,79 +180,6 @@ function SettingsPage({ currentUser }) {
                         </div>
                       )}
                     </div>
-                  </div>
-                </div>
-              </div>
-            )}
-    
-            {showExportPanel && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000]">
-                <div className="relative bg-white border border-slate-200 rounded-3xl w-[600px] h-[500px] shadow-xl p-6 flex flex-col dark:bg-[#161b22] dark:border-[#30363d]">
-                  <button className="absolute top-4 left-4 scale-100 hover:scale-110 transition-transform" onClick={closeExportPanel}>
-                    <ArrowLeftIcon className="w-5 h-5 text-slate-400 hover:text-slate-600" />
-                  </button>
-                  <h3 className="text-lg font-semibold text-black dark:text-white text-center mt-4 mb-6">
-                    Export Contacts as {exportFormat.toUpperCase()}
-                  </h3>
-                  <div className="flex-1 px-4 space-y-4 overflow-y-auto">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                        Custom Filename (optional)
-                      </label>
-                      <input
-                        type="text"
-                        placeholder={`contacts_${new Date().toISOString().slice(0, 10)}.${exportFormat}`}
-                        value={exportFilters.filename}
-                        onChange={(e) => setExportFilters({ ...exportFilters, filename: e.target.value })}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-white dark:bg-[#21262d] focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                        Search Filter (name, email, or phone)
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Enter search term..."
-                        value={exportFilters.search}
-                        onChange={(e) => setExportFilters({ ...exportFilters, search: e.target.value })}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-white dark:bg-[#21262d] focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-indigo-400"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                        Category Filter
-                      </label>
-                      <select
-                        value={exportFilters.category}
-                        onChange={(e) => setExportFilters({ ...exportFilters, category: e.target.value })}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-gray-400 dark:bg-[#21262d] focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-indigo-400"
-                      >
-                        <option value="">All Categories</option>
-                        {categories.map(category => <option key={category.category_id} value={category.category_id}>{category.category_name}</option>)}
-                      </select>
-                    </div>
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id="hasBirthday"
-                        checked={exportFilters.hasBirthday}
-                        onChange={(e) => setExportFilters({ ...exportFilters, hasBirthday: e.target.checked })}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 rounded"
-                      />
-                      <label htmlFor="hasBirthday" className="ml-2 block text-sm text-slate-700 dark:text-slate-300">
-                        Only contacts with birthdays
-                      </label>
-                    </div>
-                  </div>
-                  <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-slate-200 dark:border-slate-600">
-                    <button onClick={closeExportPanel} className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
-                      Cancel
-                    </button>
-                    <button onClick={handleExport} className="btn flex items-center">
-                      <DocumentArrowDownIcon className="w-4 h-4 mr-2" />
-                      Export {exportFormat.toUpperCase()}
-                    </button>
                   </div>
                 </div>
               </div>

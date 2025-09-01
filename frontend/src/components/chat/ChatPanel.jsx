@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../supabaseClient';
-import { sendInviteEmail } from '../../services/inviteService';
 import { FiPaperclip } from "react-icons/fi";
-import { toast } from 'react-toastify';
 
 function isOnline(lastSeen) {
   if (!lastSeen) return false;
@@ -351,7 +349,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
   
 
   return (
-    <div className="flex w-full h-[600px] bg-white dark:bg-[#161b22] border dark:border-[#30363d] rounded-lg shadow-lg overflow-hidden">
+    <div className="flex w-full h-full bg-white dark:bg-[#161b22] border dark:border-[#30363d] rounded-lg shadow-lg overflow-hidden">{/* Use full height instead of fixed 600px */}
       {/* Contact List */}
       <div className="w-96 bg-blue-50 dark:bg-[#141820] border-r border-gray-200 dark:border-[#30363d] p-4 overflow-y-auto">
         <ul>
@@ -477,7 +475,30 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 bg-slate-50">
+            <div 
+              className="flex-1 overflow-y-auto p-4 relative bg-slate-50 dark:bg-[#0d1117]"
+              style={{
+                backgroundImage: `
+                  radial-gradient(circle at 25px 25px, rgba(147, 197, 253, 0.1) 2px, transparent 2px),
+                  radial-gradient(circle at 75px 75px, rgba(165, 180, 252, 0.08) 1px, transparent 1px),
+                  linear-gradient(45deg, rgba(147, 197, 253, 0.02) 25%, transparent 25%),
+                  linear-gradient(-45deg, rgba(165, 180, 252, 0.02) 25%, transparent 25%)
+                `,
+                backgroundSize: '50px 50px, 50px 50px, 100px 100px, 100px 100px',
+                backgroundPosition: '0 0, 25px 25px, 0 0, 50px 50px'
+              }}
+            >
+              {/* Contact book themed overlay pattern */}
+              <div 
+                className="absolute inset-0 opacity-30 dark:opacity-10 pointer-events-none"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill='%23ddd6fe' fill-opacity='0.15'%3E%3Cpath d='M20 20m-8 0a8 8 0 1 1 16 0a8 8 0 1 1 -16 0'/%3E%3Cpath d='M20 16m-3 0a3 3 0 1 1 6 0a3 3 0 1 1 -6 0'/%3E%3Cpath d='M13 25 Q20 22 27 25' stroke='%23ddd6fe' stroke-width='1' fill='none'/%3E%3Crect x='35' y='13' width='18' height='8' rx='4' fill='none' stroke='%23ddd6fe' stroke-width='1'/%3E%3Crect x='30' y='20' width='20' height='8' rx='4' fill='none' stroke='%23ddd6fe' stroke-width='1'/%3E%3Cline x1='28' y1='20' x2='30' y2='20' stroke='%23ddd6fe' stroke-width='1'/%3E%3C/g%3E%3C/svg%3E")`,
+                  backgroundSize: '80px 80px'
+                }}
+              ></div>
+              
+              {/* Messages content */}
+              <div className="relative z-10">{/* Ensure messages appear above background */}
               {/* Removed selection controls (Cancel Selection and Delete Selected buttons) */}
               {messages.length === 0 ? (
                 <div className="text-slate-500 py-24 text-center">No messages yet.</div>
@@ -583,6 +604,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
                 })
               )}
               <div ref={chatEndRef} />
+              </div>
             </div>
 
             {/* New message input and file upload */}

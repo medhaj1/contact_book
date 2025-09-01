@@ -20,7 +20,7 @@ const AccountSettings = ({ onCancel }) => {
         try {
             const [contactsRes, blockedRes, docsRes, tasksRes] = await Promise.all([
                 supabase.from("contact").select("*", { count: "exact", head: true }).eq("user_id", userId),
-                supabase.from("block_contacts").select("*", { count: "exact", head: true }).eq("user_id", userId),
+                supabase.from("block_contacts").select("*", { count: "exact", head: true }).eq("u_id", userId),
                 supabase.from("shared_documents").select("*", { count: "exact", head: true }).eq("user_id", userId),
                 supabase.from("task").select("*", { count: "exact", head: true }).eq("user_id", userId),
             ]);
@@ -181,7 +181,17 @@ const AccountSettings = ({ onCancel }) => {
       </p>
       <p><span className="font-medium text-gray-400">Authentic User:</span> {userDetails.authentic ? "Yes" : "No"}</p>
       <p><span className="font-medium text-gray-400">Contacts saved:</span> {userDetails.contactsCount}</p>
-      <p><span className="font-medium text-gray-400">Contacts blocked:</span> {userDetails.blockedCount}</p>
+      <p>
+        <span className="font-medium text-gray-400">Contacts blocked:</span> 
+        <span className={`ml-1 font-semibold ${userDetails.blockedCount > 0 ? 'text-orange-400' : 'text-gray-300'}`}>
+          {userDetails.blockedCount}
+        </span>
+        {userDetails.blockedCount > 0 && (
+          <span className="ml-2 text-xs text-orange-500 bg-orange-900/30 px-2 py-0.5 rounded-full">
+            Active blocks
+          </span>
+        )}
+      </p>
       <p><span className="font-medium text-gray-400">Documents shared:</span> {userDetails.docsCount}</p>
       <p><span className="font-medium text-gray-400">Tasks:</span> {userDetails.tasksCount}</p>
       <p><span className="font-medium text-gray-400">Password:</span> {userDetails.password}</p>

@@ -13,11 +13,23 @@ const ResetPassword = () => {
     e.preventDefault();
 
     if (!password || !confirmPassword) {
-      toast.error('Please enter and confirm your new password.');
+      toast.error('Please enter and confirm your new password.', {
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
       return;
     }
     if (password !== confirmPassword) {
-      toast.error('Passwords do not match.');
+      toast.error('Passwords do not match.', {
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
       return;
     }
 
@@ -26,14 +38,32 @@ const ResetPassword = () => {
       const { error } = await supabase.auth.updateUser({ password });
 
       if (error) {
-        toast.error(error.message);
+        toast.error(error.message, {
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
       } else {
-        toast.success('Password updated successfully! Please sign in.');
+        toast.success('Password updated successfully! Please sign in.', {
+          autoClose: 4000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
         navigate('/signin');
       }
     } catch (err) {
       console.error('Reset error:', err);
-      toast.error('Something went wrong, please try again later.');
+      toast.error('Something went wrong, please try again later.', {
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } finally {
       setLoading(false);
     }

@@ -149,12 +149,30 @@ const UserProfile = ({ currentUser, onLogout }) => {
         setTempPhoto(avatarUrl);
         setIsEditing(false);
         localStorage.removeItem('userProfileIsEditing');
-        toast.success("Profile updated successfully!");
+        toast.success("Profile updated successfully!", {
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
       } else {
-        toast.error("Error updating profile: " + result.error);
+        toast.error("Error updating profile: " + result.error, {
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
       }
     } catch (error) {
-      toast.error("Error updating profile: " + error.message);
+      toast.error("Error updating profile: " + error.message, {
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     }
   };
 
@@ -203,7 +221,13 @@ const UserProfile = ({ currentUser, onLogout }) => {
     setPasswordsSuccess('');
     if (passwords.new !== passwords.confirmNew) {
       setPasswordsError("New passwords do not match.");
-      toast.error("New passwords do not match.");
+      toast.error("New passwords do not match.", {
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
       return;
     }
 
@@ -211,12 +235,24 @@ const UserProfile = ({ currentUser, onLogout }) => {
 
     if (error) {
       setPasswordsError(error.message);
-      toast.error("Error updating password: " + error.message);
+      toast.error("Error updating password: " + error.message, {
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
       return;
     }
 
     setPasswordsSuccess("Password updated successfully!");
-    toast.success("Password updated successfully!");
+    toast.success("Password updated successfully!", {
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+    });
     setPasswords({ current: "", new: "", confirmNew: "" });
     setIsResettingPassword(false);
     localStorage.removeItem('userProfileIsResettingPassword');

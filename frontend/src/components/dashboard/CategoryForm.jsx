@@ -17,6 +17,9 @@ const CategoryForm = ({ onSave, onCancel, existingCategories = [], userId }) => 
   // Fetch categories
   useEffect(() => {
     async function fetchCategories() {
+      if (!userId || userId === "unknown") {
+        return;
+      }
       const result = await getCategories(userId);
       if (result.success) {
         setCategories(result.data);
@@ -28,6 +31,11 @@ const CategoryForm = ({ onSave, onCancel, existingCategories = [], userId }) => 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    
+    if (!userId || userId === "unknown") {
+      setError('User not authenticated');
+      return;
+    }
     
     const trimmedName = categoryName.trim();
     

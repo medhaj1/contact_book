@@ -118,6 +118,4 @@ export async function unblockContact(contactId, currentUserId) {
     console.error('Unexpected error in unblockContact:', err);
     return { success: false, error: err.message || String(err) };
   }
-
-  return { success: true };
 }

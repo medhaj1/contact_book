@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 
 /**
@@ -45,14 +44,12 @@ export const addCategory = async (categoryName, userId) => {
       throw new Error("User ID is required");
     }
 
-    const { data: insertData, error: insertError } = await supabase
+    const { error: insertError } = await supabase
       .from("category")
       .insert([{
         name: cleanName,
         user_id: userId
-      }])
-      .select()
-      .single();
+      }]);
 
     if (insertError) {
       throw new Error(`Failed to add category: ${insertError.message}`);

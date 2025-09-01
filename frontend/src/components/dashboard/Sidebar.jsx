@@ -1,6 +1,5 @@
 import React from 'react';
-import {
-  UserPlus, BookOpen, CheckSquare, LayoutDashboard,
+import { BookOpen, CheckSquare, LayoutDashboard,
 } from "lucide-react";
 
 const Sidebar = ({ 

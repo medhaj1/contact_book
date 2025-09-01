@@ -6,32 +6,75 @@ import {
   getGroupMembers,
   getGroupTasks,
   createGroupTask,
-  getUserContactsWhoAreUsers,
   createGroup,
   deleteGroup,
   leaveGroup,
   deleteTask,
   archiveGroup,
   unarchiveGroup,
-  handleInvite,
-  addContactToGroup,
 } from '../../services/groupService';
 import { supabase } from '../../supabaseClient';
 import { toast } from 'react-toastify';
 
 const GroupPanel = ({ currentUser }) => {
-  const currentUserId = currentUser?.id;
+  // Try different possible id fields
+  const currentUserId = currentUser?.id || currentUser?.user?.id || currentUser?.sub;
+
+  // Helper function to generate avatar
+  const generateAvatar = (name, email) => {
+    const displayName = name || email || 'User';
+    const initials = displayName
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+    
+    // Generate a consistent color based on the name/email
+    const colors = [
+      'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500',
+      'bg-indigo-500', 'bg-yellow-500', 'bg-red-500', 'bg-teal-500'
+    ];
+    const colorIndex = (displayName.charCodeAt(0) + displayName.charCodeAt(displayName.length - 1)) % colors.length;
+    
+    return {
+      initials,
+      bgColor: colors[colorIndex]
+    };
+  };
+
+  // Avatar component
+  const MemberAvatar = ({ member }) => {
+    const [imageError, setImageError] = useState(false);
+    const avatar = generateAvatar(member.name, member.email);
+    
+    if (member.image && !imageError) {
+      return (
+        <img 
+          className="w-8 h-8 rounded-full object-cover" 
+          src={member.image} 
+          alt={member.name || member.email}
+          onError={() => setImageError(true)}
+        />
+      );
+    }
+    
+    return (
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold ${avatar.bgColor}`}>
+        {avatar.initials}
+      </div>
+    );
+  };
+
   const [groups, setGroups] = useState([]);
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [members, setMembers] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [inviteEmail, setInviteEmail] = useState('');
-  const [selectedContactId, setSelectedContactId] = useState('');
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDesc, setNewGroupDesc] = useState('');
   const [taskText, setTaskText] = useState('');
   const [taskDeadline, setTaskDeadline] = useState('');
-  const [contactsWhoAreUsers, setContactsWhoAreUsers] = useState([]);
   const [selectedMemberId, setSelectedMemberId] = useState('');
   const [memberTaskText, setMemberTaskText] = useState('');
   const [memberTaskDeadline, setMemberTaskDeadline] = useState('');
@@ -46,14 +89,6 @@ const GroupPanel = ({ currentUser }) => {
   }, [currentUserId]);
 
   useEffect(() => {
-    if (!currentUserId) return;
-    (async () => {
-      const res = await getUserContactsWhoAreUsers(currentUserId);
-      if (res.success) setContactsWhoAreUsers(res.data);
-    })();
-  }, [currentUserId]);
-
-  useEffect(() => {
     if (!selectedGroupId) return;
     Promise.all([
       getGroupMembers(selectedGroupId),
@@ -65,15 +100,36 @@ const GroupPanel = ({ currentUser }) => {
   }, [selectedGroupId]);
 
   const handleCreateGroup = async () => {
-    if (!newGroupName.trim()) return;
+    if (!newGroupName.trim()) {
+      toast.error('Group name is required');
+      return;
+    }
+    
+    if (!currentUserId) {
+      toast.error('User not authenticated. Please log in again.');
+      return;
+    }
+    
     const res = await createGroup({ name: newGroupName, description: newGroupDesc, ownerUserId: currentUserId });
     if (res.success) {
       setGroups((prev) => [...prev, res.data]);
       setNewGroupName('');
       setNewGroupDesc('');
-      toast.success('Group created successfully!');
+      toast.success('Group created successfully!', {
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } else {
-      toast.error(res.error || 'Failed to create group');
+      toast.error(res.error || 'Failed to create group', {
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     }
   };
 
@@ -84,9 +140,21 @@ const GroupPanel = ({ currentUser }) => {
     if (res.success) {
       setGroups(groups => groups.filter(g => g.id !== groupId));
       setSelectedGroupId(null);
-      toast.success('You have left the group.');
+      toast.success('You have left the group.', {
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } else {
-      toast.error(res.error || 'Failed to leave group');
+      toast.error(res.error || 'Failed to leave group', {
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     }
   };
 
@@ -98,9 +166,21 @@ const GroupPanel = ({ currentUser }) => {
     if (res.success) {
       setGroups((prev) => prev.filter((g) => g.id !== groupId));
       if (selectedGroupId === groupId) setSelectedGroupId(null);
-      toast.success('Group deleted.');
+      toast.success('Group deleted.', {
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } else {
-      toast.error(res.error || 'Failed to delete group');
+      toast.error(res.error || 'Failed to delete group', {
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     }
   };
 
@@ -112,9 +192,21 @@ const GroupPanel = ({ currentUser }) => {
       const mRes = await getGroupMembers(selectedGroupId);
       if (mRes.success) setMembers(mRes.data);
       setInviteEmail('');
-      toast.success('Member invited successfully!');
+      toast.success('Member invited successfully!', {
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } else {
-      toast.error(res.error || 'Failed to add member');
+      toast.error(res.error || 'Failed to add member', {
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     }
   };
 
@@ -123,9 +215,21 @@ const GroupPanel = ({ currentUser }) => {
     const res = await deleteTask(taskId);
     if (res.success) {
       setTasks((prev) => prev.filter((t) => t.id !== taskId));
-      toast.success('Task deleted.');
+      toast.success('Task deleted.', {
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } else {
-      toast.error('Failed to delete task');
+      toast.error('Failed to delete task', {
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     }
   };
 
@@ -208,35 +312,39 @@ const GroupPanel = ({ currentUser }) => {
     return 0;
   });
 
+  if (!currentUserId) {
+    return <div className="text-slate-500 dark:text-slate-400">Please log in to access groups.</div>;
+  }
+
   return (
-    <div className="flex gap-6 w-full">
+    <div className="flex gap-6 w-full h-full">
       {/* Groups list */}
-      <div className="w-72 bg-white rounded-xl border border-slate-200 p-4 h-[520px] overflow-y-auto">
-        <h3 className="font-semibold text-lg mb-3">Groups</h3>
-        <div className="space-y-2">
+      <div className="w-72 bg-white dark:bg-[#161b22] rounded-xl border border-slate-200 dark:border-slate-700 p-4 h-full flex flex-col">
+        <h3 className="font-semibold text-lg mb-3 dark:text-slate-100 flex-shrink-0">Groups</h3>
+        <div className="flex-1 overflow-y-auto space-y-2">{/* Made scrollable */}
           {sortedGroups.map((g) => (
             <div
               key={g.id}
               className={`p-3 rounded-lg cursor-pointer border ${
                 g.archived
-                  ? 'bg-yellow-50 border-yellow-300 opacity-60'
+                  ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700 opacity-60'
                   : selectedGroupId === g.id
-                  ? 'bg-blue-50 border-blue-300'
-                  : 'border-slate-200 hover:bg-slate-50'
+                  ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700'
+                  : 'border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
               onClick={() => setSelectedGroupId(g.id)}
             >
               <div className="flex items-center justify-between">
-                <span className="font-medium">{g.name}</span>
-                <span className="text-xs text-slate-500 capitalize">{g.role}</span>
+                <span className="font-medium dark:text-slate-100">{g.name}</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 capitalize">{g.role}</span>
               </div>
               {g.description && (
-                <div className="text-xs text-slate-500 mt-1 line-clamp-2">{g.description}</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">{g.description}</div>
               )}
               <div className="flex gap-2 mt-2">
                 {!isProtectedRole(g.role) && (
                   <button 
-                    className="text-xs text-red-600 hover:text-red-800" 
+                    className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300" 
                     onClick={(e) => { e.stopPropagation(); handleLeaveGroup(g.id); }}
                   >
                     Leave
@@ -244,7 +352,7 @@ const GroupPanel = ({ currentUser }) => {
                 )}
                 {isProtectedRole(g.role) && !g.archived && (
                   <button 
-                    className="text-xs text-yellow-600 hover:text-yellow-800" 
+                    className="text-xs text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-300" 
                     onClick={(e) => { e.stopPropagation(); handleArchiveGroup(g.id); }}
                   >
                     Archive
@@ -253,13 +361,13 @@ const GroupPanel = ({ currentUser }) => {
                 {isProtectedRole(g.role) && g.archived && (
                   <>
                     <button 
-                      className="text-xs text-blue-600 hover:text-blue-800" 
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300" 
                       onClick={(e) => { e.stopPropagation(); handleUnarchiveGroup(g.id); }}
                     >
                       Unarchive
                     </button>
                     <button 
-                      className="text-xs text-red-600 hover:text-red-800 ml-2" 
+                      className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 ml-2" 
                       onClick={(e) => { e.stopPropagation(); handleDeleteGroup(g.id); }}
                     >
                       Delete
@@ -272,7 +380,7 @@ const GroupPanel = ({ currentUser }) => {
         </div>
 
         {/* Create group */}
-        <div className="mt-4 pt-4 border-t border-slate-200 dark:border-[#202733]">
+        <div className="pt-4 border-t border-slate-200 dark:border-[#202733] flex-shrink-0">
           <div className="font-semibold text-sm dark:text-gray-100 mb-2">Create Group</div>
           <input className="w-full border rounded-md p-2 text-sm dark:bg-[#1a1f2c] dark:border-[#202733] dark:text-gray-400 placeholder:dark:text-gray-400 mb-2" placeholder="Group name" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} />
           <input className="w-full border rounded-md p-2 text-sm dark:bg-[#1a1f2c] dark:border-[#202733] dark:text-gray-400 placeholder:dark:text-gray-400 mb-2" placeholder="Description (optional)" value={newGroupDesc} onChange={(e) => setNewGroupDesc(e.target.value)} />
@@ -281,11 +389,11 @@ const GroupPanel = ({ currentUser }) => {
       </div>
 
       {/* Group details */}
-      <div className="flex-1 bg-white dark:bg-[#161b22] rounded-xl border border-slate-200 dark:border-[#30363d] p-4 h-[520px] overflow-y-auto">
+      <div className="flex-1 bg-white dark:bg-[#161b22] rounded-xl border border-slate-200 dark:border-slate-700 p-4 h-full flex flex-col">
         {!selectedGroup ? (
-          <div className="text-gray-500 dark:text-gray-400">Select a group to view members and tasks.</div>
+          <div className="text-gray-500 dark:text-gray-400 flex items-center justify-center h-full">Select a group to view members and tasks.</div>
         ) : (
-          <div className="space-y-6">
+          <div className="flex-1 overflow-y-auto space-y-6">{/* Made content scrollable */}
             {/* Members */}
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -303,12 +411,12 @@ const GroupPanel = ({ currentUser }) => {
 
               <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {members.map((m) => (
-                  <li key={m.u_id} className="border border-slate-200 rounded-lg p-3">
+                  <li key={m.u_id} className="border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 rounded-lg p-3">
                     <div className="flex items-center gap-3">
-                      <img className="w-8 h-8 rounded-full object-cover" src={m.image || '/user-placeholder.png'} alt={m.name || m.email} />
+                      <MemberAvatar member={m} />
                       <div>
-                        <div className="font-medium text-sm">{m.name || m.email}</div>
-                        <div className="text-xs text-slate-500 capitalize">{m.role}</div>
+                        <div className="font-medium text-sm dark:text-slate-100">{m.name || m.email}</div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 capitalize">{m.role}</div>
                       </div>
                     </div>
                   </li>
@@ -318,10 +426,10 @@ const GroupPanel = ({ currentUser }) => {
 
             {/* Assign task to member */}
             <div className="mt-4 mb-3">
-              <h4 className="font-semibold mb-2">Assign Task to Member</h4>
+              <h4 className="font-semibold mb-2 dark:text-slate-100">Assign Task to Member</h4>
               <div className="flex gap-2">
                 <select
-                  className="border rounded-md p-2 text-sm"
+                  className="border rounded-md p-2 text-sm dark:bg-[#1a1f2c] dark:border-slate-600 dark:text-slate-300"
                   value={selectedMemberId}
                   onChange={e => setSelectedMemberId(e.target.value)}
                 >
@@ -333,14 +441,14 @@ const GroupPanel = ({ currentUser }) => {
                   ))}
                 </select>
                 <input
-                  className="flex-1 border rounded-md p-2 text-sm"
+                  className="flex-1 border rounded-md p-2 text-sm dark:bg-[#1a1f2c] dark:border-slate-600 dark:text-slate-300 dark:placeholder-slate-400"
                   placeholder="Task description"
                   value={memberTaskText}
                   onChange={e => setMemberTaskText(e.target.value)}
                 />
                 <input
                   type="date"
-                  className="border rounded-md p-2 text-sm"
+                  className="border rounded-md p-2 text-sm dark:bg-[#1a1f2c] dark:border-slate-600 dark:text-slate-300"
                   value={memberTaskDeadline}
                   onChange={e => setMemberTaskDeadline(e.target.value)}
                 />
@@ -358,9 +466,21 @@ const GroupPanel = ({ currentUser }) => {
                       setTasks((prev) => [...prev, res.data]);
                       setMemberTaskText('');
                       setMemberTaskDeadline('');
-                      toast.success('Task assigned!');
+                      toast.success('Task assigned!', {
+                        autoClose: 3000,
+                        hideProgressBar: false,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                      });
                     } else {
-                      toast.error(res.error || 'Failed to assign task');
+                      toast.error(res.error || 'Failed to assign task', {
+                        autoClose: 5000,
+                        hideProgressBar: false,
+                        closeOnClick: true,
+                        pauseOnHover: true,
+                        draggable: true,
+                      });
                     }
                   }}
                 >
@@ -371,14 +491,14 @@ const GroupPanel = ({ currentUser }) => {
 
             {/* Tasks */}
             <div>
-              <h3 className="font-semibold text-lg mb-2">Group Tasks</h3>
+              <h3 className="font-semibold text-lg mb-2 dark:text-slate-100">Group Tasks</h3>
               <div className="flex gap-2 mb-3">
-                <input className="flex-1 border rounded-md p-2 text-sm" placeholder="Task description" value={taskText} onChange={(e) => setTaskText(e.target.value)} />
-                <input type="date" className="border rounded-md p-2 text-sm" value={taskDeadline} onChange={(e) => setTaskDeadline(e.target.value)} />
+                <input className="flex-1 border rounded-md p-2 text-sm dark:bg-[#1a1f2c] dark:border-slate-600 dark:text-slate-300 dark:placeholder-slate-400" placeholder="Task description" value={taskText} onChange={(e) => setTaskText(e.target.value)} />
+                <input type="date" className="border rounded-md p-2 text-sm dark:bg-[#1a1f2c] dark:border-slate-600 dark:text-slate-300" value={taskDeadline} onChange={(e) => setTaskDeadline(e.target.value)} />
                 <button className="bg-blue-600 text-white rounded-md px-3 text-sm" onClick={handleCreateTask}>Add</button>
               </div>
               {tasks.length === 0 ? (
-                <div className="text-slate-500 text-sm">No tasks yet.</div>
+                <div className="text-slate-500 dark:text-slate-400 text-sm">No tasks yet.</div>
               ) : (
                 <ul className="space-y-2">
                   {sortedTasks.map((t) => (
@@ -386,32 +506,32 @@ const GroupPanel = ({ currentUser }) => {
                       key={t.id}
                       className={`border rounded-lg p-3 flex flex-col gap-2 ${
                         t.completed
-                          ? 'bg-green-50 border-green-300 opacity-70'
-                          : 'bg-white border-slate-200'
+                          ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700 opacity-70'
+                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600'
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="font-medium text-sm">{t.text}</div>
+                          <div className="font-medium text-sm dark:text-slate-100">{t.text}</div>
                           {t.deadline && (
-                            <div className="text-xs text-slate-500">
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
                               Due: {new Date(t.deadline).toLocaleDateString()}
                             </div>
                           )}
                           {t.user_id ? (
-                            <div className="text-xs text-blue-600">
+                            <div className="text-xs text-blue-600 dark:text-blue-400">
                               Task assigned to: {members.find(m => m.u_id === t.user_id)?.name || members.find(m => m.u_id === t.user_id)?.email || 'Member'}
                             </div>
                           ) : (
-                            <div className="text-xs text-blue-600">
+                            <div className="text-xs text-blue-600 dark:text-blue-400">
                               Task assigned to: GROUP
                             </div>
                           )}
                         </div>
-                        <button className="text-red-600 text-sm" onClick={() => handleDeleteTask(t.id)}>Delete</button>
+                        <button className="text-red-600 dark:text-red-400 text-sm" onClick={() => handleDeleteTask(t.id)}>Delete</button>
                       </div>
                       <div className="flex items-center gap-3 mt-2">
-                        <label className="text-xs text-slate-500">Progress:</label>
+                        <label className="text-xs text-slate-500 dark:text-slate-400">Progress:</label>
                         <input
                           type="range"
                           min={0}
@@ -421,8 +541,8 @@ const GroupPanel = ({ currentUser }) => {
                           className="w-32 h-2 accent-blue-600"
                           style={{ accentColor: "#2563eb" }}
                         />
-                        <span className="text-xs font-semibold w-8 text-center">{t.completion_percent || 0}%</span>
-                        <label className="flex items-center gap-1 text-xs">
+                        <span className="text-xs font-semibold w-8 text-center dark:text-slate-300">{t.completion_percent || 0}%</span>
+                        <label className="flex items-center gap-1 text-xs dark:text-slate-300">
                           <input
                             type="checkbox"
                             checked={!!t.completed}

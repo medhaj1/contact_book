@@ -21,6 +21,41 @@ function sanitizeString(str) {
 }
 
 /**
+ * Helper: Parse CSV line properly handling quoted fields
+ */
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    const nextChar = line[i + 1];
+    
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        // Escaped quote
+        current += '"';
+        i++; // Skip next quote
+      } else {
+        // Toggle quote state
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      // End of field
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  
+  // Add the last field
+  result.push(current.trim());
+  return result;
+}
+
+/**
  * Parse VCF string to contact objects with sanitization
  */
 function parseVcf(vcfString) {
@@ -101,10 +136,10 @@ export const importContacts = async (file, userId) => {
 
     if (ext === "csv") {
       const lines = fileContent.split("\n").filter(line => line.trim() !== "");
-      const headers = lines[0].split(",").map(h => h.trim());
+      const headers = lines[0].split(",").map(h => h.trim().replace(/"/g, ''));
 
       for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(",").map(v => v.trim());
+        const values = parseCSVLine(lines[i]);
         if (values.length !== headers.length) continue;
 
         const contact = {};
@@ -115,6 +150,37 @@ export const importContacts = async (file, userId) => {
         contact.user_id = userId;
         contact.userName = userName;
         contacts.push(contact);
+      }
+
+      // Handle photo uploads for CSV contacts with base64 images
+      for (const contact of contacts) {
+        if (contact.photo_base64 && contact.photo_base64.trim()) {
+          try {
+            let base64String = contact.photo_base64.replace(/^data:image\/\w+;base64,/, "");
+            const imgBlob = base64ToBlob(base64String);
+            const fileName = `${contact.name.replace(/\s+/g, '_')}-${Date.now()}.jpg`;
+            const filePath = `users/${userName}/${contact.name}/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+              .from("contact-images")
+              .upload(filePath, imgBlob, {
+                contentType: "image/jpeg"
+              });
+
+            if (uploadError) {
+              console.error("Failed to upload photo for contact", contact.name, uploadError.message);
+            } else {
+              const { data: publicData } = supabase.storage
+                .from("contact-images")
+                .getPublicUrl(filePath);
+              contact.photo_url = publicData.publicUrl;
+            }
+          } catch (photoError) {
+            console.error("Error processing photo for", contact.name, photoError);
+          }
+          // Remove the base64 data as it's no longer needed
+          delete contact.photo_base64;
+        }
       }
     } else if (ext === "vcf") {
       contacts = parseVcf(fileContent);
@@ -189,33 +255,80 @@ export const importContacts = async (file, userId) => {
  */
 export const exportContactsCSV = async (userId, filters = {}) => {
   try {
-    const { category } = filters;
+    const { category, selectedContactIds } = filters;
+    let contacts = [];
 
-    // Use database function for efficient category filtering
-    const { data: contacts, error } = await supabase.rpc('get_contacts_by_category', {
-      user_id_param: userId,
-      category_filter: category || null  // Pass category ID or 'favourites' or null for all
-    });
+    if (selectedContactIds && selectedContactIds.length > 0) {
+      // Export only selected contacts
+      const { data: selectedContacts, error } = await supabase
+        .from('contact')
+        .select('*')
+        .eq('user_id', userId)
+        .in('contact_id', selectedContactIds);
 
-    if (error) {
-      throw new Error(`Failed to fetch contacts: ${error.message}`);
+      if (error) {
+        throw new Error(`Failed to fetch selected contacts: ${error.message}`);
+      }
+      contacts = selectedContacts || [];
+    } else {
+      // Use database function for efficient category filtering
+      const { data: allContacts, error } = await supabase.rpc('get_contacts_by_category', {
+        user_id_param: userId,
+        category_filter: category || null  // Pass category ID or 'favourites' or null for all
+      });
+
+      if (error) {
+        throw new Error(`Failed to fetch contacts: ${error.message}`);
+      }
+      contacts = allContacts || [];
     }
     
     if (!contacts.length) {
       throw new Error("No contacts found");
     }
 
-    // Database already filtered by category, use contacts directly
-    const filtered = contacts;
+    // Convert photo URLs to base64 for each contact
+    const processedContacts = await Promise.all(
+      contacts.map(async (contact) => {
+        const processedContact = { ...contact };
+        
+        // Convert photo_url to base64 if it exists
+        if (contact.photo_url) {
+          try {
+            const response = await fetch(contact.photo_url);
+            if (response.ok) {
+              const arrayBuffer = await response.arrayBuffer();
+              const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+              const type = contact.photo_url.toLowerCase().includes('.png') ? 'PNG' : 'JPEG';
+              processedContact.photo_base64 = `data:image/${type.toLowerCase()};base64,${base64}`;
+              // Remove the original URL since we now have base64
+              delete processedContact.photo_url;
+            } else {
+              console.warn("Failed to fetch photo for", contact.name);
+              processedContact.photo_base64 = '';
+              delete processedContact.photo_url;
+            }
+          } catch (photoError) {
+            console.warn("Failed to convert photo to base64 for", contact.name, photoError);
+            processedContact.photo_base64 = '';
+            delete processedContact.photo_url;
+          }
+        } else {
+          processedContact.photo_base64 = '';
+        }
+        
+        return processedContact;
+      })
+    );
 
-    // Define CSV fields
-    const fields = ["name", "phone", "email", "birthday", "category_ids", "photo_url"];
+    // Define CSV fields (replace photo_url with photo_base64)
+    const fields = ["name", "phone", "email", "birthday", "category_ids", "photo_base64"];
     const lines = [fields.join(',')];
     
-    console.log('CSV Export - Final filtered contacts count:', filtered.length);
-    console.log('CSV Export - Filtered contacts:', filtered.map(c => ({ name: c.name, category_ids: c.category_ids })));
+    console.log('CSV Export - Final filtered contacts count:', processedContacts.length);
+    console.log('CSV Export - Filtered contacts:', processedContacts.map(c => ({ name: c.name, category_ids: c.category_ids })));
     
-    filtered.forEach(c => {
+    processedContacts.forEach(c => {
       lines.push(
         fields.map(f => {
           let value = c[f] ?? '';
@@ -230,7 +343,8 @@ export const exportContactsCSV = async (userId, filters = {}) => {
     const csv = lines.join('\n');
 
     // Create filename with timestamp
-    const safeName = `contacts_${userId}_${new Date().toISOString().slice(0, 10)}.csv`;
+    const exportType = selectedContactIds && selectedContactIds.length > 0 ? 'selected' : 'filtered';
+    const safeName = `contacts_${exportType}_${userId}_${new Date().toISOString().slice(0, 10)}.csv`;
 
     // Create and download file
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -255,28 +369,41 @@ export const exportContactsCSV = async (userId, filters = {}) => {
  */
 export const exportContactsVCF = async (userId, filters = {}) => {
   try {
-    const { category } = filters;
+    const { category, selectedContactIds } = filters;
+    let contacts = [];
 
-    // Use database function for efficient category filtering
-    const { data: contacts, error } = await supabase.rpc('get_contacts_by_category', {
-      user_id_param: userId,
-      category_filter: category || null  // Pass category ID or 'favourites' or null for all
-    });
-      
-    if (error) {
-      throw new Error(`Failed to fetch contacts: ${error.message}`);
+    if (selectedContactIds && selectedContactIds.length > 0) {
+      // Export only selected contacts
+      const { data: selectedContacts, error } = await supabase
+        .from('contact')
+        .select('*')
+        .eq('user_id', userId)
+        .in('contact_id', selectedContactIds);
+
+      if (error) {
+        throw new Error(`Failed to fetch selected contacts: ${error.message}`);
+      }
+      contacts = selectedContacts || [];
+    } else {
+      // Use database function for efficient category filtering
+      const { data: allContacts, error } = await supabase.rpc('get_contacts_by_category', {
+        user_id_param: userId,
+        category_filter: category || null  // Pass category ID or 'favourites' or null for all
+      });
+        
+      if (error) {
+        throw new Error(`Failed to fetch contacts: ${error.message}`);
+      }
+      contacts = allContacts || [];
     }
     
     if (!contacts.length) {
       throw new Error("No contacts found");
     }
 
-    // Database already filtered by category, use contacts directly
-    const filtered = contacts;
-
     // Generate VCF content
     let vcfContent = '';
-    for (const c of filtered) {
+    for (const c of contacts) {
       vcfContent += 'BEGIN:VCARD\n';
       vcfContent += 'VERSION:3.0\n';
       if (c.name) vcfContent += `FN:${c.name}\n`;
@@ -309,7 +436,8 @@ export const exportContactsVCF = async (userId, filters = {}) => {
     }
 
     // Create filename with timestamp
-    const safeName = `contacts_${userId}_${new Date().toISOString().slice(0, 10)}.vcf`;
+    const exportType = selectedContactIds && selectedContactIds.length > 0 ? 'selected' : 'filtered';
+    const safeName = `contacts_${exportType}_${userId}_${new Date().toISOString().slice(0, 10)}.vcf`;
 
     // Create and download file
     const blob = new Blob([vcfContent], { type: 'text/vcard' });
