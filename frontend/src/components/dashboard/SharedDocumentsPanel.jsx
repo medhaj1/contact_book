@@ -3,6 +3,7 @@ import { supabase } from '../../supabaseClient';
 
 const SharedDocumentsPanel = ({ currentUser }) => {
   const [sharedDocs, setSharedDocs] = useState([]);
+  const [receiverNames, setReceiverNames] = useState({});
 
   useEffect(() => {
     const fetchSharedDocs = async () => {
@@ -26,6 +27,20 @@ const SharedDocumentsPanel = ({ currentUser }) => {
           }
         }
         setSharedDocs(uniqueDocs);
+
+        // Fetch receiver names
+        const receiverIds = [...new Set(uniqueDocs.map(doc => doc.receiver_id))];
+        if (receiverIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('user_profile')
+            .select('u_id, name')
+            .in('u_id', receiverIds);
+          const namesMap = {};
+          for (const profile of profiles || []) {
+            namesMap[profile.u_id] = profile.name;
+          }
+          setReceiverNames(namesMap);
+        }
       }
     };
     fetchSharedDocs();
@@ -63,7 +78,9 @@ const SharedDocumentsPanel = ({ currentUser }) => {
                       year: 'numeric'
                     })}
                   </p>
-                  <p className="text-xs text-slate-400 mt-1">Shared with: {doc.receiver_email || doc.receiver_id}</p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Shared with: {receiverNames[doc.receiver_id] || doc.receiver_id}
+                  </p>
                 </div>
               </div>
               <div className="flex gap-2">
