@@ -11,11 +11,12 @@ function sanitizeString(str) {
 /**
  * Get all categories from the database
  */
-export const getCategories = async () => {
+export const getCategories = async (userId) => {
   try {
     const { data, error } = await supabase
       .from("category")
       .select("*")
+      .eq("user_id", userId) // Only fetch categories for this user
       .order("category_id", { ascending: true });
 
     if (error) {
@@ -32,27 +33,29 @@ export const getCategories = async () => {
 /**
  * Add a new category
  */
-export const addCategory = async (categoryName) => {
+export const addCategory = async (categoryName, userId) => {
   try {
     const cleanName = sanitizeString(categoryName);
     
     if (!cleanName) {
       throw new Error("Category name is required");
     }
+    if (!userId) {
+      throw new Error("User ID is required");
+    }
 
-    const { data: insertData, error: insertError } = await supabase
+    const { error: insertError } = await supabase
       .from("category")
       .insert([{
-        name: cleanName
-      }])
-      .select()
-      .single();
+        name: cleanName,
+        user_id: userId
+      }]);
 
     if (insertError) {
       throw new Error(`Failed to add category: ${insertError.message}`);
     }
 
-    return { success: true, data: insertData };
+    return { success: true, message: "Category added successfully" };
   } catch (error) {
     console.error("Add Category Error:", error.message);
     return { success: false, error: error.message };
@@ -108,3 +111,6 @@ export const deleteCategory = async (categoryId) => {
     return { success: false, error: error.message };
   }
 };
+
+
+

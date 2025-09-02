@@ -116,3 +116,69 @@ code {
   background: #16a34a !important;
 }
 
+.tab {
+  padding: 0.5rem 1rem;
+  background: #f3f4f6;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  border: none;
+}
+.tab-active {
+  padding: 0.5rem 1rem;
+  background: #2563eb;
+  color: white;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  border: none;
+}
+
+/* Toast Close Button Fix */
+.Toastify__close-button {
+  opacity: 1 !important;
+  color: inherit !important;
+  cursor: pointer !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  width: 20px !important;
+  height: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  transition: all 0.2s ease !important;
+}
+
+.Toastify__close-button:hover {
+  background: rgba(0, 0, 0, 0.1) !important;
+  transform: scale(1.1) !important;
+}
+
+.Toastify__close-button > svg {
+  width: 14px !important;
+  height: 14px !important;
+  fill: currentColor !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+}
+
+/* Ensure close button is always visible */
+.Toastify__toast--success .Toastify__close-button {
+  color: #065f46 !important;
+}
+
+.Toastify__toast--error .Toastify__close-button {
+  color: #991b1b !important;
+}
+
+.Toastify__toast--warning .Toastify__close-button {
+  color: #92400e !important;
+}
+
+.Toastify__toast--info .Toastify__close-button {
+  color: #1e40af !important;
+}
+
+.Toastify__toast--default .Toastify__close-button {
+  color: #374151 !important;
+}

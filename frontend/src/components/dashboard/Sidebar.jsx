@@ -1,6 +1,5 @@
 import React from 'react';
-import {
-  UserPlus, BookOpen, CheckSquare, LayoutDashboard,
+import { BookOpen, CheckSquare, LayoutDashboard,
 } from "lucide-react";
 
 const Sidebar = ({ 
@@ -12,7 +11,7 @@ const Sidebar = ({
   const defaultSidebarItems = [
     { id: "contacts", label: "Home", icon: LayoutDashboard },
     { id: "documents", label: "Documents", icon: BookOpen },
-    { id: "groups", label: "Groups", icon: UserPlus },
+   // { //id: "groups", label: "Groups", icon: Users },
     { id: "task", label: "Task", icon: CheckSquare },
   ];
 

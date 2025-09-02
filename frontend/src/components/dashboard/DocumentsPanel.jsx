@@ -143,31 +143,31 @@ const DocumentsPanel = ({ currentUser }) => {
     const name = fileName.toLowerCase();
     if (name.includes('.pdf')) {
       return (
-        <svg className="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+        <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
         </svg>
       );
     } else if (name.includes('.doc')) {
       return (
-        <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+        <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
         </svg>
       );
     } else {
       return (
-        <svg className="w-6 h-6 text-slate-600" fill="currentColor" viewBox="0 0 20 20">
+        <svg className="w-6 h-6 text-slate-600 dark:text-slate-400" fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
         </svg>
       );
     }
   };
 
-  const cardBorderClass = "bg-white border border-blue-100 p-6 rounded-2xl transition hover:shadow-md hover:-translate-y-1";
+  const cardBorderClass = "bg-white dark:bg-[#161b22] border border-blue-100 dark:border-slate-700 p-6 rounded-2xl transition hover:shadow-md hover:-translate-y-1";
 
   return (
-    <div className="space-y-8">
+    <div className="h-full flex flex-col space-y-8">
       {/* Upload Section */}
-      <div className="bg-white dark:bg-[#161b22] border border-blue-100 dark:border-slate-700 p-6 rounded-2xl">
+      <div className="bg-white dark:bg-[#161b22] border border-blue-100 dark:border-slate-700 p-6 rounded-2xl flex-shrink-0">{/* Prevent shrinking */}
         <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-300 mb-4">Upload Documents</h3>
         <div className="relative border-2 border-dashed border-blue-200 dark:border-slate-600 rounded-xl p-8 text-center hover:border-blue-300 dark:hover:border-slate-300 transition-colors">
           <div className="flex flex-col items-center gap-4">
@@ -204,7 +204,7 @@ const DocumentsPanel = ({ currentUser }) => {
   {/* Removed tabs UI; parent controls which panel is shown */}
 
       {/* Documents List */}
-      <div>
+      <div className="flex-1 overflow-y-auto min-h-0">{/* Scrollable documents list */}
         <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-300 mb-4">
           My Documents ({documents.length})
         </h3>
@@ -222,7 +222,7 @@ const DocumentsPanel = ({ currentUser }) => {
               <div key={doc.id} className={cardBorderClass}>
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 text-gray-700 bg-blue-100 dark:bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <div className="w-10 h-10 bg-blue-100 dark:bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0">
                       {getFileIcon(doc.name)}
                     </div>
                     <div className="min-w-0 flex-1">

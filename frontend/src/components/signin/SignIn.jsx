@@ -32,9 +32,21 @@ const SignIn = ({ onLogin }) => {
     });
 
     if (error) {
-      toast.error(error.message);
+      toast.error(error.message, {
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } else {
-      toast.success('Login successful!');
+      toast.success('Login successful!', {
+        autoClose: 2000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
       if (onLogin) onLogin(data.user);
       navigate('/dashboard');
     }
@@ -44,7 +56,13 @@ const SignIn = ({ onLogin }) => {
   const handleForgotPassword = async (e) => {
     e.preventDefault();
     if (!resetEmail) {
-      toast.error('Please enter your email address to reset password.');
+      toast.error('Please enter your email address to reset password.', {
+        autoClose: 4000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
       return;
     }
 
@@ -54,14 +72,32 @@ const SignIn = ({ onLogin }) => {
       });
 
       if (error) {
-        toast.error(error.message);
+        toast.error(error.message, {
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
       } else {
-        toast.success('Password reset email sent! Check your inbox.');
+        toast.success('Password reset email sent! Check your inbox.', {
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
         setShowForgot(false);
       }
     } catch (err) {
       console.error(err);
-      toast.error('Something went wrong. Please try again.');
+      toast.error('Something went wrong. Please try again.', {
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     }
   };
 

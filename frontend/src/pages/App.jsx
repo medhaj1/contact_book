@@ -17,8 +17,10 @@ import SettingsPage from './SettingsPage';
 import { supabase } from "../supabaseClient";
 import { BlockedContactsProvider } from "../components/dashboard/BlockedContactsContext";
 import { FormatProvider } from "../components/settings/FormatContext";
+import { ThemeProvider } from "../contexts/ThemeContext";
+import ThemedToastContainer from "../components/ThemedToastContainer";
 
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const AuthListener = ({ setIsLoggedIn, setCurrentUser }) => {
@@ -129,10 +131,11 @@ function App() {
   if (loading) return null; // You can add a spinner here
 
   return (
-    <FormatProvider>
-      <Router>
-        <AuthListener setIsLoggedIn={setIsLoggedIn} setCurrentUser={setCurrentUser} />
-        <ToastContainer position="top-right" autoClose={1000} />
+    <ThemeProvider>
+      <FormatProvider>
+        <Router>
+          <AuthListener setIsLoggedIn={setIsLoggedIn} setCurrentUser={setCurrentUser} />
+          <ThemedToastContainer />
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
@@ -162,7 +165,6 @@ function App() {
               )
             }
           />
-          <Route path="/reset-password" element={<ResetPassword />} />
           <Route
             path="/settings"
             element={isLoggedIn ? <SettingsPage currentUser={currentUser} /> : <Navigate to="/signin" />}
@@ -171,6 +173,7 @@ function App() {
         </Routes>
       </Router>
     </FormatProvider>
+    </ThemeProvider>
   );
 }
 

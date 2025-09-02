@@ -1,24 +1,25 @@
-  import React, { useState, useEffect, useCallback } from "react";
-  import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from 'react-toastify';
-  import ChatPanel from '../components/chat/ChatPanel';
-  import ContactForm from '../components/dashboard/ContactForm';
-  import BirthdayReminder from '../components/dashboard/BirthdayReminder';
-  import TaskPanel from '../components/dashboard/TaskPanel';
-  import DocumentsPanel from '../components/dashboard/DocumentsPanel';
-  import ImportModal from '../components/dashboard/ImportModal';
-  import GroupPanel from '../components/groups/GroupPanel';
-  import ReceivedDocumentsPanel from '../components/dashboard/ReceivedDocumentsPanel';
-  import SharedDocumentsPanel from '../components/dashboard/SharedDocumentsPanel';
-  import Sidebar from '../components/dashboard/Sidebar';
-  import HeaderSection from '../components/dashboard/HeaderSection';
-  import ContactsControlBar from '../components/dashboard/ContactsControlBar';
-  import ContactsGrid from '../components/dashboard/ContactsGrid';
-  import ContactsList from '../components/dashboard/ContactsList';
-  import FloatingActionButton from '../components/dashboard/FloatingActionButton';
-  import { addFavourite, removeFavourite } from "../services/favouriteService";
-  import { exportContactsCSV, exportContactsVCF } from '../services/importExportService';
-  import { getContacts, deleteContact } from '../services/contactService';
+import ChatPanel from '../components/chat/ChatPanel';
+import ContactForm from '../components/dashboard/ContactForm';
+import BirthdayReminder from '../components/dashboard/BirthdayReminder';
+import TaskPanel from '../components/dashboard/TaskPanel';
+import DocumentsPanel from '../components/dashboard/DocumentsPanel';
+import ImportModal from '../components/dashboard/ImportModal';
+import GroupPanel from '../components/groups/GroupPanel';
+import ReceivedDocumentsPanel from '../components/dashboard/ReceivedDocumentsPanel';
+import SharedDocumentsPanel from '../components/dashboard/SharedDocumentsPanel';
+import Sidebar from '../components/dashboard/Sidebar';
+import HeaderSection from '../components/dashboard/HeaderSection';
+import ContactsControlBar from '../components/dashboard/ContactsControlBar';
+import ContactsGrid from '../components/dashboard/ContactsGrid';
+import ContactsList from '../components/dashboard/ContactsList';
+import FloatingActionButton from '../components/dashboard/FloatingActionButton';
+import BulkActionsBar from '../components/dashboard/BulkActionsBar';
+import { addFavourite, removeFavourite, bulkAddFavourites, bulkRemoveFavourites } from "../services/favouriteService";
+import { exportContactsCSV, exportContactsVCF } from '../services/importExportService';
+import { getContacts, deleteContact, bulkDeleteContacts } from '../services/contactService';
 import { getCategories } from '../services/categoryService';
 import { supabase } from '../supabaseClient';
 import { useBlockedContacts } from "../components/dashboard/BlockedContactsContext";
@@ -80,10 +81,12 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   const [showImportModal, setShowImportModal] = useState(() => localStorage.getItem("dashboardShowImportModal") === "true");
   const [profileImageError, setProfileImageError] = useState(false);
 
-  const [isDark, setIsDark] = useState(() => localStorage.getItem("theme") === "dark");
-
   // Chat integration states
   const [selectedContact, setSelectedContact] = useState(null);
+
+  // Bulk selection states
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedContacts, setSelectedContacts] = useState([]);
 
   const handleExport = async (format) => {
     try {
@@ -101,7 +104,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
         result = await exportContactsVCF(userId, filters);
       }
       if (result.success) {
-        toast.error(`${format.toUpperCase()} exported successfully!`);
+        toast.success(`${format.toUpperCase()} exported successfully!`);
       } else {
         toast.error(`Failed to export ${format.toUpperCase()}: ${result.error}`);
       }
@@ -109,11 +112,6 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
       toast.error(`Error exporting ${format.toUpperCase()}: ` + error.message);
     }
   };
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", isDark);
-    localStorage.setItem("theme", isDark ? "dark" : "light");
-  }, [isDark]);
 
   const fetchContacts = useCallback(async () => {
     try {
@@ -147,12 +145,16 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
 
   const fetchCategories = useCallback(async () => {
     try {
-      const result = await getCategories();
+      if (!userId || userId === "unknown") {
+        setCategories([]);
+        return;
+      }
+      const result = await getCategories(userId);
       setCategories(result.success ? result.data : []);
     } catch {
       setCategories([]);
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     if (userId && userId !== "unknown") {
@@ -249,6 +251,142 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     }
   };
 
+  // Bulk selection handlers
+  const handleToggleSelectionMode = () => {
+    setSelectionMode(!selectionMode);
+    setSelectedContacts([]);
+  };
+
+  const handleContactSelect = (contactId) => {
+    setSelectedContacts(prev => {
+      if (prev.includes(contactId)) {
+        return prev.filter(id => id !== contactId);
+      } else {
+        return [...prev, contactId];
+      }
+    });
+  };
+
+  const handleSelectAll = (contacts) => {
+    const contactIds = contacts.map(c => c.contact_id);
+    setSelectedContacts(contactIds);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedContacts([]);
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedContacts.length === 0) {
+      toast.warning('No contacts selected');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete ${selectedContacts.length} contact${selectedContacts.length > 1 ? 's' : ''}?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const result = await bulkDeleteContacts(selectedContacts);
+      if (result.success) {
+        toast.success(result.message);
+        await fetchContacts();
+        setSelectedContacts([]);
+        setSelectionMode(false);
+      } else {
+        toast.error(`Failed to delete contacts: ${result.error}`);
+      }
+    } catch (error) {
+      toast.error(`Error deleting contacts: ${error.message}`);
+    }
+  };
+
+  const handleBulkAddFavourite = async () => {
+    if (selectedContacts.length === 0) {
+      toast.warning('No contacts selected');
+      return;
+    }
+
+    try {
+      const result = await bulkAddFavourites(userId, selectedContacts);
+      if (result.success) {
+        toast.success(result.message);
+        setContacts(prev => 
+          prev.map(c => 
+            selectedContacts.includes(c.contact_id) 
+              ? { ...c, is_favourite: true } 
+              : c
+          )
+        );
+        setSelectedContacts([]);
+        setSelectionMode(false);
+      } else {
+        toast.error(`Failed to add favourites: ${result.error}`);
+      }
+    } catch (error) {
+      toast.error(`Error adding favourites: ${error.message}`);
+    }
+  };
+
+  const handleBulkRemoveFavourite = async () => {
+    if (selectedContacts.length === 0) {
+      toast.warning('No contacts selected');
+      return;
+    }
+
+    try {
+      const result = await bulkRemoveFavourites(userId, selectedContacts);
+      if (result.success) {
+        toast.success(result.message);
+        setContacts(prev => 
+          prev.map(c => 
+            selectedContacts.includes(c.contact_id) 
+              ? { ...c, is_favourite: false } 
+              : c
+          )
+        );
+        setSelectedContacts([]);
+        setSelectionMode(false);
+      } else {
+        toast.error(`Failed to remove favourites: ${result.error}`);
+      }
+    } catch (error) {
+      toast.error(`Error removing favourites: ${error.message}`);
+    }
+  };
+
+  const handleBulkExport = async (format) => {
+    if (selectedContacts.length === 0) {
+      toast.warning('No contacts selected');
+      return;
+    }
+
+    try {
+      const filters = {
+        selectedContactIds: selectedContacts
+      };
+      
+      let result;
+      if (format === 'csv') {
+        result = await exportContactsCSV(userId, filters);
+      } else {
+        result = await exportContactsVCF(userId, filters);
+      }
+      
+      if (result.success) {
+        toast.success(`${format.toUpperCase()} export completed successfully!`);
+        setSelectedContacts([]);
+        setSelectionMode(false);
+      } else {
+        toast.error(`Failed to export ${format.toUpperCase()}: ${result.error}`);
+      }
+    } catch (error) {
+      toast.error(`Error exporting ${format.toUpperCase()}: ${error.message}`);
+    }
+  };
+
   const safeString = (val) => (val ? String(val) : "");
 
 
@@ -340,11 +478,11 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   
 
   return (
-    <div className="flex min-h-screen font-sans">
+    <div className="flex h-screen font-sans overflow-hidden">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-      <div className="flex-1 p-8 bg-blue-50 dark:bg-[#0d1117] ml-16">
-        <div className="sticky top-0 z-40 bg-blue-50 dark:bg-[#0d1117] px-8 py-4 border-b border-slate-200 dark:border-[#30363d]">
-          {activeTab === "contacts" ? (
+      <div className="flex-1 flex flex-col bg-blue-50 dark:bg-[#0d1117] ml-16">
+        {activeTab === "contacts" ? (
+          <div className="sticky top-0 z-40 bg-blue-50 dark:bg-[#0d1117] px-8 py-4 border-b border-slate-200 dark:border-[#30363d] flex-shrink-0">
             <HeaderSection
               activeTab={activeMainTab}
               setActiveTab={setActiveMainTab}
@@ -358,9 +496,10 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
               onLogout={onLogout}
               onExport={handleExport}
             />
-          ) : null}
-        </div>
-        <div className="flex-1 p-8 overflow-y-auto">
+          </div>
+        ) : null}
+        
+        <div className="flex-1 p-8 overflow-y-auto min-h-0">{/* Added min-h-0 for proper flex behavior */}
           {activeTab === "contacts" && activeMainTab === "contacts" && (
             <>
               <ContactsControlBar
@@ -374,6 +513,11 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                 contacts={unblockedContacts}
                 userId={userId}
                 onCategoriesChange={fetchCategories}
+                selectionMode={selectionMode}
+                onToggleSelectionMode={handleToggleSelectionMode}
+                selectedContacts={selectedContacts}
+                onSelectAll={handleSelectAll}
+                onClearSelection={handleClearSelection}
               />
               <BirthdayReminder
                 contacts={unblockedContacts}
@@ -396,6 +540,9 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                   handleEditContact={handleEditContact}
                   handleDeleteContact={handleDeleteContact}
                   safeString={safeString}
+                  selectedContacts={selectedContacts}
+                  onContactSelect={handleContactSelect}
+                  selectionMode={selectionMode}
                 />
               ) : (
                 <ContactsList
@@ -405,6 +552,9 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                   onEditContact={handleEditContact}
                   onDeleteContact={handleDeleteContact}
                   safeString={safeString}
+                  selectedContacts={selectedContacts}
+                  onContactSelect={handleContactSelect}
+                  selectionMode={selectionMode}
                 />
               )}
               {showAddContact && (
@@ -431,6 +581,17 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                   onClose={handleImportModalClose}
                 />
               )}
+              
+              {/* Bulk Actions Bar */}
+              <BulkActionsBar
+                selectedContacts={selectedContacts}
+                onBulkDelete={handleBulkDelete}
+                onBulkAddFavourite={handleBulkAddFavourite}
+                onBulkRemoveFavourite={handleBulkRemoveFavourite}
+                onBulkExport={handleBulkExport}
+                onClearSelection={handleClearSelection}
+                contacts={filteredContacts}
+              />
             </>
           )}
           {activeTab === "contacts" && activeMainTab === "chat" && (
@@ -443,14 +604,28 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
           )}
           {/* Sidebar-driven tabs for groups, task, documents */}
           {activeTab === 'groups' && (
-            <div className="max-w-6xl mx-auto">
-              <GroupPanel currentUser={currentUser} />
+            <div className="h-full flex flex-col">
+              {currentUser && currentUser.id ? (
+                <GroupPanel currentUser={currentUser} />
+              ) : (
+                <div className="flex items-center justify-center h-64">
+                  <div className="text-center">
+                    <p className="text-gray-500 dark:text-gray-400">
+                      Loading user information...
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
-          {activeTab === "task" && <TaskPanel />}
+          {activeTab === "task" && (
+            <div className="h-full">
+              <TaskPanel currentUser={currentUser} />
+            </div>
+          )}
           {activeTab === "documents" && (
-            <div>
-              <div className="flex gap-2 mb-8">
+            <div className="h-full flex flex-col">{/* Fixed height container */}
+              <div className="flex gap-2 mb-8 flex-shrink-0">{/* Prevent tab buttons from shrinking */}
                 <button
                   className={`px-4 py-2 rounded-t-lg font-medium transition-colors border-b-2 ${viewMode === 'my' ? 'border-blue-600 text-blue-600 bg-blue-50 dark:bg-slate-700' : 'border-transparent text-slate-600 dark:text-slate-300 bg-transparent'}`}
                   onClick={() => setViewMode('my')}
@@ -470,17 +645,15 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
                   Shared Documents
                 </button>
               </div>
-              {viewMode === "my" ? (
-                <DocumentsPanel currentUser={currentUser} />
-              ) : viewMode === "shared" ? (
-                <div className="mt-4">
+              <div className="flex-1 overflow-y-auto min-h-0">{/* Scrollable content area */}
+                {viewMode === "my" ? (
+                  <DocumentsPanel currentUser={currentUser} />
+                ) : viewMode === "shared" ? (
                   <ReceivedDocumentsPanel currentUser={currentUser} />
-                </div>
-              ) : (
-                <div className="mt-4">
+                ) : (
                   <SharedDocumentsPanel currentUser={currentUser} />
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
         </div>

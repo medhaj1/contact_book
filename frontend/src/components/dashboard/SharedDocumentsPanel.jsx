@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../supabaseClient';
-import { toast } from 'react-toastify';
 
 const SharedDocumentsPanel = ({ currentUser }) => {
   const [sharedDocs, setSharedDocs] = useState([]);
@@ -48,7 +47,7 @@ const SharedDocumentsPanel = ({ currentUser }) => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {sharedDocs.map(doc => (
-            <div key={doc.id} className="bg-white border border-blue-100 p-6 rounded-2xl transition hover:shadow-md hover:-translate-y-1">
+            <div key={doc.id} className="bg-white dark:bg-[#161b22] border border-blue-100 dark:border-slate-700 p-6 rounded-2xl transition hover:shadow-md hover:-translate-y-1">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-blue-100 dark:bg-slate-700 rounded-lg flex items-center justify-center flex-shrink-0">
                   <span role="img" aria-label="book">📖</span>
