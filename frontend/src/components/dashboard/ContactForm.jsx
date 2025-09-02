@@ -305,27 +305,27 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
           </div>
 
           {/* Birthday with label */}
-<div className="mb-4">
-  <label
-    htmlFor="birthday-input"
-    className="block mb-1 font-semibold text-gray-700 dark:text-gray-300"
-  >
-    Birthday
-  </label>
-  <input
-    id="birthday-input"
-    type="date"
-    placeholder="Birthday"
-    value={formData.birthday}
-    onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
-    className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 transform transition duration-200"
-  />
-  {formData.birthday && (
-    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-      Display format: {formatDate(formData.birthday)}
-    </div>
-  )}
-</div>
+          <div className="mb-4">
+            <label
+              htmlFor="birthday-input"
+              className="block mb-1 font-semibold text-gray-700 dark:text-gray-300"
+            >
+              Birthday
+            </label>
+            <input
+              id="birthday-input"
+              type="date"
+              placeholder="Birthday"
+              value={formData.birthday}
+              onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
+              className="w-full px-4 py-3 dark:bg-gray-800/50 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 dark:focus:ring-indigo-600 transform transition duration-200"
+            />
+            {formData.birthday && (
+              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Display format: {formatDate(formData.birthday)}
+              </div>
+            )}
+          </div>
 
 
           {/* ✅ Multi-Category Select with Tags */}
