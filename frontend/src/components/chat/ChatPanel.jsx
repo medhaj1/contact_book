@@ -105,6 +105,8 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
       }
     };
     fetchContacts();
+    const interval = setInterval(fetchContacts, 2000);
+    return () => clearInterval(interval);
   }, [currentUserId]);
 
   // Persist selected contact and new message input
