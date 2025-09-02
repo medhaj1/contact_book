@@ -13,7 +13,7 @@ const FloatingActionButton = ({
   if (!show) return null;
 
   return (
-    <div className="fixed bottom-10 right-10 z-40">
+    <div className="fixed bottom-[60px] right-[50px] z-40">
       <div
         className="group relative"
         tabIndex={0}
@@ -23,7 +23,7 @@ const FloatingActionButton = ({
             !e.currentTarget.contains(e.relatedTarget) &&
             showAddContactDropdown
           ) {
-            setShowAddContactDropdown(false);
+            setShowAddContactDropdown(false)
           }
         }}
       >
@@ -74,10 +74,10 @@ const FloatingActionButton = ({
               Import Contacts
             </div>
           </div>
-        )};
+        )}
       </div>
     </div>
-  );
-};
+  )
+}
 
 export default FloatingActionButton;
