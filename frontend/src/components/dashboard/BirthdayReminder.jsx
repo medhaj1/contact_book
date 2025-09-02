@@ -21,7 +21,6 @@ function showToast(message) {
     setTimeout(() => document.body.removeChild(toast), 400);
   }, 1800);
 }
-// ...existing code...
 
 const BirthdayReminder = ({ contacts, onBirthdayWish }) => {
   const todaysBirthdays = contacts.filter(c => isBirthdayToday(c.birthday));
@@ -44,8 +43,8 @@ const BirthdayReminder = ({ contacts, onBirthdayWish }) => {
           style={{ alignItems: "center", paddingBottom: 4 }}
         >
           {people.map(c => {
-            // Assume user is registered if c.user_id exists (adjust if your property is different)
-            const isRegistered = !!c.user_id;
+            // Only show button if user is registered (contact_user_id is a non-empty string)
+            const isRegistered = typeof c.contact_user_id === "string" && c.contact_user_id.trim().length > 0;
             return (
               <div
                 key={c.contact_id}
@@ -76,21 +75,21 @@ const BirthdayReminder = ({ contacts, onBirthdayWish }) => {
                     🎂 {prettyDate(c.birthday)}
                   </div>
                 </div>
-                  {showWish && isRegistered ? (
-                    <button
-                      onClick={async () => {
-                        if (onBirthdayWish) {
-                          await onBirthdayWish(c);
-                          showToast(`Wish has been sent to ${c.name}`);
-                        }
-                      }}
-                      className="text-xs px-2 py-1 rounded transition-colors font-semibold flex-shrink-0 bg-green-500 hover:bg-green-600 text-white"
-                      title={`Send Happy Birthday to ${c.name}`}
-                      aria-label={`Send Happy Birthday to ${c.name}`}
-                    >
-                      Happy Birthday
-                    </button>
-                  ) : null}
+                {showWish && isRegistered ? (
+                  <button
+                    onClick={async () => {
+                      if (onBirthdayWish) {
+                        await onBirthdayWish(c);
+                        showToast(`Wish has been sent to ${c.name}`);
+                      }
+                    }}
+                    className="text-xs px-2 py-1 rounded transition-colors font-semibold flex-shrink-0 bg-green-500 hover:bg-green-600 text-white"
+                    title={`Send Happy Birthday to ${c.name}`}
+                    aria-label={`Send Happy Birthday to ${c.name}`}
+                  >
+                    Happy Birthday
+                  </button>
+                ) : null}
               </div>
             );
           })}
