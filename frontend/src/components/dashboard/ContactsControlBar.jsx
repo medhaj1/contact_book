@@ -111,7 +111,7 @@ const ContactsControlBar = ({
             <>
               <button
                 onClick={allSelected ? onClearSelection : () => onSelectAll(filteredContacts)}
-                className="px-3 py-2 rounded-lg text-sm font-medium bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                className="px-3 py-1 rounded-xl text-sm font-medium bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 title={allSelected ? "Deselect all" : "Select all visible"}
               >
                 {allSelected ? 'Deselect All' : 'Select All'}
@@ -154,7 +154,7 @@ const ContactsControlBar = ({
           className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             selectedCategory === ''
               ? 'bg-blue-600 dark:bg-indigo-600 text-white'
-              : 'bg-white dark:bg-gray-700 border border-gray-200 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-gray-700'
           }`}
         >
           All ({getCategoryCount('')})
@@ -166,7 +166,7 @@ const ContactsControlBar = ({
           className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             selectedCategory === 'favourites'
               ? 'bg-blue-600 dark:bg-indigo-600 text-white'
-              : 'bg-white dark:bg-gray-700 border border-gray-200 text-gray-700 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-gray-600'
+              : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-gray-700'
           }`}
         >
           ⭐ Favourites ({getCategoryCount('favourites')})
@@ -180,7 +180,7 @@ const ContactsControlBar = ({
             className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
               String(selectedCategory) === String(category.category_id)
                 ? 'bg-blue-600 dark:bg-indigo-600 text-white'
-                : 'bg-white border border-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                : 'bg-white border border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-gray-700'
             }`}
           >
             {category.name} ({getCategoryCount(category.category_id)})
@@ -190,7 +190,7 @@ const ContactsControlBar = ({
         {/* Add Category Button - Place last */}
         <button
           onClick={() => setShowAddCategory(true)}
-          className="flex-shrink-0 p-2 rounded-full bg-white border border-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          className="flex-shrink-0 p-2 rounded-full bg-white border border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors"
           title="Add Category"
         >
           <Plus size={16} />

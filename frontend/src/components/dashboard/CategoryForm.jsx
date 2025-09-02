@@ -85,7 +85,7 @@ const CategoryForm = ({ onSave, onCancel, existingCategories = [], userId }) => 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000]">
-      <div className="bg-white p-8 rounded-[12px] w-[400px] shadow-[0_10px_40px_rgba(0,0,0,0.1)]">
+      <div className="bg-white dark:bg-[#161b22] p-8 rounded-[12px] w-[400px] shadow-[0_10px_40px_rgba(0,0,0,0.1)]">
         <h3 className="text-lg font-semibold text-slate-900 mb-6">Add New Category</h3>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
@@ -97,7 +97,7 @@ const CategoryForm = ({ onSave, onCancel, existingCategories = [], userId }) => 
                 setCategoryName(e.target.value);
                 setError(''); // Clear error when user types
               }}
-              className="w-full px-4 py-3 border border-slate-300 rounded-xl text-base outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 focus:scale-105 transform transition duration-200"
+              className="w-full px-4 py-3 dark:bg-gray-800 border border-slate-300 dark:border-gray-700 rounded-xl text-base dark:text-gray-200 outline-none scale-100 hover:scale-105 focus:ring-1 focus:ring-blue-400 focus:scale-105 transform transition duration-200"
               required
               disabled={isSubmitting}
               maxLength={50}
@@ -110,10 +110,10 @@ const CategoryForm = ({ onSave, onCancel, existingCategories = [], userId }) => 
             <button 
               type="submit"
               disabled={isSubmitting || !categoryName.trim()}
-              className={`flex-1 py-3 rounded-xl text-white text-base font-medium transition-all duration-200 ${
+              className={`flex-1 py-3 rounded-xl text-white text-base justify-center transition-all duration-200 ${
                 isSubmitting || !categoryName.trim()
                   ? 'bg-gray-400 cursor-not-allowed' 
-                  : 'bg-gradient-to-r from-blue-700 to-blue-400 scale-100 hover:from-blue-800 hover:to-blue-500 hover:scale-105 transform'
+                  : 'btn'
               }`}
             >
               {isSubmitting ? 'Saving...' : 'Save'}
@@ -122,7 +122,7 @@ const CategoryForm = ({ onSave, onCancel, existingCategories = [], userId }) => 
               type="button" 
               onClick={onCancel}
               disabled={isSubmitting}
-              className="flex-1 py-3 rounded-xl text-slate-500 bg-slate-100 text-base font-medium scale-100 hover:scale-105 hover:bg-slate-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 py-3 rounded-xl text-slate-500 dark:text-gray-100 border dark:border-gray-600 bg-slate-100 dark:bg-gray-700/70 text-base font-medium scale-100 hover:scale-105 hover:bg-slate-200 hover:dark:bg-gray-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
