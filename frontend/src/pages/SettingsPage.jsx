@@ -78,7 +78,7 @@ function SettingsPage({ currentUser }) {
                   </div>
                 </div>
     
-                <div className="px-6 py-4 border-b border-slate-200 dark:border-[#30363d]">
+                <div className="px-6 py-4">
                   <h2 className="text-gray-500 dark:text-gray-400 text-md font-semibold uppercase mb-2">Preferences</h2>
                   <div className="divide-y divide-slate-200 dark:divide-[#30363d]">
                     <button
