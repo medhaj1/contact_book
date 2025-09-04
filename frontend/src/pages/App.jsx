@@ -22,6 +22,7 @@ import ThemedToastContainer from "../components/ThemedToastContainer";
 
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useEventFix } from "../utils/eventFix";
 
 const AuthListener = ({ setIsLoggedIn, setCurrentUser }) => {
   const navigate = useNavigate();
@@ -37,17 +38,27 @@ const AuthListener = ({ setIsLoggedIn, setCurrentUser }) => {
     const { data: listener } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (event === "PASSWORD_RECOVERY") {
+          // Clear any toasts when transitioning auth state
+          try { toast.dismiss(); /* eslint-disable-line no-empty */ } catch {}
           setIsLoggedIn(false);
           setCurrentUser(null);
           navigate("/reset-password");
         } else if (event === "SIGNED_IN") {
+          try { toast.dismiss(); } catch {}
           setIsLoggedIn(true);
           setCurrentUser(session?.user || null);
           navigate("/dashboard");
         } else if (event === "SIGNED_OUT") {
+          // Force-dismiss all active and queued toasts on logout
+          try {
+            toast.dismiss();
+            if (typeof toast.clearWaitingQueue === 'function') {
+              toast.clearWaitingQueue();
+            }
+          } catch {}
           setIsLoggedIn(false);
           setCurrentUser(null);
-          navigate("/signin");
+          navigate("/", { replace: true });
         }
       }
     );
@@ -64,6 +75,9 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
+
+  // Apply event fixes to prevent clicking issues
+  useEventFix();
 
   useEffect(() => {
     if (isLoggedIn || currentUser === null) {
@@ -91,33 +105,49 @@ function App() {
       "chatPanelSelectedContact",
       "chatPanelNewMessage",
     ];
+    
+    // Clear localStorage items
     keysToRemove.forEach((key) => {
       localStorage.removeItem(key);
     });
+    
+    // Clear any Supabase auth tokens
+    localStorage.removeItem('supabase.auth.token');
+    localStorage.removeItem('sb-localhost-auth-token');
+    
+    // Clear session storage
+    sessionStorage.clear();
   };
 
   const handleLogout = async () => {
     try {
+  // Ensure no prior toasts distract during logout
+  try { toast.dismiss(); } catch {}
+      
+      // Clear local data first
+      clearPersistenceData();
+      
+      // Clear session storage
+      sessionStorage.clear();
+      
+      // Update state immediately
+      setIsLoggedIn(false);
+      setCurrentUser(null);
+      
+      // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
+      
       if (error) {
-        const toastId = toast.error("Error logging out. Please try again.", {
-          autoClose: 1000,
+        console.error('Logout error:', error);
+        toast.error("Error logging out. Please try again.", {
+          autoClose: 3000,
         });
-        setTimeout(() => toast.dismiss(toastId), 1000);
-      } else {
-        clearPersistenceData();
-        setIsLoggedIn(false);
-        setCurrentUser(null);
-        const toastId = toast.success("Logged out successfully", {
-          autoClose: 1000,
-        });
-        setTimeout(() => toast.dismiss(toastId), 1000);
       }
-    } catch {
-      const toastId = toast.error("Error logging out. Please try again.", {
-        autoClose: 1000,
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error("Error logging out. Please try again.", {
+        autoClose: 3000,
       });
-      setTimeout(() => toast.dismiss(toastId), 1000);
     }
   };
 

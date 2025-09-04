@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Grid, List, Plus, CheckSquare, Square } from 'lucide-react';
 import CategoryForm from './CategoryForm';
+import { deleteCategory } from '../../services/categoryService';
 
 const ContactsControlBar = ({
   searchTerm,
@@ -173,18 +174,30 @@ const ContactsControlBar = ({
         </button>
 
         {/* User's Categories - Place here */}
-        {categories.map((category) => (
-          <button
-            key={category.category_id}
-            onClick={() => setSelectedCategory(category.category_id)}
-            className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              String(selectedCategory) === String(category.category_id)
-                ? 'bg-blue-600 dark:bg-indigo-600 text-white'
-                : 'bg-white border border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-gray-700'
-            }`}
-          >
-            {category.name} ({getCategoryCount(category.category_id)})
-          </button>
+        {categories.map(cat => (
+          <div key={cat.category_id} className="relative flex items-center group">
+            <button
+              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                String(selectedCategory) === String(cat.category_id)
+                  ? 'bg-blue-600 dark:bg-indigo-600 text-white'
+              : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-gray-700'
+              }`}
+              onClick={() => setSelectedCategory(cat.category_id)}
+            >
+              {cat.name} ({getCategoryCount(cat.category_id)})
+            </button>
+            <button
+              className="absolute right-0 -mr-2 px-2 py-1 rounded-full bg-white text-red-500 text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
+              title="Delete Category"
+              onClick={async () => {
+                const res = await deleteCategory(cat.category_id);
+                if (res.success) onCategoriesChange();
+                else alert(res.error);
+              }}
+            >
+              ×
+            </button>
+          </div>
         ))}
 
         {/* Add Category Button - Place last */}

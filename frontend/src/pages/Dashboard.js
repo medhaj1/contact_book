@@ -77,7 +77,6 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
   }, [activeMainTab]);
 
   const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const [showAddContactDropdown, setShowAddContactDropdown] = useState(false);
   const [showImportModal, setShowImportModal] = useState(() => localStorage.getItem("dashboardShowImportModal") === "true");
   const [profileImageError, setProfileImageError] = useState(false);
 
@@ -194,14 +193,7 @@ const Dashboard = ({ currentUser, onLogout = () => {} }) => {
     localStorage.setItem("dashboardShowImportModal", showImportModal.toString());
   }, [showImportModal]);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showUserDropdown && !event.target.closest(".relative")) setShowUserDropdown(false);
-      if (showAddContactDropdown && !event.target.closest(".relative")) setShowAddContactDropdown(false);
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showUserDropdown, showAddContactDropdown]);
+  // Rely on per-component outside click hooks rather than a global document listener
 
   const handleContactSave = async () => {
     await fetchContacts();

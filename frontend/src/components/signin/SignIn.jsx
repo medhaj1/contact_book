@@ -116,9 +116,17 @@ const SignIn = ({ onLogin }) => {
           <ArrowLeftIcon className="w-5 h-5 text-slate-400 hover:text-slate-600" />
         </button>
 
-        <h2 className="text-3xl font-bold mb-6 text-blue-900">
-          {showForgot ? 'Reset Password' : 'Sign In'}
-        </h2>
+        {/* Logo */}
+        <div className="flex flex-col items-center mb-6">
+          <img 
+            src="/a-vibrant-logo-for-a-contact-management-web-app--m (1).ico" 
+            alt="ContactBook+ Logo" 
+            className="h-16 w-16 object-contain mb-4"
+          />
+          <h2 className="text-3xl font-bold text-blue-900">
+            {showForgot ? 'Reset Password' : 'Sign In'}
+          </h2>
+        </div>
 
         {!showForgot ? (
           <>

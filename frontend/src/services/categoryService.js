@@ -75,7 +75,7 @@ export const updateCategory = async (categoryId, categoryName) => {
 
     const { data: updatedData, error: updateError } = await supabase
       .from("category")
-      .update({ category_name: cleanName })
+      .update({ name: cleanName })
       .eq("category_id", categoryId)
       .select()
       .single();
@@ -111,6 +111,3 @@ export const deleteCategory = async (categoryId) => {
     return { success: false, error: error.message };
   }
 };
-
-
-

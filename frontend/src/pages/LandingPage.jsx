@@ -11,7 +11,16 @@ const LandingPage = () => {
   return (
     <div className="flex items-center justify-center min-h-screen px-8 bg-gradient-to-r from-blue-200 to-white">
       <div className="text-center max-w-3xl text-gray-800">
-        <h1 className="text-5xl font-extrabold mb-6 text-blue-900">Contact Book</h1>
+        {/* Logo */}
+        <div className="flex flex-col items-center mb-8">
+          <img 
+            src="/a-vibrant-logo-for-a-contact-management-web-app--m (1).ico" 
+            alt="ContactBook+ Logo" 
+            className="h-20 w-20 object-contain mb-4"
+          />
+          <h1 className="text-5xl font-extrabold text-blue-900">ContactBook+</h1>
+        </div>
+        
         <p className="text-lg mb-8 text-gray-700">
           Organize your contacts beautifully. Connect with people that matter.
         </p>

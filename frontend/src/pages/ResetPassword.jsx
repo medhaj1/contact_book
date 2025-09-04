@@ -20,20 +20,29 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
-      <form onSubmit={handleNewPassword} className="bg-white p-6 rounded shadow-md w-full max-w-sm">
-        <h2 className="text-xl font-semibold mb-4">Reset Password</h2>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-blue-200 to-white">
+      <form onSubmit={handleNewPassword} className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md text-center">
+        {/* Logo */}
+        <div className="flex flex-col items-center mb-6">
+          <img 
+            src="/a-vibrant-logo-for-a-contact-management-web-app--m (1).ico" 
+            alt="ContactBook+ Logo" 
+            className="h-16 w-16 object-contain mb-4"
+          />
+          <h2 className="text-3xl font-bold text-blue-900">Reset Password</h2>
+        </div>
+        
         <input
           type="password"
           placeholder="New password"
           value={newPassword}
           onChange={e => setNewPassword(e.target.value)}
-          className="w-full mb-4 px-3 py-2 border rounded"
+          className="w-full p-3 mb-4 border rounded-xl shadow focus:shadow-md hover:shadow-md scale-100 focus:scale-105 transition-all duration-200"
           required
         />
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded"
+          className="w-full text-lg font-bold bg-gradient-to-r from-blue-700 to-blue-400 text-white py-3 rounded-xl shadow scale-100 hover:scale-105 hover:shadow-lg hover:from-blue-800 hover:to-blue-500 transition-all duration-200"
           disabled={loading}
         >
           {loading ? 'Resetting...' : 'Reset Password'}

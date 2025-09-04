@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import z-index fix */
+@import './utils/zIndexFix.css';
+
 body {
   margin: 0;
   font-family: 'Inter', sans-serif;
@@ -9,6 +12,8 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background: linear-gradient(to right, #e0f7fa, #ffffff);
   overflow-x: hidden; /* Prevent horizontal scroll */
+  position: relative;
+  min-height: 100vh;
 }
 
 code {
@@ -82,6 +87,42 @@ code {
   font-weight: 500 !important;
   font-size: 14px !important;
   animation: slideInRight 0.3s ease-out !important;
+  min-height: 64px !important;
+  padding: 16px !important;
+}
+
+/* Fix for toast auto-close and ensure proper timing */
+.Toastify__toast--default {
+  background: #ffffff !important;
+  color: #1f2937 !important;
+}
+
+.Toastify__toast--success {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%) !important;
+  color: #065f46 !important;
+  border-left: 4px solid #16a34a !important;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.2) !important;
+}
+
+.Toastify__toast--error {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%) !important;
+  color: #991b1b !important;
+  border-left: 4px solid #dc2626 !important;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2) !important;
+}
+
+.Toastify__toast--warning {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+  color: #92400e !important;
+  border-left: 4px solid #d97706 !important;
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2) !important;
+}
+
+.Toastify__toast--info {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
+  color: #1e40af !important;
+  border-left: 4px solid #2563eb !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2) !important;
 }
 
 @keyframes slideInRight {
@@ -96,11 +137,18 @@ code {
 }
 
 /* Progress bar colors for different toast types */
-.overdue-toast .Toastify__progress-bar {
+.Toastify__progress-bar {
+  height: 4px !important;
+  background: linear-gradient(90deg, transparent, currentColor) !important;
+}
+
+.overdue-toast .Toastify__progress-bar,
+.Toastify__toast--error .Toastify__progress-bar {
   background: #dc2626 !important;
 }
 
-.due-today-toast .Toastify__progress-bar {
+.due-today-toast .Toastify__progress-bar,
+.Toastify__toast--warning .Toastify__progress-bar {
   background: #ea580c !important;
 }
 
@@ -108,12 +156,18 @@ code {
   background: #d97706 !important;
 }
 
-.due-soon-toast .Toastify__progress-bar {
+.due-soon-toast .Toastify__progress-bar,
+.Toastify__toast--info .Toastify__progress-bar {
   background: #2563eb !important;
 }
 
-.due-week-toast .Toastify__progress-bar {
+.due-week-toast .Toastify__progress-bar,
+.Toastify__toast--success .Toastify__progress-bar {
   background: #16a34a !important;
+}
+
+.Toastify__toast--default .Toastify__progress-bar {
+  background: #6b7280 !important;
 }
 
 .tab {
@@ -132,53 +186,112 @@ code {
   border: none;
 }
 
-/* Toast Close Button Fix */
-.Toastify__close-button {
-  opacity: 1 !important;
-  color: inherit !important;
-  cursor: pointer !important;
-  background: transparent !important;
-  border: none !important;
+/* Toast Container positioning */
+.Toastify__toast-container {
+  padding: 8px !important;
+  z-index: 10000 !important;
+  /* Let toasts receive pointer events; individual toasts control interactivity */
+  pointer-events: none !important;
+}
+
+.Toastify__toast-container--top-right {
+  top: 20px !important;
+  right: 20px !important;
+}
+
+/* Ensure toasts don't overflow and are clickable */
+.Toastify__toast {
+  max-width: 350px !important;
+  word-wrap: break-word !important;
+  box-sizing: border-box !important;
+  pointer-events: auto !important;
+}
+
+/* Custom toast classes for better control */
+.custom-toast {
+  border-radius: 12px !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+  min-height: 64px !important;
+  padding: 16px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+}
+
+.custom-toast-body {
   padding: 0 !important;
-  width: 20px !important;
-  height: 20px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  border-radius: 50% !important;
+  margin: 0 !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+
+.custom-progress-bar {
+  height: 4px !important;
+  border-radius: 0 0 12px 12px !important;
+}
+
+/* Avoid broad pointer-events overrides that can block clicks */
+.fixed-overlay { /* only used for explicit overlays */
+  pointer-events: auto;
+}
+
+.backdrop-overlay {
+  pointer-events: auto;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Ensure buttons and interactive elements work properly */
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+/* Fix for hover states */
+button:hover:not(:disabled),
+a:hover,
+[role="button"]:hover {
   transition: all 0.2s ease !important;
 }
 
-.Toastify__close-button:hover {
-  background: rgba(0, 0, 0, 0.1) !important;
-  transform: scale(1.1) !important;
+/* Prevent event interference from overlays */
+/* Only disable pointer events on explicit non-interactive overlays */
+.overlay-behind { pointer-events: none; }
+.overlay-behind > * { pointer-events: auto; }
+
+/* Ensure all clickable elements remain interactive */
+/* Do not force pointer-events globally; allow natural behavior */
+
+/* Fix z-index stacking issues */
+.modal-backdrop {
+  z-index: 1000 !important;
 }
 
-.Toastify__close-button > svg {
-  width: 14px !important;
-  height: 14px !important;
-  fill: currentColor !important;
-  stroke: currentColor !important;
-  stroke-width: 2 !important;
+.dropdown-menu {
+  z-index: 1050 !important;
 }
 
-/* Ensure close button is always visible */
-.Toastify__toast--success .Toastify__close-button {
-  color: #065f46 !important;
+.sidebar-overlay {
+  z-index: 30 !important;
 }
 
-.Toastify__toast--error .Toastify__close-button {
-  color: #991b1b !important;
+.floating-action {
+  z-index: 40 !important;
 }
 
-.Toastify__toast--warning .Toastify__close-button {
-  color: #92400e !important;
+.toast-container { z-index: 10000 !important; }
+
+/* Emergency fix for clicking issues */
+* {
+  box-sizing: border-box;
 }
 
-.Toastify__toast--info .Toastify__close-button {
-  color: #1e40af !important;
-}
+/* Remove duplicate global pointer-events forcing */
 
-.Toastify__toast--default .Toastify__close-button {
-  color: #374151 !important;
+/* Fix for overlays blocking interaction */
+/* Do not blanket-disable pointer events on fixed overlays; manage per component */
+
+/* Ensure modals and their content remain interactive */
+/* Keep modals interactive without forcing pointer events globally */
+
+/* Fix for hover effects that might get stuck */
+:hover {
+  transition: all 0.2s ease !important;
 }

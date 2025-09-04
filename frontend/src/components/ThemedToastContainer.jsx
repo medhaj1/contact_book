@@ -8,16 +8,22 @@ const ThemedToastContainer = () => {
   return (
     <ToastContainer 
       position="top-right" 
-      autoClose={5000}
+  autoClose={5000}
       hideProgressBar={false}
-      newestOnTop={false}
-      closeOnClick={true}
+      newestOnTop={true}
+  closeOnClick={true}
       rtl={false}
-      pauseOnFocusLoss
-      draggable
-      pauseOnHover
+      pauseOnFocusLoss={true}
+      draggable={true}
+      pauseOnHover={true}
       theme={isDark ? "dark" : "light"}
       style={{ zIndex: 9999 }}
+      enableMultiContainer={false}
+  limit={3}
+  closeButton={false}
+      toastClassName="custom-toast"
+      bodyClassName="custom-toast-body"
+      progressClassName="custom-progress-bar"
     />
   );
 };

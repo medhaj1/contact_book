@@ -1,5 +1,5 @@
 {
-  "name": "contact-management-app",
+  "name": "contactbook-plus",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -12,8 +12,8 @@
     "dotenv": "^17.2.0",
     "lucide-react": "^0.525.0",
     "papaparse": "^5.5.3",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
+  "react": "^18.3.1",
+  "react-dom": "^18.3.1",
     "react-icons": "^5.5.0",
     "react-router": "^6.30.1",
     "react-router-dom": "^6.30.1",
@@ -32,8 +32,8 @@
     "docker:dev:down": "docker-compose -f docker-compose.dev.yml down",
     "docker:dev:logs": "docker-compose -f docker-compose.dev.yml logs -f",
     "docker:dev:restart": "docker-compose -f docker-compose.dev.yml down && docker-compose -f docker-compose.dev.yml up --build",
-    "docker:prod": "docker build -t contact-book-prod .",
-    "docker:run:prod": "docker run -p 3000:80 contact-book-prod"
+    "docker:prod": "docker build -t contactbook-plus-prod .",
+    "docker:run:prod": "docker run -p 3000:80 contactbook-plus-prod"
   },
   "eslintConfig": {
     "extends": [

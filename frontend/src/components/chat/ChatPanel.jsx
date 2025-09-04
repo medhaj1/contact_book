@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../supabaseClient';
 import { FiPaperclip } from "react-icons/fi";
+import { useOutsideClick } from '../../hooks/useOutsideClick';
 
 function isOnline(lastSeen) {
   if (!lastSeen) return false;
@@ -11,6 +12,12 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
   // Multi-select state for sent messages
   const [openMenuId, setOpenMenuId] = useState(null);
   const currentUserId = currentUser?.id;
+
+  // Outside click handler for message menu
+  const messageMenuRef = useOutsideClick(
+    () => setOpenMenuId(null),
+    openMenuId !== null
+  );
 
   // Contact and invite logic
   const [inviteContacts, setInviteContacts] = useState([]);
@@ -490,7 +497,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
                 backgroundPosition: '0 0, 25px 25px, 0 0, 50px 50px'
               }}
             >
-              {/* Contact book themed overlay pattern */}
+              {/* ContactBook+ themed overlay pattern */}
               <div 
                 className="absolute inset-0 opacity-30 dark:opacity-10 pointer-events-none"
                 style={{
@@ -528,7 +535,7 @@ function ChatPanel({ currentUser, messages: initialMessages = [], onSend, onSend
                       key={messageKey}
                       className={`flex ${m.sender_id === currentUserId ? 'justify-end' : 'justify-start'} mb-1`}
                     >
-                      <div className="relative group flex">
+                      <div className="relative group flex" ref={openMenuId === m.id ? messageMenuRef : null}>
                         <div
                           className={`rounded-2xl px-4 py-2 mr-3 text-sm whitespace-pre-line shadow-sm transition-all ${
                             m.sender_id === currentUserId

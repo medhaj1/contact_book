@@ -15,6 +15,7 @@ import {
 } from '../../services/groupService';
 import { supabase } from '../../supabaseClient';
 import { toast } from 'react-toastify';
+//import { handleLeaveGroup, handleDeleteTask } from './someFile';
 
 const GroupPanel = ({ currentUser }) => {
   // Try different possible id fields
@@ -73,8 +74,6 @@ const GroupPanel = ({ currentUser }) => {
   const [inviteEmail, setInviteEmail] = useState('');
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDesc, setNewGroupDesc] = useState('');
-  const [taskText, setTaskText] = useState('');
-  const [taskDeadline, setTaskDeadline] = useState('');
   const [selectedMemberId, setSelectedMemberId] = useState('');
   const [memberTaskText, setMemberTaskText] = useState('');
   const [memberTaskDeadline, setMemberTaskDeadline] = useState('');
@@ -233,24 +232,7 @@ const GroupPanel = ({ currentUser }) => {
     }
   };
 
-  const handleCreateTask = async () => {
-    if (!selectedGroupId || !taskText.trim()) return;
-    const res = await createGroupTask({
-      groupId: selectedGroupId,
-      text: taskText,
-      deadline: taskDeadline,
-      userId: selectedMemberId || null, // allow unassigned tasks
-      completed: false,
-      completion_percent: 0
-    });
-    if (res.success) {
-      setTasks((prev) => [...prev, res.data]);
-      setTaskText('');
-      setTaskDeadline('');
-    } else {
-      alert(res.error || 'Failed to add task');
-    }
-  };
+  
 
   const handleArchiveGroup = async (groupId) => {
     const res = await archiveGroup({ groupId });
@@ -401,11 +383,11 @@ const GroupPanel = ({ currentUser }) => {
                 <div className="flex gap-2">
                   <input
                     className="border rounded-md p-2 text-sm dark:bg-[#1a1f2c] dark:border-[#202733] dark:text-gray-400 placeholder:dark:text-gray-400"
-                    placeholder="Invite by email"
+                    placeholder="Add a user via email"
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
                   />
-                  <button className="bg-gradient-to-r from-indigo-950 via-indigo-900 to-indigo-700 hover:from-indigo-900 hover:via-indigo-700 hover:to-indigo-500 text-white rounded-md px-3 text-sm" onClick={handleInviteByEmail}>Invite</button>
+                  <button className="bg-gradient-to-r from-indigo-950 via-indigo-900 to-indigo-700 hover:from-indigo-900 hover:via-indigo-700 hover:to-indigo-500 text-white rounded-md px-3 text-sm" onClick={handleInviteByEmail}>Add</button>
                 </div>
               </div>
 
@@ -490,13 +472,13 @@ const GroupPanel = ({ currentUser }) => {
             </div>
 
             {/* Tasks */}
-            <div>
+            {/*<div>
               <h3 className="font-semibold text-lg mb-2 dark:text-slate-100">Group Tasks</h3>
               <div className="flex gap-2 mb-3">
                 <input className="flex-1 border rounded-md p-2 text-sm dark:bg-[#1a1f2c] dark:border-slate-600 dark:text-slate-300 dark:placeholder-slate-400" placeholder="Task description" value={taskText} onChange={(e) => setTaskText(e.target.value)} />
                 <input type="date" className="border rounded-md p-2 text-sm dark:bg-[#1a1f2c] dark:border-slate-600 dark:text-slate-300" value={taskDeadline} onChange={(e) => setTaskDeadline(e.target.value)} />
                 <button className="bg-blue-600 text-white rounded-md px-3 text-sm" onClick={handleCreateTask}>Add</button>
-              </div>
+              </div>*/}
               {tasks.length === 0 ? (
                 <div className="text-slate-500 dark:text-slate-400 text-sm">No tasks yet.</div>
               ) : (
@@ -523,7 +505,7 @@ const GroupPanel = ({ currentUser }) => {
                               Task assigned to: {members.find(m => m.u_id === t.user_id)?.name || members.find(m => m.u_id === t.user_id)?.email || 'Member'}
                             </div>
                           ) : (
-                            <div className="text-xs text-blue-600 dark:text-blue-400">
+                           <div className="text-xs text-blue-600 dark:text-blue-400">
                               Task assigned to: GROUP
                             </div>
                           )}
@@ -558,7 +540,6 @@ const GroupPanel = ({ currentUser }) => {
                 </ul>
               )}
             </div>
-          </div>
         )}
       </div>
     </div>

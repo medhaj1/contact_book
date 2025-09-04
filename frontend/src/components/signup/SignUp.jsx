@@ -23,13 +23,7 @@ const SignUp = () => {
     const { name, contact, email, password, confirmPassword } = formData;
 
     if (password !== confirmPassword) {
-      toast.error('Passwords do not match.', {
-        autoClose: 4000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
+      toast.error('Passwords do not match.');
       return;
     }
 
@@ -39,6 +33,7 @@ const SignUp = () => {
         password,
         options: {
           data: { name, contact },
+          emailRedirectTo: `${window.location.origin}/dashboard`,
         },
       });
       const { data: { user }, error: signUpError } = signUpResponse;
@@ -47,13 +42,7 @@ const SignUp = () => {
       console.log('User after signup:', user);
 
       if (signUpError || !user) {
-        toast.error(`Signup failed: ${signUpError?.message || 'No user returned. Please check your email and password.'}`, {
-          autoClose: 6000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
+        toast.error(`Signup failed: ${signUpError?.message || 'No user returned. Please check your email and password.'}`);
         return;
       }
 
@@ -70,32 +59,14 @@ const SignUp = () => {
 
       if (profileError) {
         console.error('Profile creation failed:', profileError);
-        toast.error(`Database error: ${profileError.message}`, {
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
+        toast.error(`Database error: ${profileError.message}`);
       } else {
-        toast.success('Sign-up successful! Please check your email to confirm your account.', {
-          autoClose: 6000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
+        toast.success('Sign-up successful! Please check your email to confirm your account.');
         navigate('/signin');
       }
     } catch (err) {
       console.error('Signup error:', err);
-      toast.error(`Signup error: ${err.message}`, {
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
+      toast.error(`Signup error: ${err.message}`);
     }
   };
 
@@ -112,9 +83,18 @@ const SignUp = () => {
         >
           <ArrowLeftIcon className="w-5 h-5 text-slate-400 hover:text-slate-600" />
         </button>
-        <h2 className="text-3xl font-bold mb-6 text-center text-blue-900">
-          Create Account
-        </h2>
+        
+        {/* Logo */}
+        <div className="flex flex-col items-center mb-6">
+          <img 
+            src="/a-vibrant-logo-for-a-contact-management-web-app--m (1).ico" 
+            alt="ContactBook+ Logo" 
+            className="h-16 w-16 object-contain mb-4"
+          />
+          <h2 className="text-3xl font-bold text-center text-blue-900">
+            Create Account
+          </h2>
+        </div>
 
         <input
           type="text"

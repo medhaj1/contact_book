@@ -5,9 +5,13 @@ import { useBlockedContacts } from './BlockedContactsContext';
 import { addContact, updateContact } from '../../services/contactService';
 import { useFormat } from '../settings/FormatContext';
 import { toast } from 'react-toastify';
+import { useModalControls } from '../../hooks/useOutsideClick';
 
 const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => {
   const { formatContactName, formatDate } = useFormat();
+
+  // Modal controls with outside click and escape key handling
+  const modalRef = useModalControls(onCancel, true, true, true);
 
   // Helper functions for formatting
   function formatName(contact) {
@@ -228,8 +232,14 @@ const ContactForm = ({ contact, categories = [], onSave, onCancel, userId }) => 
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-[1000]">
-      <div className="bg-white dark:bg-[#161b22] p-8 rounded-[16px] border dark:border-slate-700 w-[400px] max-h-[90vh] overflow-y-auto shadow-[0_10px_40px_rgba(0,0,0,0.15)]">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-[1000]"
+      ref={modalRef}
+    >
+      <div 
+        className="bg-white dark:bg-[#161b22] p-8 rounded-[16px] border dark:border-slate-700 w-[400px] max-h-[90vh] overflow-y-auto shadow-[0_10px_40px_rgba(0,0,0,0.15)]"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 className="text-[1.4rem] font-semibold text-[#334155] dark:text-slate-300 mb-6 text-center">
           {contact ? `Edit Contact - ${formatName(contact)}` : 'Add New Contact'}
         </h3>

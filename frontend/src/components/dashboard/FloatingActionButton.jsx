@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Plus } from 'lucide-react';
+import { useOutsideClick } from '../../hooks/useOutsideClick';
 
 const FloatingActionButton = ({
   show = true,
@@ -9,11 +10,17 @@ const FloatingActionButton = ({
   const [showAddContactDropdown, setShowAddContactDropdown] = useState(false);
   const [hovered, setHovered] = useState(false);
   const addBtnRef = useRef(null);
+  
+  // Use outside click hook to close dropdown
+  const dropdownRef = useOutsideClick(
+    () => setShowAddContactDropdown(false),
+    showAddContactDropdown
+  );
 
   if (!show) return null;
 
   return (
-    <div className="fixed bottom-[60px] right-[50px] z-40">
+    <div className="fixed bottom-[60px] right-[50px] z-40" ref={dropdownRef}>
       <div
         className="group relative"
         tabIndex={0}

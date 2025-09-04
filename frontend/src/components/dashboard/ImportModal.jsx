@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { Upload, FileUp, X } from 'lucide-react';
 import { importContacts } from '../../services/importExportService';
+import { useModalControls } from '../../hooks/useOutsideClick';
 
 const ImportModal = ({ userId, onImportComplete, onClose }) => {
   const [isImporting, setIsImporting] = useState(false);
   const [importMessage, setImportMessage] = useState('');
+
+  // Modal controls with outside click and escape key handling
+  const modalRef = useModalControls(onClose, true, true, true);
 
   const handleFileImport = async (event) => {
     const file = event.target.files[0];
@@ -35,8 +39,14 @@ const ImportModal = ({ userId, onImportComplete, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      ref={modalRef}
+    >
+      <div 
+        className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-slate-900 flex items-center">

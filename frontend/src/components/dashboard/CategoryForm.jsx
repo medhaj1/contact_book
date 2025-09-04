@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { addCategory, getCategories } from '../../services/categoryService';
+import { useModalControls } from '../../hooks/useOutsideClick';
 
 const CategoryForm = ({ onSave, onCancel, existingCategories = [], userId }) => {
   const [categoryName, setCategoryName] = useState(() => {
@@ -8,6 +9,9 @@ const CategoryForm = ({ onSave, onCancel, existingCategories = [], userId }) => 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [categories, setCategories] = useState([]);
+
+  // Modal controls with outside click and escape key handling
+  const modalRef = useModalControls(onCancel, true, true, true);
 
   // Persist category name
   useEffect(() => {
@@ -84,8 +88,14 @@ const CategoryForm = ({ onSave, onCancel, existingCategories = [], userId }) => 
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000]">
-      <div className="bg-white dark:bg-[#161b22] p-8 rounded-[12px] w-[400px] shadow-[0_10px_40px_rgba(0,0,0,0.1)]">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000]"
+      ref={modalRef}
+    >
+      <div 
+        className="bg-white dark:bg-[#161b22] p-8 rounded-[12px] w-[400px] shadow-[0_10px_40px_rgba(0,0,0,0.1)]"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 className="text-lg font-semibold text-slate-900 mb-6">Add New Category</h3>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
